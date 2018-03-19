@@ -538,26 +538,29 @@ void UK2Node_GetClassDefaults::CreateOutputPins(UClass* InClass)
 
 void UK2Node_GetClassDefaults::OnClassPinChanged()
 {
-	TArray<UEdGraphPin*> OldPins = Pins;
-	TArray<UEdGraphPin*> OldOutputPins;
+	TArray<UEdGraphPin*> OldOutputPins = MoveTemp(Pins);
 
 	// Gather all current output pins
-	for(int32 PinIndex = 0; PinIndex < OldPins.Num(); ++PinIndex)
+	for(int32 PinIndex = 0; PinIndex < OldOutputPins.Num(); ++PinIndex)
 	{
-		UEdGraphPin* OldPin = OldPins[PinIndex];
-		if(OldPin->Direction == EGPD_Output)
+		UEdGraphPin* OldPin = OldOutputPins[PinIndex];
+		if(OldPin->Direction == EGPD_Input)
 		{
-			Pins.Remove(OldPin);
-			OldOutputPins.Add(OldPin);
+			OldOutputPins.RemoveAt(PinIndex--, 1, false);
+			Pins.Add(OldPin);
 		}
 	}
 
 	// Clear the current output pin settings (so they don't carry over to the new set)
-	ShowPinForProperties.Empty();
+	ShowPinForProperties.Reset();
 
 	// Create output pins for the new class type
 	UClass* InputClass = GetInputClass();
 	CreateOutputPins(InputClass);
+
+	// Restore the split pins and reconnect output pins to previously linked inputs
+	RestoreSplitPins(OldOutputPins);
+	RewireOldPinsToNewPins(OldOutputPins, Pins);
 
 	// Destroy the previous set of output pins
 	DestroyPinList(OldOutputPins);
