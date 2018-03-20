@@ -1428,7 +1428,7 @@ void FLandscapeComponentSceneProxy::DrawStaticElements(FStaticPrimitiveDrawInter
 	const int32 NumBatchesPerLOD = (ForcedLOD < 0 && NumSubsections > 1) ? (FMath::Square(NumSubsections) + 1) : 1;
 	const int32 BatchCount = AvailableMaterials.Num() > 1 && TessellationEnabledOnDefaultMaterial ? 4 : UseSeperateBatchForShadow ? 2 : 1;
 
-	StaticBatchParamArray.Empty(ForcedLOD < 0 ? (1 + LastLOD - FirstLOD) * NumBatchesPerLOD * BatchCount : BatchCount);
+	StaticBatchParamArray.Empty(ForcedLOD < 0 ? (1 + LastLOD) * NumBatchesPerLOD * BatchCount : BatchCount);
 
 	// Default Batch, tesselated if enabled
 	FMeshBatch NormalMeshBatch;
