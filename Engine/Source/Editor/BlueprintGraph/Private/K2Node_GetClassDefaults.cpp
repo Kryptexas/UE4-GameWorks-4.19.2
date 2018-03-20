@@ -538,6 +538,8 @@ void UK2Node_GetClassDefaults::CreateOutputPins(UClass* InClass)
 
 void UK2Node_GetClassDefaults::OnClassPinChanged()
 {
+	Modify();
+
 	TArray<UEdGraphPin*> OldOutputPins = MoveTemp(Pins);
 
 	// Gather all current output pins
@@ -561,9 +563,6 @@ void UK2Node_GetClassDefaults::OnClassPinChanged()
 	// Restore the split pins and reconnect output pins to previously linked inputs
 	RestoreSplitPins(OldOutputPins);
 	RewireOldPinsToNewPins(OldOutputPins, Pins);
-
-	// Destroy the previous set of output pins
-	DestroyPinList(OldOutputPins);
 
 	// Notify the graph that the node has been changed
 	if(UEdGraph* Graph = GetGraph())
