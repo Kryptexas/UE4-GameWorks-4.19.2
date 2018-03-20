@@ -651,6 +651,23 @@ FLandscapeComponentSceneProxy::FLandscapeComponentSceneProxy(ULandscapeComponent
 		HeightmapSubsectionOffsetV = ((float)(InComponent->SubsectionSizeQuads + 1) / (float)HeightmapTexture->GetSizeY());
 	}
 
+	float ScreenSizeRatioDivider = InComponent->GetLandscapeProxy()->LOD0DistributionSetting;
+	float CurrentScreenSizeRatio = 1.0f;
+
+	LODScreenRatioSquared.AddUninitialized(MaxLOD + 1);
+
+	// LOD 0 handling
+	LODScreenRatioSquared[0] = FMath::Square(CurrentScreenSizeRatio);
+	CurrentScreenSizeRatio /= ScreenSizeRatioDivider;
+	ScreenSizeRatioDivider = InComponent->GetLandscapeProxy()->LODDistributionSetting;
+
+	// Other LODs
+	for (int32 LODIndex = 1; LODIndex <= MaxLOD; ++LODIndex) // This should ALWAYS be calculated from the component size, not user MaxLOD override
+	{
+		LODScreenRatioSquared[LODIndex] = FMath::Square(CurrentScreenSizeRatio);
+		CurrentScreenSizeRatio /= ScreenSizeRatioDivider;
+	}
+
 	LODBias = FMath::Clamp<int8>(LODBias, -MaxLOD, MaxLOD);
 
 	if (InComponent->GetLandscapeProxy()->MaxLODLevel >= 0)
@@ -661,23 +678,6 @@ FLandscapeComponentSceneProxy::FLandscapeComponentSceneProxy(ULandscapeComponent
 	FirstLOD = (ForcedLOD >= 0) ? FMath::Min<int32>(ForcedLOD, MaxLOD) : FMath::Max<int32>(LODBias, 0);
 	LastLOD = (ForcedLOD >= 0) ? FirstLOD : MaxLOD;	// we always need to go to MaxLOD regardless of LODBias as we could need the lowest LODs due to streaming.
 	
-	LODScreenRatioSquared.AddUninitialized(LastLOD+1);
-
-	float ScreenSizeRatioDivider =  InComponent->GetLandscapeProxy()->LOD0DistributionSetting;
-	float CurrentScreenSizeRatio = 1.0f;
-
-	// LOD 0 handling
-	LODScreenRatioSquared[0] = FMath::Square(CurrentScreenSizeRatio);
-	CurrentScreenSizeRatio /= ScreenSizeRatioDivider;
-	ScreenSizeRatioDivider = InComponent->GetLandscapeProxy()->LODDistributionSetting;
-
-	// Other LODs
-	for (int32 LODIndex = 1; LODIndex <= LastLOD; ++LODIndex)
-	{
-		LODScreenRatioSquared[LODIndex] = FMath::Square(CurrentScreenSizeRatio);
-		CurrentScreenSizeRatio /= ScreenSizeRatioDivider;
-	}
-
 	int8 LocalLODBias = LODBias + (int8)GLandscapeMeshLODBias;
 	MinValidLOD = FMath::Clamp<int8>(LocalLODBias, -MaxLOD, MaxLOD);
 	MaxValidLOD = FMath::Min<int32>(MaxLOD, MaxLOD + LocalLODBias);
@@ -1516,10 +1516,7 @@ void FLandscapeComponentSceneProxy::CalculateLODFromScreenSize(const FSceneView&
 	}
 	else
 	{
-		PreferedLOD = (float)GetLODFromScreenSize(InMeshScreenSizeSquared, InViewLODScale);
-		PreferedLOD = FMath::Max<float>(PreferedLOD, MinStreamedLOD);
-
-		PreferedLOD = ComputeBatchElementCurrentLOD((int32)PreferedLOD, InMeshScreenSizeSquared);
+		PreferedLOD = ComputeBatchElementCurrentLOD(FMath::Max<int32>(GetLODFromScreenSize(InMeshScreenSizeSquared, InViewLODScale), MinStreamedLOD), InMeshScreenSizeSquared);
 	}
 
 	check(PreferedLOD != -1.0f);
