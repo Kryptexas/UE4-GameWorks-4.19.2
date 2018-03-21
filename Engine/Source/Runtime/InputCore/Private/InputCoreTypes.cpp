@@ -1089,7 +1089,7 @@ void FKey::ResetKey()
 	if (KeyNameStr.StartsWith(FKey::SyntheticCharPrefix))
 	{
 		// This was a dynamically added key, so we need to force it to be synthesized if it doesn't already exist
-		const FString KeyNameStr2 = KeyNameStr.RightChop(9);
+		const FString KeyNameStr2 = KeyNameStr.RightChop(FCString::Strlen(FKey::SyntheticCharPrefix));
 		const uint32 CharCode = FCString::Atoi(*KeyNameStr2);
 		if (CharCode > 0)
 		{
