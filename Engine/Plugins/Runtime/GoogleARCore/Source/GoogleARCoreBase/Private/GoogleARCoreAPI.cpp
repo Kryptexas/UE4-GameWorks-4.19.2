@@ -638,15 +638,17 @@ void FGoogleARCoreFrame::ARLineTrace(const FVector2D& ScreenPosition, EGoogleARC
 				UARTrackedGeometry* TrackedGeometry = Session->GetUObjectManager()->GetTrackableFromHandle<UARTrackedGeometry>(TrackableHandle, Session);
 				FARTraceResult UEHitResult(Session->GetARSystem(), Distance, EARLineTraceChannels::FeaturePoint, HitTransform, TrackedGeometry);
 				OutHitResults.Add(UEHitResult);
+				continue;
 			}
-			else if(!!(RequestedTraceChannels & EGoogleARCoreLineTraceChannel::FeaturePoint))
+			if(!!(RequestedTraceChannels & EGoogleARCoreLineTraceChannel::FeaturePoint))
 			{
 				UARTrackedGeometry* TrackedGeometry = Session->GetUObjectManager()->GetTrackableFromHandle<UARTrackedGeometry>(TrackableHandle, Session);
 				FARTraceResult UEHitResult(Session->GetARSystem(), Distance, EARLineTraceChannels::FeaturePoint, HitTransform, TrackedGeometry);
 				OutHitResults.Add(UEHitResult);
+				continue;
 			}
 		}
-		else if (TrackableType == AR_TRACKABLE_PLANE)
+		if (TrackableType == AR_TRACKABLE_PLANE)
 		{
 			ArPlane* PlaneHandle = reinterpret_cast<ArPlane*>(TrackableHandle);
 			if (!!(RequestedTraceChannels & EGoogleARCoreLineTraceChannel::PlaneUsingBoundaryPolygon))
@@ -658,9 +660,10 @@ void FGoogleARCoreFrame::ARLineTrace(const FVector2D& ScreenPosition, EGoogleARC
 					UARTrackedGeometry* TrackedGeometry = Session->GetUObjectManager()->GetTrackableFromHandle<UARTrackedGeometry>(TrackableHandle, Session);
 					FARTraceResult UEHitResult(Session->GetARSystem(), Distance, EARLineTraceChannels::PlaneUsingBoundaryPolygon, HitTransform, TrackedGeometry);
 					OutHitResults.Add(UEHitResult);
+					continue;
 				}
 			}
-			else if (!!(RequestedTraceChannels & EGoogleARCoreLineTraceChannel::PlaneUsingExtent))
+			if (!!(RequestedTraceChannels & EGoogleARCoreLineTraceChannel::PlaneUsingExtent))
 			{
 				int32 PointInsideExtents = 0;
 				ArPlane_isPoseInExtents(SessionHandle, PlaneHandle, HitResultPoseHandle, &PointInsideExtents);
@@ -669,13 +672,15 @@ void FGoogleARCoreFrame::ARLineTrace(const FVector2D& ScreenPosition, EGoogleARC
 					UARTrackedGeometry* TrackedGeometry = Session->GetUObjectManager()->GetTrackableFromHandle<UARTrackedGeometry>(TrackableHandle, Session);
 					FARTraceResult UEHitResult(Session->GetARSystem(), Distance, EARLineTraceChannels::PlaneUsingExtent, HitTransform, TrackedGeometry);
 					OutHitResults.Add(UEHitResult);
+					continue;
 				}
 			}
-			else if (!!(RequestedTraceChannels & EGoogleARCoreLineTraceChannel::InfinitePlane))
+			if (!!(RequestedTraceChannels & EGoogleARCoreLineTraceChannel::InfinitePlane))
 			{
 				UARTrackedGeometry* TrackedGeometry = Session->GetUObjectManager()->GetTrackableFromHandle<UARTrackedGeometry>(TrackableHandle, Session);
 				FARTraceResult UEHitResult(Session->GetARSystem(), Distance, EARLineTraceChannels::GroundPlane, HitTransform, TrackedGeometry);
 				OutHitResults.Add(UEHitResult);
+				continue;
 			}
 		}
 	}
@@ -746,13 +751,20 @@ FGoogleARCoreLightEstimate FGoogleARCoreFrame::GetLightEstimate() const
 	ArLightEstimate_create(SessionHandle, &LightEstimateHandle);
 	ArFrame_getLightEstimate(SessionHandle, FrameHandle, LightEstimateHandle);
 
-	FGoogleARCoreLightEstimate LightEstimate;
-	ArLightEstimate_getPixelIntensity(SessionHandle, LightEstimateHandle, &LightEstimate.PixelIntensity);
-
 	ArLightEstimateState LightEstimateState;
 	ArLightEstimate_getState(SessionHandle, LightEstimateHandle, &LightEstimateState);
 
+	FGoogleARCoreLightEstimate LightEstimate;
 	LightEstimate.bIsValid = (LightEstimateState == AR_LIGHT_ESTIMATE_STATE_VALID) ? true : false;
+
+	if(LightEstimate.bIsValid)
+	{
+		ArLightEstimate_getPixelIntensity(SessionHandle, LightEstimateHandle, &LightEstimate.PixelIntensity);
+	}
+	else
+	{
+		LightEstimate.PixelIntensity = 0.0f;
+	}
 
 	ArLightEstimate_destroy(LightEstimateHandle);
 
@@ -919,6 +931,7 @@ void FGoogleARCoreTrackedPlaneResource::UpdateGeometryData()
 	int64 TimeStamp = SessionPtr->GetLatestFrame()->GetCameraTimestamp();
 
 	PlaneGeometry->UpdateTrackedGeometry(SessionPtr->GetARSystem(), FrameNum, static_cast<double>(TimeStamp), LocalToTrackingTransform, SessionPtr->GetARSystem()->GetAlignmentTransform(), FVector::ZeroVector, Extent, BoundaryPolygon, SubsumedByPlane);
+	PlaneGeometry->SetDebugName(FName(TEXT("ARCorePlane")));
 }
 
 void FGoogleARCoreTrackedPointResource::UpdateGeometryData()
@@ -945,6 +958,7 @@ void FGoogleARCoreTrackedPointResource::UpdateGeometryData()
 	uint32 FrameNum = SessionPtr->GetFrameNum();
 	int64 TimeStamp = SessionPtr->GetLatestFrame()->GetCameraTimestamp();
 	TrackedPoint->UpdateTrackedGeometry(SessionPtr->GetARSystem(), FrameNum, static_cast<double>(TimeStamp), PointPose, SessionPtr->GetARSystem()->GetAlignmentTransform());
+	TrackedPoint->SetDebugName(FName(TEXT("ARCoreTrackedPoint")));
 }
 #endif
 
@@ -1001,6 +1015,10 @@ void UGoogleARCorePointCloud::GetPoint(int Index, FVector& OutWorldPosition, flo
 		Point.X = -PointData[Index * 4 + 2];
 
 		Point = Point * Session.Pin()->GetWorldToMeterScale();
+		FTransform PointLocalTransform(Point);
+		TSharedRef<FARSystemBase, ESPMode::ThreadSafe> ARSystem = Session.Pin()->GetARSystem();
+		FTransform PointWorldTransform = PointLocalTransform * ARSystem->GetAlignmentTransform() * ARSystem->GetTrackingToWorldTransform();
+		Point = PointWorldTransform.GetTranslation();
 		Confidence = PointData[Index * 4 + 3];
 #endif
 	}
@@ -1012,6 +1030,7 @@ void UGoogleARCorePointCloud::ReleasePointCloud()
 {
 #if PLATFORM_ANDROID
 	ArPointCloud_release(PointCloudHandle);
+	PointCloudHandle = nullptr;
 #endif
 }
 
