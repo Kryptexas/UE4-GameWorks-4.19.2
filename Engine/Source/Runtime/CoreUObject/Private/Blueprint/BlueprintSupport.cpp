@@ -1860,8 +1860,23 @@ void FLinkerLoad::ResolveDeferredExports(UClass* LoadClass)
 			TGuardValue<int32> ClearDeferredCDOToPreventDeferExportCreation(DeferredCDOIndex, INDEX_NONE);
 			for(int32 ExportIndex : DeferredTemplateObjects)
 			{
-				ExportMap[ExportIndex].Object = nullptr;
-				CreateExport(ExportIndex);
+				FObjectExport& Export = ExportMap[ExportIndex];
+				ULinkerPlaceholderExportObject* PlaceholderExport = Cast<ULinkerPlaceholderExportObject>(Export.Object);
+				if (ensure(PlaceholderExport))
+				{
+					// replace the placeholder with the proper object instance
+					Export.Object = nullptr;
+					UObject* ExportObj = CreateExport(ExportIndex);
+
+					PlaceholderExport->ResolveAllPlaceholderReferences(ExportObj);
+					ResolvedDeferredSubobjects(PlaceholderExport);
+
+					PlaceholderExport->MarkPendingKill();
+					if (ExportObj != nullptr)
+					{
+						Preload(ExportObj);
+					}
+				}
 			}
 		}
 
