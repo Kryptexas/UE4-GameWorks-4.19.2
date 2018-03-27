@@ -225,7 +225,8 @@ namespace Tools.DotNETCommon
 			if (!String.IsNullOrEmpty(HintPath))
 			{
 				FileReference AssemblyFile = FileReference.Combine(BaseDirectory, HintPath);
-				bool bPrivate = GetChildElementBoolean(ParentElement, "Private", true);
+				bool bEmbedInteropTypes = GetChildElementBoolean(ParentElement, "EmbedInteropTypes", false);
+				bool bPrivate = GetChildElementBoolean(ParentElement, "Private", !bEmbedInteropTypes);
 				References.Add(AssemblyFile, bPrivate);
 			}
 		}
