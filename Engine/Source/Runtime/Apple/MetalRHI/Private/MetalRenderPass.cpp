@@ -835,7 +835,7 @@ void FMetalRenderPass::AsyncCopyFromBufferToBuffer(id<MTLBuffer> SourceBuffer, N
 	{
 		if (NSIntersectionRange(Range, DestRange).length > 0)
 		{
-			UE_LOG(LogMetal, Warning, TEXT("AsyncCopyFromBufferToBuffer on overlapping ranges ({%d, %d} vs {%d, %d}) of destination buffer %p."), (uint32)Range.location, (uint32)Range.length, (uint32)DestinationOffset, (uint32)Size, DestinationBuffer);
+			UE_LOG(LogMetal, Verbose, TEXT("AsyncCopyFromBufferToBuffer on overlapping ranges ({%d, %d} vs {%d, %d}) of destination buffer %p."), (uint32)Range.location, (uint32)Range.length, (uint32)DestinationOffset, (uint32)Size, DestinationBuffer);
 			bSafe = false;
 			break;
 		}
