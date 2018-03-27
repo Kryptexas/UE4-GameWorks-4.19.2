@@ -1430,15 +1430,17 @@ FStaticMeshSceneProxy::FLODInfo::FLODInfo(const UStaticMeshComponent* InComponen
 	FStaticMeshRenderData* MeshRenderData = InComponent->GetStaticMesh()->RenderData.Get();
 	FStaticMeshLODResources& LODModel = MeshRenderData->LODResources[LODIndex];
 	const FStaticMeshVertexFactories& VFs = InLODVertexFactories[LODIndex];
+
+	if (InComponent->LightmapType == ELightmapType::ForceVolumetric)
+	{
+		SetGlobalVolumeLightmap(true);
+	}
+
 	if (LODIndex < InComponent->LODData.Num())
 	{
 		const FStaticMeshComponentLODInfo& ComponentLODInfo = InComponent->LODData[LODIndex];
 
-		if (InComponent->LightmapType == ELightmapType::ForceVolumetric)
-		{
-			SetGlobalVolumeLightmap(true);
-		}
-		else
+		if (InComponent->LightmapType != ELightmapType::ForceVolumetric)
 		{
 			const FMeshMapBuildData* MeshMapBuildData = InComponent->GetMeshMapBuildData(ComponentLODInfo);
 			if (MeshMapBuildData)
@@ -1473,28 +1475,23 @@ FStaticMeshSceneProxy::FLODInfo::FLODInfo(const UStaticMeshComponent* InComponen
 		}
 	}
 
-	if (LODIndex > 0 && bLODsShareStaticLighting && InComponent->LODData.IsValidIndex(0))
+	if (LODIndex > 0 
+		&& bLODsShareStaticLighting 
+		&& InComponent->LODData.IsValidIndex(0)
+		&& InComponent->LightmapType != ELightmapType::ForceVolumetric)
 	{
 		const FStaticMeshComponentLODInfo& ComponentLODInfo = InComponent->LODData[0];
+		const FMeshMapBuildData* MeshMapBuildData = InComponent->GetMeshMapBuildData(ComponentLODInfo);
 
-		if (InComponent->LightmapType == ELightmapType::ForceVolumetric)
+		if (MeshMapBuildData)
 		{
-			SetGlobalVolumeLightmap(true);
-		}
-		else
-		{
-			const FMeshMapBuildData* MeshMapBuildData = InComponent->GetMeshMapBuildData(ComponentLODInfo);
-
-			if (MeshMapBuildData)
-			{
-				SetLightMap(MeshMapBuildData->LightMap);
-				SetShadowMap(MeshMapBuildData->ShadowMap);
-				IrrelevantLights = MeshMapBuildData->IrrelevantLights;
-			}
+			SetLightMap(MeshMapBuildData->LightMap);
+			SetShadowMap(MeshMapBuildData->ShadowMap);
+			IrrelevantLights = MeshMapBuildData->IrrelevantLights;
 		}
 	}
 
-	bool bHasStaticLighting = GetLightMap() != NULL || GetShadowMap() != NULL;
+	const bool bHasSurfaceStaticLighting = GetLightMap() != NULL || GetShadowMap() != NULL;
 
 	// Gather the materials applied to the LOD.
 	Sections.Empty(MeshRenderData->LODResources[LODIndex].Sections.Num());
@@ -1515,7 +1512,7 @@ FStaticMeshSceneProxy::FLODInfo::FLODInfo(const UStaticMeshComponent* InComponen
 		}
 
 		// If there isn't an applied material, or if we need static lighting and it doesn't support it, fall back to the default material.
-		if(!SectionInfo.Material || (bHasStaticLighting && !SectionInfo.Material->CheckMaterialUsage_Concurrent(MATUSAGE_StaticLighting)))
+		if(!SectionInfo.Material || (bHasSurfaceStaticLighting && !SectionInfo.Material->CheckMaterialUsage_Concurrent(MATUSAGE_StaticLighting)))
 		{
 			SectionInfo.Material = UMaterial::GetDefaultMaterial(MD_Surface);
 		}
