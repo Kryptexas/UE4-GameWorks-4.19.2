@@ -1392,7 +1392,11 @@ bool SGraphNode::OnVerifyNameTextChanged(const FText& InText, FText& OutErrorMes
 
 void SGraphNode::OnNameTextCommited(const FText& InText, ETextCommit::Type CommitInfo)
 {
-	OnTextCommitted.ExecuteIfBound(InText, CommitInfo, GraphNode);
+	FText ErrorMessage;
+	if (!OnVerifyTextCommit.IsBound() || OnVerifyTextCommit.Execute(InText, GraphNode, ErrorMessage))
+	{
+		OnTextCommitted.ExecuteIfBound(InText, CommitInfo, GraphNode);
+	}
 	
 	UpdateErrorInfo();
 	if (ErrorReporting.IsValid())
