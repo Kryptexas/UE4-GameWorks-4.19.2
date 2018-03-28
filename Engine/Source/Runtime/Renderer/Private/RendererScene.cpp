@@ -2436,6 +2436,7 @@ void FScene::RemoveSpeedTreeWind(class FVertexFactory* VertexFactory, const clas
 			Scene->RemoveSpeedTreeWind_RenderThread(VertexFactory, StaticMesh);
 		});
 	}
+}
 
 void FScene::RemoveSpeedTreeWind_RenderThread(class FVertexFactory* VertexFactory, const class UStaticMesh* StaticMesh)
 {
