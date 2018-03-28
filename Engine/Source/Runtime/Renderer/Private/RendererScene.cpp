@@ -2429,16 +2429,13 @@ void FScene::RemoveSpeedTreeWind(class FVertexFactory* VertexFactory, const clas
 {
 	if (StaticMesh != NULL && StaticMesh->SpeedTreeWind.IsValid() && StaticMesh->RenderData.IsValid())
 	{
-		ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
-			FRemoveSpeedTreeWindCommand,
-			FScene*,Scene,this,
-			const UStaticMesh*, StaticMesh, StaticMesh,
-			FVertexFactory*,VertexFactory,VertexFactory,
-			{
-				Scene->RemoveSpeedTreeWind_RenderThread(VertexFactory, StaticMesh);
-			});
+		FScene* Scene = this;
+		ENQUEUE_RENDER_COMMAND(FRemoveSpeedTreeWindCommand)(
+			[Scene, VertexFactory, StaticMesh](FRHICommandListImmediate& RHICmdList)
+		{
+			Scene->RemoveSpeedTreeWind_RenderThread(VertexFactory, StaticMesh);
+		});
 	}
-}
 
 void FScene::RemoveSpeedTreeWind_RenderThread(class FVertexFactory* VertexFactory, const class UStaticMesh* StaticMesh)
 {
