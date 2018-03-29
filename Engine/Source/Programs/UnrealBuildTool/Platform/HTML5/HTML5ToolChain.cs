@@ -164,14 +164,14 @@ namespace UnrealBuildTool
 
 			// --------------------------------------------------------------------------------
 			// normally, these option are for linking -- but it using here to force recompile when
-			if (targetWebGL2) // flipping between webgl1 and webgl2
-			{
-				Result += " -s USE_WEBGL2=1";
-			}
-			else
-			{
-				Result += " -s USE_WEBGL2=0";
-			}
+//			if (targetWebGL2) // flipping between webgl1 and webgl2
+//			{
+				Result += " -s USE_WEBGL2=1"; // see NOTE: UE-51094 UE-51267 futher below...
+//			}
+//			else
+//			{
+//				Result += " -s USE_WEBGL2=0";
+//			}
 			// --------------------------------------------------------------------------------
 
 			// Expect that Emscripten SDK has been properly set up ahead in time (with emsdk and prebundled toolchains this is always the case)
@@ -296,7 +296,8 @@ namespace UnrealBuildTool
 			// no need for exceptions
 			Result += " -s DISABLE_EXCEPTION_CATCHING=1";
 
-			if (targetWebGL2)
+			// NOTE: UE-51094 UE-51267 -- always USE_WEBGL2, webgl1 only feature can be switched on the fly via url paramater "?webgl1"
+//			if (targetWebGL2)
 			{
 				// WARNING - WARNING - WARNING - WARNING
 				// ensure the following chunk of code is added near the end of "Parse args" at the end of "shared.Settings..." section
@@ -308,6 +309,7 @@ namespace UnrealBuildTool
 
 				// Enable targeting WebGL 2 when available.
 				Result += " -s USE_WEBGL2=1";
+
 
 				// Also enable WebGL 1 emulation in WebGL 2 contexts. This adds backwards compatibility related features to WebGL 2,
 				// such as:
