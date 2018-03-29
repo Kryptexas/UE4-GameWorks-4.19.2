@@ -200,7 +200,7 @@ bool FImgMediaPlayer::Open(const TSharedRef<FArchive, ESPMode::ThreadSafe>& /*Ar
 
 void FImgMediaPlayer::TickInput(FTimespan DeltaTime, FTimespan /*Timecode*/)
 {
-	SCOPE_CYCLE_COUNTER(STAT_ImgMedia_PlayerTickInput);
+//	SCOPE_CYCLE_COUNTER(STAT_ImgMedia_PlayerTickInput);
 
 	if (!Loader.IsValid() || (CurrentState == EMediaState::Error))
 	{

@@ -60,7 +60,7 @@ void FImgMediaLoaderWork::DoThreadedWork()
 	}
 	else
 	{
-		SCOPE_CYCLE_COUNTER(STAT_ImgMedia_LoaderReadFrame);
+//		SCOPE_CYCLE_COUNTER(STAT_ImgMedia_LoaderReadFrame);
 
 		// read the image frame
 		Frame = new FImgMediaFrame();
@@ -72,7 +72,7 @@ void FImgMediaLoaderWork::DoThreadedWork()
 		}
 	}
 
-	SCOPE_CYCLE_COUNTER(STAT_ImgMedia_LoaderFinalizeWork);
+//	SCOPE_CYCLE_COUNTER(STAT_ImgMedia_LoaderFinalizeWork);
 
 	Finalize(Frame);
 }
