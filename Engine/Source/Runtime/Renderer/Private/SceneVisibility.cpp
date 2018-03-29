@@ -1908,7 +1908,7 @@ static void ComputeAndMarkRelevanceForViewParallel(
 	if (WillExecuteInParallel)
 	{
 		// We must reserve to prevent realloc otherwise it will cause memory leak if WillExecuteInParallel == true
-		View.PrimitiveCustomDataMemStack.Reserve(View.PrimitiveCustomDataMemStack.Num() + FMath::RoundToInt(NumMesh / FRelevancePrimSet<int32>::MaxInputPrims));
+		View.PrimitiveCustomDataMemStack.Reserve(View.PrimitiveCustomDataMemStack.Num() + FMath::TruncToInt((float)NumMesh / (float)FRelevancePrimSet<int32>::MaxInputPrims + 1.0f));
 	}
 
 	{
