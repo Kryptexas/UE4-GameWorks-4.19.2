@@ -675,8 +675,14 @@ FLandscapeComponentSceneProxy::FLandscapeComponentSceneProxy(ULandscapeComponent
 		MaxLOD = FMath::Min<int8>(MaxLOD, InComponent->GetLandscapeProxy()->MaxLODLevel);
 	}
 
-	FirstLOD = (ForcedLOD >= 0) ? FMath::Min<int32>(ForcedLOD, MaxLOD) : FMath::Max<int32>(LODBias, 0);
+	ForcedLOD = FMath::Min<int32>(ForcedLOD, MaxLOD);
+
+	FirstLOD = (ForcedLOD >= 0) ? ForcedLOD : FMath::Max<int32>(LODBias, 0);
 	LastLOD = (ForcedLOD >= 0) ? FirstLOD : MaxLOD;	// we always need to go to MaxLOD regardless of LODBias as we could need the lowest LODs due to streaming.
+
+	// Make sure out LastLOD is > of MinStreamedLOD otherwise we would not be using the right LOD->MIP, the only drawback is a possible minor memory usage for overallocating static mesh element batch
+	const int32 MinStreamedLOD = HeightmapTexture ? FMath::Min<int32>(((FTexture2DResource*)HeightmapTexture->Resource)->GetCurrentFirstMip(), FMath::CeilLogTwo(SubsectionSizeVerts) - 1) : 0;
+	LastLOD = FMath::Max(MinStreamedLOD, LastLOD);
 	
 	int8 LocalLODBias = LODBias + (int8)GLandscapeMeshLODBias;
 	MinValidLOD = FMath::Clamp<int8>(LocalLODBias, -MaxLOD, MaxLOD);
