@@ -1614,12 +1614,15 @@ namespace UnrealBuildTool
                 var DeployHandler = (Target.Platform == UnrealTargetPlatform.IOS ? new UEDeployIOS() : new UEDeployTVOS());
                 DeployHandler.PrepTargetForDeployment(new UEBuildDeployTarget(Target));
 
-				// copy the executable
-				if (!File.Exists(FinalRemoteExecutablePath))
-				{
-					Directory.CreateDirectory(String.Format("{0}/Payload/{1}.app", RemoteShadowDirectoryMac, AppName));
-				}
-				File.Copy(Target.OutputPath.FullName, FinalRemoteExecutablePath, true);
+                if (Target.Rules.bCreateStubIPA)
+                {
+					// copy the executable
+					if (!File.Exists(FinalRemoteExecutablePath))
+					{
+						Directory.CreateDirectory(String.Format("{0}/Payload/{1}.app", RemoteShadowDirectoryMac, AppName));	
+					}
+					File.Copy(Target.OutputPath.FullName, FinalRemoteExecutablePath, true);
+                }
 
 				GenerateCrashlyticsData(RemoteShadowDirectoryMac, Path.GetFileName(Target.OutputPath.FullName), Target.ProjectDirectory.FullName, AppName);
 
