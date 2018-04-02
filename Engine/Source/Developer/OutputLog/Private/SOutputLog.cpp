@@ -699,7 +699,10 @@ FReply SConsoleInputBox::OnKeyCharHandler(const FGeometry& MyGeometry, const FCh
 	const uint32* KeyCode = nullptr;
 	const uint32* CharCode = nullptr;
 	FInputKeyManager::Get().GetCodesFromKey(OpenConsoleChord.Key, KeyCode, CharCode);
-	check(CharCode);
+	if ( CharCode == nullptr) 
+	{
+		return FReply::Unhandled();
+	}
 
 	// Intercept the "open console" key
 	if ((!ActiveCommandExecutor || ActiveCommandExecutor->AllowHotKeyClose())
