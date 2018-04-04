@@ -1429,6 +1429,11 @@ bool FLandscapeComponentSceneProxy::GetMeshElement(bool UseSeperateBatchForShado
 
 void FLandscapeComponentSceneProxy::DrawStaticElements(FStaticPrimitiveDrawInterface* PDI)
 {
+	if (AvailableMaterials.Num() == 0)
+	{
+		return;
+	}
+
 	bool UseSeperateBatchForShadow = TessellationEnabledOnDefaultMaterial;
 	const int32 NumBatchesPerLOD = NumSubsections == 1 ? 1 : MAX_SUBSECTION_COUNT + 1;
 	const int32 BatchCount = AvailableMaterials.Num() > 1 && TessellationEnabledOnDefaultMaterial ? 4 : UseSeperateBatchForShadow ? 2 : 1;
@@ -2169,7 +2174,11 @@ void FLandscapeComponentSceneProxy::GetDynamicMeshElements(const TArray<const FS
 			FLandscapeElementParamArray& ParameterArray = Collector.AllocateOneFrameResource<FLandscapeElementParamArray>();
 			 
 			const FViewCustomDataLOD* PrimitiveCustomData = (const FViewCustomDataLOD*)View->GetCustomData(GetPrimitiveSceneInfo()->GetIndex());
-			check(PrimitiveCustomData != nullptr);
+
+			if (PrimitiveCustomData == nullptr)
+			{
+				continue;
+			}
 
 			ParameterArray.ElementParams.AddDefaulted(NumSubsections * NumSubsections);
 
