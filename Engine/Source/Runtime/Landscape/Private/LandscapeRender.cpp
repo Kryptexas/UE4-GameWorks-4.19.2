@@ -668,21 +668,20 @@ FLandscapeComponentSceneProxy::FLandscapeComponentSceneProxy(ULandscapeComponent
 		CurrentScreenSizeRatio /= ScreenSizeRatioDivider;
 	}
 
-	LODBias = FMath::Clamp<int8>(LODBias, -MaxLOD, MaxLOD);
-
 	if (InComponent->GetLandscapeProxy()->MaxLODLevel >= 0)
 	{
 		MaxLOD = FMath::Min<int8>(MaxLOD, InComponent->GetLandscapeProxy()->MaxLODLevel);
 	}
 
-	FirstLOD = FMath::Max<int32>(LODBias, 0);
+	FirstLOD = 0;
 	LastLOD = MaxLOD;	// we always need to go to MaxLOD regardless of LODBias as we could need the lowest LODs due to streaming.
 
 	// Make sure out LastLOD is > of MinStreamedLOD otherwise we would not be using the right LOD->MIP, the only drawback is a possible minor memory usage for overallocating static mesh element batch
 	const int32 MinStreamedLOD = HeightmapTexture ? FMath::Min<int32>(((FTexture2DResource*)HeightmapTexture->Resource)->GetCurrentFirstMip(), FMath::CeilLogTwo(SubsectionSizeVerts) - 1) : 0;
 	LastLOD = FMath::Max(MinStreamedLOD, LastLOD);
 
-	ForcedLOD = FMath::Clamp<int32>(ForcedLOD, FirstLOD, LastLOD);
+	ForcedLOD = ForcedLOD != INDEX_NONE ? FMath::Clamp<int32>(ForcedLOD, FirstLOD, LastLOD) : ForcedLOD;
+	LODBias = FMath::Clamp<int8>(LODBias, -MaxLOD, MaxLOD);
 
 	int8 LocalLODBias = LODBias + (int8)GLandscapeMeshLODBias;
 	MinValidLOD = FMath::Clamp<int8>(LocalLODBias, -MaxLOD, MaxLOD);
@@ -1517,16 +1516,16 @@ void FLandscapeComponentSceneProxy::CalculateLODFromScreenSize(const FSceneView&
 	}
 
 	const int32 MinStreamedLOD = HeightmapTexture ? FMath::Min<int32>(((FTexture2DResource*)HeightmapTexture->Resource)->GetCurrentFirstMip(), FMath::CeilLogTwo(SubsectionSizeVerts) - 1) : 0;
+	int8 LocalLODBias = LODBias + (int8)GLandscapeMeshLODBias;
 	FViewCustomDataSubSectionLOD& SubSectionLODData = InOutLODData.SubSections[InSubSectionIndex];
 
 	if (PreferedLOD >= 0.0f)
 	{
-		PreferedLOD = FMath::Clamp<int32>(PreferedLOD, FMath::Max((float)FirstLOD, MinValidLOD), FMath::Min((float)LastLOD, MaxValidLOD));
-		PreferedLOD = FMath::Max<float>(PreferedLOD, MinStreamedLOD);
+		PreferedLOD = FMath::Clamp<float>(PreferedLOD + LocalLODBias, FMath::Max((float)MinStreamedLOD, MinValidLOD), FMath::Min((float)LastLOD, MaxValidLOD));
 	}
 	else
 	{
-		PreferedLOD = ComputeBatchElementCurrentLOD(FMath::Max<int32>(GetLODFromScreenSize(InMeshScreenSizeSquared, InViewLODScale), MinStreamedLOD), InMeshScreenSizeSquared);
+		PreferedLOD = FMath::Clamp<float>(ComputeBatchElementCurrentLOD(GetLODFromScreenSize(InMeshScreenSizeSquared, InViewLODScale), InMeshScreenSizeSquared) + LocalLODBias, FMath::Max((float)MinStreamedLOD, MinValidLOD), FMath::Min((float)LastLOD, MaxValidLOD));
 	}
 
 	check(PreferedLOD != -1.0f);
@@ -1698,17 +1697,17 @@ float FLandscapeComponentSceneProxy::ComputeBatchElementCurrentLOD(int32 InSelec
 
 	float LODScreenRatioRange = CurrentLODScreenRatio - NextLODScreenRatio;
 
-	float CurrentScreenSize = InComponentScreenSize;
-
-	if (InComponentScreenSize > CurrentLODScreenRatio || InComponentScreenSize < NextLODScreenRatio) // is out of valid range for this LODIndex (which mean we had a clamp done either by ForcedLOD or MIP streaming
+	if (InComponentScreenSize > CurrentLODScreenRatio || InComponentScreenSize < NextLODScreenRatio)
 	{
-		CurrentScreenSize = CurrentLODScreenRatio; // assume start of the range
+		// Find corresponding LODIndex to appropriately calculate Ratio and apply it to new LODIndex
+		int32 LODFromScreenSize = GetLODFromScreenSize(InComponentScreenSize, 1.0f); // for 4.19 only
+		CurrentLODScreenRatio = LODScreenRatioSquared[LODFromScreenSize];
+		NextLODScreenRatio = LODFromScreenSize == LODScreenRatioSquared.Num() - 1 ? 0 : LODScreenRatioSquared[LODFromScreenSize + 1];
+		LODScreenRatioRange = CurrentLODScreenRatio - NextLODScreenRatio;
 	}
 
-	float CurrentLODRangeRatio = (CurrentScreenSize - NextLODScreenRatio) / LODScreenRatioRange;
+	float CurrentLODRangeRatio = (InComponentScreenSize - NextLODScreenRatio) / LODScreenRatioRange;
 	float fLOD = (float)InSelectedLODIndex + (1.0f - CurrentLODRangeRatio);
-
-	fLOD = FMath::Clamp<float>(fLOD, (float)MinValidLOD, (float)MaxValidLOD);
 
 	return fLOD;
 }
