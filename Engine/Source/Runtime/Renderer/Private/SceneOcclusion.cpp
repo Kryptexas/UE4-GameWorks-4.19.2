@@ -61,7 +61,7 @@ int32 FOcclusionQueryHelpers::GetNumBufferedFrames()
 {
 #if WITH_SLI
 	// If we're running with SLI, assume throughput is more important than latency, and buffer an extra frame
-	check(GNumActiveGPUsForRendering <= (int32)FOcclusionQueryHelpers::MaxBufferedOcclusionFrames);
+	ensureMsgf(GNumActiveGPUsForRendering <= (int32)FOcclusionQueryHelpers::MaxBufferedOcclusionFrames, TEXT("The number of buffered occlusion query frames (%i) is too small for the current AFR setting (%i). Performance may be affected."), (int32)FOcclusionQueryHelpers::MaxBufferedOcclusionFrames, (int32)GNumActiveGPUsForRendering);
 	return FMath::Min<int32>(GNumActiveGPUsForRendering, (int32)FOcclusionQueryHelpers::MaxBufferedOcclusionFrames);
 #else
 	static const auto NumBufferedQueriesVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.NumBufferedOcclusionQueries"));
