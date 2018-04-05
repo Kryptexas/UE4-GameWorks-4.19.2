@@ -1061,7 +1061,7 @@ void ULandscapeComponent::OnRegister()
 
 			for (int32 i = 0; i < MaterialInstances.Num(); ++i)
 			{
-				MaterialInstancesDynamic.Add(CreateDynamicMaterialInstance(i, MaterialInstances[i]));
+				MaterialInstancesDynamic.Add(UMaterialInstanceDynamic::Create(MaterialInstances[i], this));
 			}
 		}
 
