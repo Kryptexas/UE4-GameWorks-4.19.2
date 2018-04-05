@@ -1320,8 +1320,7 @@ void FD3D11DynamicRHI::InitD3DDevice()
 			}
 			else
 			{
-				GDX11NVAfterMathEnabled = 0;
-				UE_LOG(LogD3D11RHI, Warning, TEXT("[Aftermath] Skipping aftermath initialization on non-Nvidia device"));
+				GDX11NVAfterMathEnabled = 0;				
 			}
 		}
 #endif // NV_AFTERMATH
