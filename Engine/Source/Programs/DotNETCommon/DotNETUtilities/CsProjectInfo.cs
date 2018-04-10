@@ -224,9 +224,14 @@ namespace Tools.DotNETCommon
 			string HintPath = GetChildElementString(ParentElement, "HintPath", null);
 			if (!String.IsNullOrEmpty(HintPath))
 			{
-				FileReference AssemblyFile = FileReference.Combine(BaseDirectory, HintPath);
-				bool bPrivate = GetChildElementBoolean(ParentElement, "Private", true);
-				References.Add(AssemblyFile, bPrivate);
+				// Don't include embedded assemblies; they aren't referenced externally by the compiled executable
+				bool bEmbedInteropTypes = GetChildElementBoolean(ParentElement, "EmbedInteropTypes", false);
+				if(!bEmbedInteropTypes)
+				{
+					FileReference AssemblyFile = FileReference.Combine(BaseDirectory, HintPath);
+					bool bPrivate = GetChildElementBoolean(ParentElement, "Private", !bEmbedInteropTypes);
+					References.Add(AssemblyFile, bPrivate);
+				}
 			}
 		}
 

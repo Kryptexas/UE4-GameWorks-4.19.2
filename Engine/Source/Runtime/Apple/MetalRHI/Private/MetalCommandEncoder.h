@@ -305,6 +305,14 @@ public:
 	 */
 	FRingBuffer& GetRingBuffer(void);
 	
+#pragma mark - Public Resource query Access -
+
+	/*
+	 * Returns True if the Resource has been bound to a command encoder, otherwise false.  History will be cleared after a commit operation
+	 * @returns True if the Resource has been bound to a command encoder, otherwise false.
+	 */
+	bool HasResourceBindingHistory(id<MTLResource> Resource) const 	{ return ResourceBindingHistory.Contains(Resource); }
+	
 private:
 #pragma mark - Private Functions -
 	/*
@@ -361,4 +369,6 @@ private:
 	
 	NSMutableArray<MTLCommandBufferHandler>* CompletionHandlers;
 	NSMutableArray* DebugGroups;
+	
+	TSet<id<MTLResource> > ResourceBindingHistory;
 };

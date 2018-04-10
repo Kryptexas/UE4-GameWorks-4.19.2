@@ -251,7 +251,8 @@ void FMaterialBakingModule::CleanupMaterialProxies()
 UTextureRenderTarget2D* FMaterialBakingModule::CreateRenderTarget(bool bInForceLinearGamma, EPixelFormat InPixelFormat, const FIntPoint& InTargetSize)
 {
 	UTextureRenderTarget2D* RenderTarget = nullptr;
-	const FIntPoint ClampedTargetSize(FMath::Clamp(InTargetSize.X, 1, (int32)GetMax2DTextureDimension()), FMath::Clamp(InTargetSize.Y, 1, (int32)GetMax2DTextureDimension()));
+	const int32 MaxTextureSize = 1 << (MAX_TEXTURE_MIP_COUNT - 1); // Don't use GetMax2DTextureDimension() as this is for the RHI only.
+	const FIntPoint ClampedTargetSize(FMath::Clamp(InTargetSize.X, 1, MaxTextureSize), FMath::Clamp(InTargetSize.Y, 1, MaxTextureSize));
 	auto RenderTargetComparison = [bInForceLinearGamma, InPixelFormat, ClampedTargetSize](const UTextureRenderTarget2D* CompareRenderTarget) -> bool
 	{
 		return (CompareRenderTarget->SizeX == ClampedTargetSize.X && CompareRenderTarget->SizeY == ClampedTargetSize.Y && CompareRenderTarget->OverrideFormat == InPixelFormat && CompareRenderTarget->bForceLinearGamma == bInForceLinearGamma);

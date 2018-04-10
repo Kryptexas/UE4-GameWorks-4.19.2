@@ -969,7 +969,9 @@ bool BuildDestructibleMeshFromFractureSettings(UDestructibleMesh& DestructibleMe
 	apex::DestructibleAsset* NewApexDestructibleAsset = NULL;
 
 #if WITH_EDITORONLY_DATA
-	if (DestructibleMesh.FractureSettings != NULL)
+	UDestructibleFractureSettings* FractureSettings = DestructibleMesh.FractureSettings;
+
+	if (FractureSettings)
 	{
 		TArray<UMaterialInterface*> OverrideMaterials;
 		OverrideMaterials.SetNumUninitialized(DestructibleMesh.Materials.Num());	//save old materials
@@ -980,6 +982,7 @@ bool BuildDestructibleMeshFromFractureSettings(UDestructibleMesh& DestructibleMe
 
 		DestructibleMesh.Materials.SetNum(DestructibleMesh.FractureSettings->Materials.Num());
 
+		// If we have valid overrides or defaults, use those settings - otherwise a blank material (from default construction above)
 		for (int32 MaterialIndex = 0; MaterialIndex < DestructibleMesh.Materials.Num(); ++MaterialIndex)
 		{
 			if(MaterialIndex < OverrideMaterials.Num() && OverrideMaterials[MaterialIndex])//if user has overridden materials use it
@@ -988,13 +991,12 @@ bool BuildDestructibleMeshFromFractureSettings(UDestructibleMesh& DestructibleMe
 				DestructibleMesh.Materials[MaterialIndex].ImportedMaterialSlotName = OverrideMaterials[MaterialIndex]->GetFName();
 				DestructibleMesh.Materials[MaterialIndex].MaterialSlotName = OverrideMaterials[MaterialIndex]->GetFName();
 			}
-			else
+			else if(FractureSettings->Materials[MaterialIndex])
 			{
-				DestructibleMesh.Materials[MaterialIndex].MaterialInterface = DestructibleMesh.FractureSettings->Materials[MaterialIndex];
-				DestructibleMesh.Materials[MaterialIndex].ImportedMaterialSlotName = DestructibleMesh.FractureSettings->Materials[MaterialIndex]->GetFName();
-				DestructibleMesh.Materials[MaterialIndex].MaterialSlotName = DestructibleMesh.FractureSettings->Materials[MaterialIndex]->GetFName();
+				DestructibleMesh.Materials[MaterialIndex].MaterialInterface = FractureSettings->Materials[MaterialIndex];
+				DestructibleMesh.Materials[MaterialIndex].ImportedMaterialSlotName = FractureSettings->Materials[MaterialIndex]->GetFName();
+				DestructibleMesh.Materials[MaterialIndex].MaterialSlotName = FractureSettings->Materials[MaterialIndex]->GetFName();
 			}
-
 		}
 
 		apex::DestructibleAssetCookingDesc DestructibleAssetCookingDesc;

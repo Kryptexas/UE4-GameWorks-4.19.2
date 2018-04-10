@@ -1333,27 +1333,33 @@ void FMetalSurface::UpdateSurface(id<MTLBuffer> Buffer, uint32 MipIndex, uint32 
 		}
 #endif
 		
-		GetMetalDeviceContext().AsyncCopyFromBufferToTexture(Buffer, 0, Stride, BytesPerImage, Region.size, Texture, ArrayIndex, MipIndex, Region.origin, Options);
+		if(GetMetalDeviceContext().AsyncCopyFromBufferToTexture(Buffer, 0, Stride, BytesPerImage, Region.size, Texture, ArrayIndex, MipIndex, Region.origin, Options))
+		{
+			MTLCommandBufferHandler ScheduledHandler = nil;
+	#if STATS
+			int64* Cycles = new int64;
+			FPlatformAtomics::InterlockedExchange(Cycles, 0);
+			ScheduledHandler = ^(id <MTLCommandBuffer>)
+			{
+				FPlatformAtomics::InterlockedExchange(Cycles, FPlatformTime::Cycles64());
+			};
+	#endif
+			MTLCommandBufferHandler CompletionHandler = ^(id <MTLCommandBuffer>)
+			{
+				FPlatformAtomics::InterlockedAdd(&ActiveUploads, -Size);
+	#if STATS
+				int64 Taken = FPlatformTime::Cycles64() - *Cycles;
+				delete Cycles;
+				FPlatformAtomics::InterlockedAdd(&GMetalTexturePageOnTime, Taken);
+	#endif
+			};
+			GetMetalDeviceContext().SubmitAsyncCommands(ScheduledHandler, CompletionHandler, bWait);
+		}
+		else
+		{
+			GetMetalDeviceContext().GetCurrentRenderPass().AddCompletionHandler(^(id <MTLCommandBuffer>) { FPlatformAtomics::InterlockedAdd(&ActiveUploads, -Size); });
+		}
 		
-		MTLCommandBufferHandler ScheduledHandler = nil;
-#if STATS
-		int64* Cycles = new int64;
-		FPlatformAtomics::InterlockedExchange(Cycles, 0);
-		ScheduledHandler = ^(id <MTLCommandBuffer>)
-		{
-			FPlatformAtomics::InterlockedExchange(Cycles, FPlatformTime::Cycles64());
-		};
-#endif
-		MTLCommandBufferHandler CompletionHandler = ^(id <MTLCommandBuffer>)
-		{
-			FPlatformAtomics::InterlockedAdd(&ActiveUploads, -Size);
-#if STATS
-			int64 Taken = FPlatformTime::Cycles64() - *Cycles;
-			delete Cycles;
-			FPlatformAtomics::InterlockedAdd(&GMetalTexturePageOnTime, Taken);
-#endif
-		};
-		GetMetalDeviceContext().SubmitAsyncCommands(ScheduledHandler, CompletionHandler, bWait);
 		GetMetalDeviceContext().ReleaseResource(Buffer);
 		
 		INC_DWORD_STAT_BY(STAT_MetalTextureMemUpdate, Size);
@@ -1815,6 +1821,7 @@ struct FMetalRHICommandAsyncReallocateTexture2D final : public FRHICommand<FMeta
 		// DXT/BC formats on Mac actually do have mip-tails that are smaller than the block size, they end up being uncompressed.
 		bool const bPixelFormatASTC = IsPixelFormatASTCCompressed(OldTexture->GetFormat());
 	
+		bool bAsync = true;
 		for (uint32 MipIndex = 0; MipIndex < NumSharedMips; ++MipIndex)
 		{
 			const uint32 UnalignedMipSizeX = FMath::Max<uint32>(1, NewSizeX >> (MipIndex + DestMipOffset));
@@ -1822,7 +1829,7 @@ struct FMetalRHICommandAsyncReallocateTexture2D final : public FRHICommand<FMeta
 			const uint32 MipSizeX = (bPixelFormatASTC) ? AlignArbitrary(UnalignedMipSizeX, BlockSizeX) : UnalignedMipSizeX;
 			const uint32 MipSizeY = (bPixelFormatASTC) ? AlignArbitrary(UnalignedMipSizeY, BlockSizeY) : UnalignedMipSizeY;
 	
-			Context.AsyncCopyFromTextureToTexture(OldTexture->Surface.Texture, SliceIndex, MipIndex + SourceMipOffset, Origin, MTLSizeMake(MipSizeX, MipSizeY, 1), NewTexture->Surface.Texture, SliceIndex, MipIndex + DestMipOffset, Origin);
+			bAsync &= Context.AsyncCopyFromTextureToTexture(OldTexture->Surface.Texture, SliceIndex, MipIndex + SourceMipOffset, Origin, MTLSizeMake(MipSizeX, MipSizeY, 1), NewTexture->Surface.Texture, SliceIndex, MipIndex + DestMipOffset, Origin);
 		}
 
 		// when done, decrement the counter to indicate it's safe
@@ -1831,8 +1838,15 @@ struct FMetalRHICommandAsyncReallocateTexture2D final : public FRHICommand<FMeta
 			[Tex release];
 		};
 	
-	    // kck it off!
-		Context.SubmitAsyncCommands(nil, CompletionHandler, false);
+		if(bAsync)
+		{
+	    	// kck it off!
+			Context.SubmitAsyncCommands(nil, CompletionHandler, false);
+		}
+		else
+		{
+			Context.GetCurrentRenderPass().AddCompletionHandler(CompletionHandler);
+		}
 
 		// Like D3D mark this as complete immediately.
 		RequestStatus->Decrement();
@@ -2005,9 +2019,10 @@ struct FMetalRHICommandUpdateTexture2D final : public FRHICommand<FMetalRHIComma
 				Options = MTLBlitOptionRowLinearPVRTC;
 			}
 #endif
-			Context.AsyncCopyFromBufferToTexture(LockedMemory, 0, SourcePitch, BytesPerImage, Region.size, Tex, 0, MipIndex, Region.origin, Options);
-			
-			Context.SubmitAsyncCommands(nil, nil, false);
+			if(Context.AsyncCopyFromBufferToTexture(LockedMemory, 0, SourcePitch, BytesPerImage, Region.size, Tex, 0, MipIndex, Region.origin, Options))
+			{
+				Context.SubmitAsyncCommands(nil, nil, false);
+			}
 		}
 		else
 		{
@@ -2127,9 +2142,10 @@ void FMetalDynamicRHI::RHIUpdateTexture2D(FTexture2DRHIParamRef TextureRHI, uint
 			Options = MTLBlitOptionRowLinearPVRTC;
 		}
 #endif
-        ImmediateContext.GetInternalContext().AsyncCopyFromBufferToTexture(LockedMemory, 0, SourcePitch, BytesPerImage, Region.size, Tex, 0, MipIndex, Region.origin, Options);
-
-        ImmediateContext.GetInternalContext().SubmitAsyncCommands(nil, nil, false);
+        if(ImmediateContext.GetInternalContext().AsyncCopyFromBufferToTexture(LockedMemory, 0, SourcePitch, BytesPerImage, Region.size, Tex, 0, MipIndex, Region.origin, Options))
+        {
+        	ImmediateContext.GetInternalContext().SubmitAsyncCommands(nil, nil, false);
+		}
 		
 		GetMetalDeviceContext().ReleasePooledBuffer(LockedMemory);
 	}
@@ -2178,9 +2194,10 @@ void FMetalDynamicRHI::RHIUpdateTexture3D(FTexture3DRHIParamRef TextureRHI,uint3
 			Options = MTLBlitOptionRowLinearPVRTC;
 		}
 #endif
-        ImmediateContext.GetInternalContext().AsyncCopyFromBufferToTexture(LockedMemory, 0, SourceRowPitch, BytesPerImage, Region.size, Tex, 0, MipIndex, Region.origin, Options);
-
-        ImmediateContext.GetInternalContext().SubmitAsyncCommands(nil, nil, false);
+        if(ImmediateContext.GetInternalContext().AsyncCopyFromBufferToTexture(LockedMemory, 0, SourceRowPitch, BytesPerImage, Region.size, Tex, 0, MipIndex, Region.origin, Options))
+        {
+        	ImmediateContext.GetInternalContext().SubmitAsyncCommands(nil, nil, false);
+		}
 		
 		GetMetalDeviceContext().ReleasePooledBuffer(LockedMemory);
 	}

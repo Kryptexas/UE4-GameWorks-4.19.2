@@ -448,9 +448,12 @@ bool UMotionControllerComponent::PollControllerState(FVector& Position, FRotator
 			CurrentTrackingStatus = MotionController->GetControllerTrackingStatus(PlayerIndex, MotionSource);
 			if (MotionController->GetControllerOrientationAndPosition(PlayerIndex, MotionSource, Orientation, Position, WorldToMetersScale))
 			{
-				InUseMotionController = MotionController;
-				OnMotionControllerUpdated();
-				InUseMotionController = nullptr;
+				if (IsInGameThread())
+				{
+					InUseMotionController = MotionController;
+					OnMotionControllerUpdated();
+					InUseMotionController = nullptr;
+				}
 				return true;
 			}
 		}

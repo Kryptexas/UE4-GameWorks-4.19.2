@@ -2246,7 +2246,7 @@ void USkeletalMeshComponent::PostAnimEvaluation(FAnimationEvaluationContext& Eva
 
 	bNeedToFlipSpaceBaseBuffers = true;
 
-	if (Bodies.Num() > 0)
+	if (Bodies.Num() > 0 || bEnablePerPolyCollision)
 	{
 		// update physics data from animated data
 		UpdateKinematicBonesToAnim(GetEditableComponentSpaceTransforms(), ETeleportType::None, true);

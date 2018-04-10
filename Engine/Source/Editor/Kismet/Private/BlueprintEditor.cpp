@@ -7575,7 +7575,8 @@ bool FBlueprintEditor::OnNodeVerifyTitleCommit(const FText& NewText, UEdGraphNod
 			EValidatorResult Valid = NameEntryValidator->IsValid(NewText.ToString(), false);
 			
 			NodeBeingChanged->bHasCompilerMessage = true;
-			NodeBeingChanged->ErrorMsg = NameEntryValidator->GetErrorString(NewText.ToString(), Valid);
+			OutErrorMessage = NameEntryValidator->GetErrorText(NewText.ToString(), Valid);
+			NodeBeingChanged->ErrorMsg = OutErrorMessage.ToString();
 			NodeBeingChanged->ErrorType = EMessageSeverity::Error;
 		}
 	}

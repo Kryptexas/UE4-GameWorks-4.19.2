@@ -63,7 +63,9 @@ public:
 		Result.bDrawRelevance = IsShown(View);
 		Result.bDynamicRelevance = true;
 		Result.bShadowRelevance = false;
-		Result.bEditorPrimitiveRelevance = true;
+
+		// Work around for UE-52937. We need to revisit how this gizmo is drawn to match the treatment of the non-vr gizmo.
+		Result.bEditorNoDepthTestPrimitiveRelevance = true;
 		return Result;
 	}
 

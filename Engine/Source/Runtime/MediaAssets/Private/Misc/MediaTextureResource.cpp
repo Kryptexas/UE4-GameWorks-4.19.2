@@ -150,7 +150,7 @@ void FMediaTextureResource::Render(const FRenderParams& Params)
 {
 	check(IsInRenderingThread());
 
-	SCOPE_CYCLE_COUNTER(STAT_MediaAssets_MediaTextureResourceRender);
+//	SCOPE_CYCLE_COUNTER(STAT_MediaAssets_MediaTextureResourceRender);
 
 	FLinearColor Rotation(1, 0, 0, 1);
 	FLinearColor Offset(0, 0, 0, 0);

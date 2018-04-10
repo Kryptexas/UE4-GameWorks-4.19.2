@@ -3,7 +3,7 @@
 /*=============================================================================
 	WindowsD3D11Device.cpp: Windows D3D device RHI implementation.
 =============================================================================*/
-
+#include "Misc/EngineVersion.h"
 #include "D3D11RHIPrivate.h"
 #include "Misc/CommandLine.h"
 #include "AllowWindowsPlatformTypes.h"
@@ -1064,7 +1064,8 @@ void FD3D11DynamicRHI::InitD3DDevice()
 			check(!"Internal error, EnumAdapters() failed but before it worked")
 		}
 
-		if (IsRHIDeviceAMD())
+		const bool bAllowVendorDevice = !FParse::Param(FCommandLine::Get(), TEXT("novendordevice"));
+		if (IsRHIDeviceAMD() && bAllowVendorDevice)
 		{
 			check(AmdAgsContext == NULL);
 
@@ -1108,6 +1109,7 @@ void FD3D11DynamicRHI::InitD3DDevice()
 		}
 
 		uint32 AmdSupportedExtensionFlags = 0;
+		bool bDeviceCreated = false;
 		if (IsRHIDeviceAMD() && AmdAgsContext)
 		{
 			AGSDX11DeviceCreationParams DeviceCreationParams = 
@@ -1144,18 +1146,32 @@ void FD3D11DynamicRHI::InitD3DDevice()
 			AmdExtensionParams.appVersion = AGS_UNSPECIFIED_VERSION;
 
 			AGSDX11ReturnedParams DeviceCreationReturnedParams;
-			VERIFYD3D11RESULT(agsDriverExtensionsDX11_CreateDevice(
-				AmdAgsContext,
-				&DeviceCreationParams,
-				&AmdExtensionParams,
-				&DeviceCreationReturnedParams) == AGS_SUCCESS ? S_OK : E_FAIL
-			);
-			Direct3DDevice = DeviceCreationReturnedParams.pDevice;
-			ActualFeatureLevel = DeviceCreationReturnedParams.FeatureLevel;
-			Direct3DDeviceIMContext = DeviceCreationReturnedParams.pImmediateContext;
-			AmdSupportedExtensionFlags = DeviceCreationReturnedParams.extensionsSupported;
+			AGSReturnCode DeviceCreation =
+				agsDriverExtensionsDX11_CreateDevice(
+					AmdAgsContext,
+					&DeviceCreationParams,
+					&AmdExtensionParams,
+					&DeviceCreationReturnedParams);
+
+			if (DeviceCreation == AGS_SUCCESS)
+			{
+				Direct3DDevice = DeviceCreationReturnedParams.pDevice;
+				ActualFeatureLevel = DeviceCreationReturnedParams.FeatureLevel;
+				Direct3DDeviceIMContext = DeviceCreationReturnedParams.pImmediateContext;
+				AmdSupportedExtensionFlags = DeviceCreationReturnedParams.extensionsSupported;
+				bDeviceCreated = true;
+			}
+			else
+			{
+				agsDeInit(AmdAgsContext);
+				AmdAgsContext = NULL;
+				AmdSupportedExtensionFlags = 0;
+				FMemory::Memzero(&AmdInfo, sizeof(AmdInfo));
+				GRHIDeviceIsAMDPreGCNArchitecture = false;				
+			}
 		}
-		else
+		
+		if (!bDeviceCreated)
 		{
 			// Creating the Direct3D device.
 			VERIFYD3D11RESULT(D3D11CreateDevice(
@@ -1304,8 +1320,7 @@ void FD3D11DynamicRHI::InitD3DDevice()
 			}
 			else
 			{
-				GDX11NVAfterMathEnabled = 0;
-				UE_LOG(LogD3D11RHI, Warning, TEXT("[Aftermath] Skipping aftermath initialization on non-Nvidia device"));
+				GDX11NVAfterMathEnabled = 0;				
 			}
 		}
 #endif // NV_AFTERMATH

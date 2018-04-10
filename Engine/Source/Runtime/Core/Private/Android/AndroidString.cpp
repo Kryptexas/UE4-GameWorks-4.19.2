@@ -63,6 +63,13 @@ int vswprintf( TCHAR *buf, int max, const TCHAR *fmt, va_list args )
 			src++;
 		}
 
+		// Skip modifier flags that don't need additional processing;
+		// they still get passed to snprintf() below based on the conversion.
+		if (*src == '+')
+		{
+			src++;
+		}
+
 		// check for field width requests...
 		if ((*src == '-') || ((*src >= '0') && (*src <= '9')))
 		{

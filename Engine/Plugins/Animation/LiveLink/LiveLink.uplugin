@@ -1,7 +1,7 @@
 {
   "FileVersion" : 3,
   "Version" : 1,
-  "VersionName" : "0.1",
+  "VersionName" : "1.0",
   "FriendlyName" : "Live Link",
   "Description" : "Allows streaming of animation data into the editor",
   "Category" : "Animation",
@@ -12,7 +12,7 @@
   "SupportURL" : "",
   "EnabledByDefault" : false,
   "CanContainContent" : false,
-  "IsBetaVersion" : true,
+  "IsBetaVersion" : false,
   "Installed" : false,
   "Modules" :
   [

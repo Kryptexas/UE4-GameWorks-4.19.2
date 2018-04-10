@@ -58,7 +58,7 @@ void FGoogleARCoreDeviceCameraBlitter::LateInit(FIntPoint ImageSize)
 		for(uint32 i = 0; i < 5; i++)
 		{
 			// Make the texture itself.
-			UTexture *CameraCopy = UTexture2D::CreateTransient(CameraSize.X, CameraSize.Y);
+			UTexture *CameraCopy = UTexture2D::CreateTransient(CameraSize.X, CameraSize.Y, PF_R8G8B8A8);
 			check(CameraCopy);
 			CameraCopy->AddToRoot();
 			FTextureResource *resource = CameraCopy->CreateResource();

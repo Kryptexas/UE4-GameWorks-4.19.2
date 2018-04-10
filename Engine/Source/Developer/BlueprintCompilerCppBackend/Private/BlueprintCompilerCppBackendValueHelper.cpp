@@ -824,8 +824,12 @@ struct FDefaultSubobjectData
 		TArray<FDefaultSubobjectData> NestedSubobjectsToInit;
 		for (UObject* DSO : NestedDefaultSubobjects)
 		{
-			FDefaultSubobjectData* SubobjectData = new(NestedSubobjectsToInit) FDefaultSubobjectData();
-			FEmitDefaultValueHelper::HandleInstancedSubobject(Context, DSO, /* bCreateInstance = */ false, /* bSkipEditorOnlyCheck = */ false, SubobjectData);
+			// We don't need to emit code to initialize nested default subobjects that are also editor-only, since they won't be used in a cooked build.
+			if (!DSO->IsEditorOnly())
+			{
+				FDefaultSubobjectData* SubobjectData = new(NestedSubobjectsToInit) FDefaultSubobjectData();
+				FEmitDefaultValueHelper::HandleInstancedSubobject(Context, DSO, /* bCreateInstance = */ false, /* bSkipEditorOnlyCheck = */ true, SubobjectData);
+			}
 		}
 
 		// Recursively emit code to initialize any nested default subobjects found above that that are now locally referenced within this scope block.
@@ -1773,11 +1777,7 @@ void FEmitDefaultValueHelper::GenerateConstructor(FEmitterLocalContext& Context)
 				if (DSO && DSO->GetClass()->HasAnyClassFlags(CLASS_DefaultToInstanced))
 				{
 					// Determine if this is an editor-only subobject.
-					bool bIsEditorOnlySubobject = false;
-					if (const UActorComponent* ActorComponent = Cast<UActorComponent>(DSO))
-					{
-						bIsEditorOnlySubobject = ActorComponent->IsEditorOnly();
-					}
+					const bool bIsEditorOnlySubobject = DSO->IsEditorOnly();
 
 					// Skip ctor code gen for editor-only subobjects, since they won't be used by the runtime. Any dependencies on editor-only subobjects will be handled later (see HandleInstancedSubobject).
 					if (!bIsEditorOnlySubobject)

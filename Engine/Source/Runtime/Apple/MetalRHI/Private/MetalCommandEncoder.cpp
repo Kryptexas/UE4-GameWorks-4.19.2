@@ -225,6 +225,8 @@ void FMetalCommandEncoder::CommitCommandBuffer(uint32 const Flags)
 		StartCommandBuffer();
 		check(CommandBuffer);
 	}
+	
+	ResourceBindingHistory.Empty();
 }
 
 #pragma mark - Public Command Encoder Accessors -
@@ -771,6 +773,8 @@ void FMetalCommandEncoder::SetShaderBuffer(MTLFunctionType const FunctionType, i
 		
 		SetShaderBufferInternal(FunctionType, index);
     }
+    
+    ResourceBindingHistory.Add(Buffer);
 }
 
 void FMetalCommandEncoder::SetShaderData(MTLFunctionType const FunctionType, FMetalBufferData* Data, NSUInteger const Offset, NSUInteger const Index, EPixelFormat const Format)
@@ -891,6 +895,8 @@ void FMetalCommandEncoder::SetShaderTexture(MTLFunctionType FunctionType, id<MTL
 			check(false);
 			break;
 	}
+	
+	ResourceBindingHistory.Add(Texture);
 }
 
 void FMetalCommandEncoder::SetShaderSamplerState(MTLFunctionType FunctionType, id<MTLSamplerState> Sampler, NSUInteger index)

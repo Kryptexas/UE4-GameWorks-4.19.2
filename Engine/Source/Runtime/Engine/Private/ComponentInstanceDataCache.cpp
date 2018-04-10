@@ -102,7 +102,7 @@ public:
 	virtual FArchive& operator<<(UObject*& Object) override
 	{
 		UObject* SerializedObject = Object;
-		if (Object && Object->IsIn(Component))
+		if (Object && Component && Object->IsIn(Component))
 		{
 			SerializedObject = GetDuplicatedObject(Object);
 		}

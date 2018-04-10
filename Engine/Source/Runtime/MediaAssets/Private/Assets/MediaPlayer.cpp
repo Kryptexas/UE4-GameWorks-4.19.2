@@ -661,8 +661,12 @@ void UMediaPlayer::PostInitProperties()
 {
 	Super::PostInitProperties();
 
-	// Set the player GUID - required for UMediaPlayers dynamically allocated at runtime
 	PlayerFacade->SetGuid(PlayerGuid);
+
+	if (HasAnyFlags(RF_ClassDefaultObject))
+	{
+		return; // don't register CDO
+	}
 
 	IMediaModule* MediaModule = FModuleManager::LoadModulePtr<IMediaModule>("Media");
 
@@ -677,7 +681,6 @@ void UMediaPlayer::PostLoad()
 {
 	Super::PostLoad();
 
-	// Set the player GUID - required for UMediaPlayer assets
 	PlayerFacade->SetGuid(PlayerGuid);
 }
 

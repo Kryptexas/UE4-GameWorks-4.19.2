@@ -1802,6 +1802,9 @@ UMapBuildDataRegistry* ULevel::GetOrCreateMapBuildData()
 	{
 		if (MapBuildData)
 		{
+			// Release rendering data depending on MapBuildData, before we destroy MapBuildData
+			MapBuildData->InvalidateStaticLighting(GetWorld(), nullptr);
+
 			// Allow the legacy registry to be GC'ed
 			MapBuildData->ClearFlags(RF_Standalone);
 		}

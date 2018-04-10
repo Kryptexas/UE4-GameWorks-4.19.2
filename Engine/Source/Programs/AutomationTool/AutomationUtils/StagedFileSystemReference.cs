@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -54,7 +54,7 @@ public abstract class StagedFileSystemReference
 			}
 
 			// If it's an empty fragment (including if it's a path separator at the start of the string), it's invalid
-			if(FragmentEndIdx == FragmentIdx + 1)
+			if(FragmentEndIdx == FragmentIdx)
 			{
 				throw new ArgumentException(String.Format("Staged filesystem reference may not start with a path separator or contain an empty path fragment ({0})", InName));
 			}

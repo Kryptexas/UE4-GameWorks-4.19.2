@@ -745,7 +745,7 @@ void FMetalRenderPass::CopyFromBufferToBuffer(id<MTLBuffer> SourceBuffer, NSUInt
 	check(Encoder);
 	
 	[Encoder copyFromBuffer:SourceBuffer sourceOffset:SourceOffset toBuffer:DestinationBuffer destinationOffset:DestinationOffset size:Size];
-	 ConditionalSubmit();
+	ConditionalSubmit();
 }
 
 void FMetalRenderPass::PresentTexture(id<MTLTexture> Texture, uint32 sourceSlice, uint32 sourceLevel, MTLOrigin sourceOrigin, MTLSize sourceSize, id<MTLTexture> toTexture, uint32 destinationSlice, uint32 destinationLevel, MTLOrigin destinationOrigin)
@@ -795,72 +795,111 @@ void FMetalRenderPass::FillBuffer(id<MTLBuffer> Buffer, NSRange Range, uint8 Val
 	ConditionalSubmit();
 }
 
-void FMetalRenderPass::AsyncCopyFromBufferToTexture(id<MTLBuffer> Buffer, uint32 sourceOffset, uint32 sourceBytesPerRow, uint32 sourceBytesPerImage, MTLSize sourceSize, id<MTLTexture> toTexture, uint32 destinationSlice, uint32 destinationLevel, MTLOrigin destinationOrigin, MTLBlitOption options)
-{
-	ConditionalSwitchToAsyncBlit();
-	id<MTLBlitCommandEncoder> Encoder = PrologueEncoder.GetBlitCommandEncoder();
-	check(Encoder);
+bool FMetalRenderPass::AsyncCopyFromBufferToTexture(id<MTLBuffer> Buffer, uint32 sourceOffset, uint32 sourceBytesPerRow, uint32 sourceBytesPerImage, MTLSize sourceSize, id<MTLTexture> toTexture, uint32 destinationSlice, uint32 destinationLevel, MTLOrigin destinationOrigin, MTLBlitOption options)
+{	
+	id<MTLBlitCommandEncoder> TargetEncoder = nil;
 	
-	if (options == MTLBlitOptionNone)
+	bool bAsync = !CurrentEncoder.HasResourceBindingHistory(toTexture);
+	if(bAsync)
 	{
-		[Encoder copyFromBuffer:Buffer sourceOffset:sourceOffset sourceBytesPerRow:sourceBytesPerRow sourceBytesPerImage:sourceBytesPerImage sourceSize:sourceSize toTexture:toTexture destinationSlice:destinationSlice destinationLevel:destinationLevel destinationOrigin:destinationOrigin];
+		ConditionalSwitchToAsyncBlit();
+		TargetEncoder = PrologueEncoder.GetBlitCommandEncoder();
 	}
 	else
 	{
-		[Encoder copyFromBuffer:Buffer sourceOffset:sourceOffset sourceBytesPerRow:sourceBytesPerRow sourceBytesPerImage:sourceBytesPerImage sourceSize:sourceSize toTexture:toTexture destinationSlice:destinationSlice destinationLevel:destinationLevel destinationOrigin:destinationOrigin options:options];
+		ConditionalSwitchToBlit();
+		TargetEncoder = CurrentEncoder.GetBlitCommandEncoder(); 
 	}
+	
+	check(TargetEncoder);
+	
+	if (options == MTLBlitOptionNone)
+	{
+		[TargetEncoder copyFromBuffer:Buffer sourceOffset:sourceOffset sourceBytesPerRow:sourceBytesPerRow sourceBytesPerImage:sourceBytesPerImage sourceSize:sourceSize toTexture:toTexture destinationSlice:destinationSlice destinationLevel:destinationLevel destinationOrigin:destinationOrigin];
+	}
+	else
+	{
+		[TargetEncoder copyFromBuffer:Buffer sourceOffset:sourceOffset sourceBytesPerRow:sourceBytesPerRow sourceBytesPerImage:sourceBytesPerImage sourceSize:sourceSize toTexture:toTexture destinationSlice:destinationSlice destinationLevel:destinationLevel destinationOrigin:destinationOrigin options:options];
+	}
+	
+	return bAsync;
 }
 
-void FMetalRenderPass::AsyncCopyFromTextureToTexture(id<MTLTexture> Texture, uint32 sourceSlice, uint32 sourceLevel, MTLOrigin sourceOrigin, MTLSize sourceSize, id<MTLTexture> toTexture, uint32 destinationSlice, uint32 destinationLevel, MTLOrigin destinationOrigin)
+bool FMetalRenderPass::AsyncCopyFromTextureToTexture(id<MTLTexture> Texture, uint32 sourceSlice, uint32 sourceLevel, MTLOrigin sourceOrigin, MTLSize sourceSize, id<MTLTexture> toTexture, uint32 destinationSlice, uint32 destinationLevel, MTLOrigin destinationOrigin)
 {
-	ConditionalSwitchToAsyncBlit();
-	id<MTLBlitCommandEncoder> Encoder = PrologueEncoder.GetBlitCommandEncoder();
-	check(Encoder);
+	id<MTLBlitCommandEncoder> TargetEncoder = nil;
 	
-	[Encoder copyFromTexture:Texture sourceSlice:sourceSlice sourceLevel:sourceLevel sourceOrigin:sourceOrigin sourceSize:sourceSize toTexture:toTexture destinationSlice:destinationSlice destinationLevel:destinationLevel destinationOrigin:destinationOrigin];
+	bool bAsync = !CurrentEncoder.HasResourceBindingHistory(toTexture);
+	if(bAsync)
+	{
+		ConditionalSwitchToAsyncBlit();
+		TargetEncoder = PrologueEncoder.GetBlitCommandEncoder();
+	}
+	else
+	{
+		ConditionalSwitchToBlit();
+		TargetEncoder = CurrentEncoder.GetBlitCommandEncoder(); 
+	}
+	
+	check(TargetEncoder);
+	[TargetEncoder copyFromTexture:Texture sourceSlice:sourceSlice sourceLevel:sourceLevel sourceOrigin:sourceOrigin sourceSize:sourceSize toTexture:toTexture destinationSlice:destinationSlice destinationLevel:destinationLevel destinationOrigin:destinationOrigin];
+	
+	return bAsync;
 }
 
 void FMetalRenderPass::AsyncCopyFromBufferToBuffer(id<MTLBuffer> SourceBuffer, NSUInteger SourceOffset, id<MTLBuffer> DestinationBuffer, NSUInteger DestinationOffset, NSUInteger Size)
 {
-	bool bSafe = true;
-	
-	NSRange DestRange = NSMakeRange(DestinationOffset, Size);
-	TArray<NSRange>* Ranges = OutstandingBufferUploads.Find(DestinationBuffer);
-	if (!Ranges)
+	bool bAsync = !CurrentEncoder.HasResourceBindingHistory(DestinationBuffer);
+	if (bAsync)
 	{
-		OutstandingBufferUploads.Add(DestinationBuffer, TArray<NSRange>());
-		Ranges = OutstandingBufferUploads.Find(DestinationBuffer);
-	}
-	for (NSRange Range : *Ranges)
-	{
-		if (NSIntersectionRange(Range, DestRange).length > 0)
+		// Only issue asynchronously when it is safe to do so - when there are overlapping ranges it isn't.
+		// This is really an engine bug but we need to handle this here for now.
+		NSRange DestRange = NSMakeRange(DestinationOffset, Size);
+		TArray<NSRange>* Ranges = OutstandingBufferUploads.Find(DestinationBuffer);
+		if (!Ranges)
 		{
-			UE_LOG(LogMetal, Warning, TEXT("AsyncCopyFromBufferToBuffer on overlapping ranges ({%d, %d} vs {%d, %d}) of destination buffer %p."), (uint32)Range.location, (uint32)Range.length, (uint32)DestinationOffset, (uint32)Size, DestinationBuffer);
-			bSafe = false;
-			break;
+			OutstandingBufferUploads.Add(DestinationBuffer, TArray<NSRange>());
+			Ranges = OutstandingBufferUploads.Find(DestinationBuffer);
+		}
+		for (NSRange Range : *Ranges)
+		{
+			if (NSIntersectionRange(Range, DestRange).length > 0)
+			{
+				UE_LOG(LogMetal, Verbose, TEXT("AsyncCopyFromBufferToBuffer on overlapping ranges ({%d, %d} vs {%d, %d}) of destination buffer %p."), (uint32)Range.location, (uint32)Range.length, (uint32)DestinationOffset, (uint32)Size, DestinationBuffer);
+				bAsync = false;
+				break;
+			}
+		}
+		
+		if(bAsync)
+		{
+			Ranges->Add(DestRange);
 		}
 	}
 	
-	// Only issue asynchronously when it is safe to do so - when there are overlapping ranges it isn't.
-	// This is really an engine bug but we need to handle this here for now.
-	if (bSafe)
+	id<MTLBlitCommandEncoder> TargetEncoder = nil;
+	
+	if(bAsync)
 	{
 		ConditionalSwitchToAsyncBlit();
-		id<MTLBlitCommandEncoder> Encoder = PrologueEncoder.GetBlitCommandEncoder();
-		check(Encoder);
+		TargetEncoder = PrologueEncoder.GetBlitCommandEncoder();
 		
-		Ranges->Add(DestRange);
-		
-		[Encoder copyFromBuffer:SourceBuffer sourceOffset:SourceOffset toBuffer:DestinationBuffer destinationOffset:DestinationOffset size:Size];
 	}
 	else
 	{
-		CopyFromBufferToBuffer(SourceBuffer, SourceOffset, DestinationBuffer, DestinationOffset, Size);
+		ConditionalSwitchToBlit();
+		TargetEncoder = CurrentEncoder.GetBlitCommandEncoder();
 	}
+	
+	check(TargetEncoder);		
+	[TargetEncoder copyFromBuffer:SourceBuffer sourceOffset:SourceOffset toBuffer:DestinationBuffer destinationOffset:DestinationOffset size:Size];
 }
 
 void FMetalRenderPass::AsyncGenerateMipmapsForTexture(id<MTLTexture> Texture)
 {
+	// This must be a plain old error
+	check(!CurrentEncoder.HasResourceBindingHistory(Texture));
+
 	ConditionalSwitchToAsyncBlit();
 	id<MTLBlitCommandEncoder> Encoder = PrologueEncoder.GetBlitCommandEncoder();
 	check(Encoder);

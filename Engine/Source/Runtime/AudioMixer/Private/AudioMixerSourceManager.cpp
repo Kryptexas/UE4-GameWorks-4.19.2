@@ -467,6 +467,9 @@ namespace Audio
 		GameThreadInfo.bIsDebugMode[SourceId] = InitParams.bIsDebugMode;
 #endif 
 
+		// Make sure we flag that this source needs a speaker map to at least get one
+		GameThreadInfo.bNeedsSpeakerMap[SourceId] = true;
+
 		AudioMixerThreadCommand([this, SourceId, InitParams]()
 		{
 			AUDIO_MIXER_CHECK_AUDIO_PLAT_THREAD(MixerDevice);

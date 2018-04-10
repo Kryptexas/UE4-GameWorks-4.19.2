@@ -7,7 +7,7 @@ The following will help explain what kinds of files these are.
 Development Build
 =================
 
-Packaging "Dewelopment" builds:
+Packaging "Development" builds:
 	* Only uncompressed files are built
 	* Jump down to "Local Testing" to test your project
 
@@ -30,7 +30,7 @@ To package "Shipping" build with "compression" enabled, set the following option
 
 Non-Compressed Files
 ====================
-Use this settings (available on Development or Shipping builds) for the best results on being able to server your project from most web host providers.
+Use this setting (available on Development or Shipping builds) for the best results on being able to serve your project from most web host providers.
 
 	Files Required for Non-Compressed Files Deployment
 	--------------------------------------------------
@@ -56,7 +56,7 @@ Use this setting (only available on Shipping builds) if you need to help make yo
 
 If you are an advanced web server administrator:
 	* Using compression helps improve download times.
-	* Using pre-compressed files may help your web server from compressing the files dynamically everytime the time your project is loaded on to a browser.
+	* Using pre-compressed files may help your web server from compressing the files dynamically every time your project is loaded on to a browser.
 	* NOTE: Being able to serve pre-compressed files will require configuring your web server to properly serve the UE4 compressed file extention type.
 		+ These settings are placed in the .htaccess file
 			> This file will work on most Apache web servers (that have the AllowOveride option set to (e.g.) All).
@@ -87,7 +87,7 @@ Local Testing
 
 	UE4's test web server
 	---------------------
-	Run HTML5Launcher.exe (on windows) or RunMacHTML5LaunchHelper.command (on Mac) to start a web sever which is configured to serve compressed files on localhost.
+	Run HTML5Launcher.exe (on windows) or RunMacHTML5LaunchHelper.command (on Mac) to start a web server which is configured to serve compressed files on localhost.
 	* This is NOT a production quality server.
 	* Add -ServerPort=XXXX to the command line if necessary to change the serving port.
 		> Default port is 8000.

@@ -1660,12 +1660,15 @@ void FTickFunction::UnRegisterTickFunction()
 /** Enables or disables this tick function. **/
 void FTickFunction::SetTickFunctionEnable(bool bInEnabled)
 {
-	if (bRegistered && (bInEnabled == (TickState == ETickState::Disabled)))
+	if (bRegistered)
 	{
-		check(TickTaskLevel);
-		TickTaskLevel->RemoveTickFunction(this);
-		TickState = (bInEnabled ? ETickState::Enabled : ETickState::Disabled);
-		TickTaskLevel->AddTickFunction(this);
+		if (bInEnabled == (TickState == ETickState::Disabled))
+		{
+			check(TickTaskLevel);
+			TickTaskLevel->RemoveTickFunction(this);
+			TickState = (bInEnabled ? ETickState::Enabled : ETickState::Disabled);
+			TickTaskLevel->AddTickFunction(this);
+		}
 	}
 	else
 	{

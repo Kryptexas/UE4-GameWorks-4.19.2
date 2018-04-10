@@ -5,8 +5,6 @@
 namespace AnimationCore
 {
 
-	PRAGMA_DISABLE_OPTIMIZATION
-
 void SolveTwoBoneIK(FTransform& InOutRootTransform, FTransform& InOutJointTransform, FTransform& InOutEndTransform, const FVector& JointTarget, const FVector& Effector, bool bAllowStretching, float StartStretchRatio, float MaxStretchScale)
 {
 	float LowerLimbLength = (InOutEndTransform.GetLocation() - InOutJointTransform.GetLocation()).Size();
@@ -185,7 +183,5 @@ void SolveTwoBoneIK(const FVector& RootPos, const FVector& JointPos, const FVect
 		OutJointPos = RootPos + (ProjJointDist * DesiredDir) + (JointLineDist * JointBendDir);
 	}
 }
-
-PRAGMA_ENABLE_OPTIMIZATION
 
 }

@@ -1710,7 +1710,7 @@ struct FRelevancePacket
 
 			if (PrimitiveSceneInfo->bIsUsingCustomLODRules)
 			{
-				LODToRender = PrimitiveSceneInfo->Proxy->GetCustomLOD(View, ViewData.LODScale, ViewData.ForcedLODLevel, MeshScreenSizeSquared);
+				LODToRender = PrimitiveSceneInfo->Proxy->GetCustomLOD(View, View.LODDistanceFactor, ViewData.ForcedLODLevel, MeshScreenSizeSquared);
 			}
 			else
 			{
@@ -1723,7 +1723,7 @@ struct FRelevancePacket
 
 			if (OutHasViewCustomDataMasks[PrimitiveIndex] != 0) // Has a relevance for this view
 			{
-				UserViewCustomData = PrimitiveSceneInfo->Proxy->InitViewCustomData(View, ViewData.LODScale, PrimitiveCustomDataMemStack, true, &LODToRender, MeshScreenSizeSquared);
+				UserViewCustomData = PrimitiveSceneInfo->Proxy->InitViewCustomData(View, View.LODDistanceFactor, PrimitiveCustomDataMemStack, true, &LODToRender, MeshScreenSizeSquared);
 
 				if (UserViewCustomData != nullptr)
 				{
@@ -1904,7 +1904,12 @@ static void ComputeAndMarkRelevanceForViewParallel(
 	Packets.Reserve(EstimateOfNumPackets);
 
 	bool WillExecuteInParallel = FApp::ShouldUseThreadingForPerformance() && CVarParallelInitViews.GetValueOnRenderThread() > 0;
-	View.PrimitiveCustomDataMemStack.Reserve(WillExecuteInParallel ? EstimateOfNumPackets + 1 : 1);
+
+	if (WillExecuteInParallel)
+	{
+		// We must reserve to prevent realloc otherwise it will cause memory leak if WillExecuteInParallel == true
+		View.PrimitiveCustomDataMemStack.Reserve(View.PrimitiveCustomDataMemStack.Num() + FMath::TruncToInt((float)NumMesh / (float)FRelevancePrimSet<int32>::MaxInputPrims + 1.0f));
+	}
 
 	{
 		FSceneSetBitIterator BitIt(View.PrimitiveVisibilityMap);

@@ -3762,7 +3762,14 @@ void FAudioDevice::GetMaxDistanceAndFocusFactor(USoundBase* Sound, const UWorld*
 		FTransform SoundTransform;
 		SoundTransform.SetTranslation(Location);
 
-		OutMaxDistance = AttenuationSettingsToApply->GetMaxDimension();
+		if (AttenuationSettingsToApply->bAttenuate)
+		{
+			OutMaxDistance = AttenuationSettingsToApply->GetMaxDimension();
+		}
+		else
+		{
+			OutMaxDistance = WORLD_MAX;
+		}
 
 		if (AttenuationSettingsToApply->bSpatialize && AttenuationSettingsToApply->bEnableListenerFocus)
 		{

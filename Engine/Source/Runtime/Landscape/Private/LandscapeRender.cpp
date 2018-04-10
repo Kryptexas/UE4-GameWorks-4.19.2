@@ -651,20 +651,10 @@ FLandscapeComponentSceneProxy::FLandscapeComponentSceneProxy(ULandscapeComponent
 		HeightmapSubsectionOffsetV = ((float)(InComponent->SubsectionSizeQuads + 1) / (float)HeightmapTexture->GetSizeY());
 	}
 
-	LODBias = FMath::Clamp<int8>(LODBias, -MaxLOD, MaxLOD);
-
-	if (InComponent->GetLandscapeProxy()->MaxLODLevel >= 0)
-	{
-		MaxLOD = FMath::Min<int8>(MaxLOD, InComponent->GetLandscapeProxy()->MaxLODLevel);
-	}
-
-	FirstLOD = (ForcedLOD >= 0) ? FMath::Min<int32>(ForcedLOD, MaxLOD) : FMath::Max<int32>(LODBias, 0);
-	LastLOD = (ForcedLOD >= 0) ? FirstLOD : MaxLOD;	// we always need to go to MaxLOD regardless of LODBias as we could need the lowest LODs due to streaming.
-	
-	LODScreenRatioSquared.AddUninitialized(LastLOD+1);
-
-	float ScreenSizeRatioDivider =  InComponent->GetLandscapeProxy()->LOD0DistributionSetting;
+	float ScreenSizeRatioDivider = InComponent->GetLandscapeProxy()->LOD0DistributionSetting;
 	float CurrentScreenSizeRatio = 1.0f;
+
+	LODScreenRatioSquared.AddUninitialized(MaxLOD + 1);
 
 	// LOD 0 handling
 	LODScreenRatioSquared[0] = FMath::Square(CurrentScreenSizeRatio);
@@ -672,11 +662,26 @@ FLandscapeComponentSceneProxy::FLandscapeComponentSceneProxy(ULandscapeComponent
 	ScreenSizeRatioDivider = InComponent->GetLandscapeProxy()->LODDistributionSetting;
 
 	// Other LODs
-	for (int32 LODIndex = 1; LODIndex <= LastLOD; ++LODIndex)
+	for (int32 LODIndex = 1; LODIndex <= MaxLOD; ++LODIndex) // This should ALWAYS be calculated from the component size, not user MaxLOD override
 	{
 		LODScreenRatioSquared[LODIndex] = FMath::Square(CurrentScreenSizeRatio);
 		CurrentScreenSizeRatio /= ScreenSizeRatioDivider;
 	}
+
+	if (InComponent->GetLandscapeProxy()->MaxLODLevel >= 0)
+	{
+		MaxLOD = FMath::Min<int8>(MaxLOD, InComponent->GetLandscapeProxy()->MaxLODLevel);
+	}
+
+	FirstLOD = 0;
+	LastLOD = MaxLOD;	// we always need to go to MaxLOD regardless of LODBias as we could need the lowest LODs due to streaming.
+
+	// Make sure out LastLOD is > of MinStreamedLOD otherwise we would not be using the right LOD->MIP, the only drawback is a possible minor memory usage for overallocating static mesh element batch
+	const int32 MinStreamedLOD = HeightmapTexture ? FMath::Min<int32>(((FTexture2DResource*)HeightmapTexture->Resource)->GetCurrentFirstMip(), FMath::CeilLogTwo(SubsectionSizeVerts) - 1) : 0;
+	LastLOD = FMath::Max(MinStreamedLOD, LastLOD);
+
+	ForcedLOD = ForcedLOD != INDEX_NONE ? FMath::Clamp<int32>(ForcedLOD, FirstLOD, LastLOD) : ForcedLOD;
+	LODBias = FMath::Clamp<int8>(LODBias, -MaxLOD, MaxLOD);
 
 	int8 LocalLODBias = LODBias + (int8)GLandscapeMeshLODBias;
 	MinValidLOD = FMath::Clamp<int8>(LocalLODBias, -MaxLOD, MaxLOD);
@@ -1347,11 +1352,10 @@ bool FLandscapeComponentSceneProxy::GetMeshElement(bool UseSeperateBatchForShado
 		OutMeshBatch.TessellationDisablingShadowMapMeshSize = QuadSize.Size();
 	}
 
-	OutMeshBatch.Elements.Empty(LastLOD);
+	int32 BatchElementSize = NumSubsections == 1 ? 1 : MAX_SUBSECTION_COUNT + 1;
+	OutMeshBatch.Elements.Empty(FMath::Max(LastLOD - FirstLOD, 1) * BatchElementSize);
 
-	int32 StartingIndex = ForcedLOD < 0 ? 0 : ForcedLOD;
-
-	for (int32 i = StartingIndex; i <= LastLOD; ++i)
+	for (int32 i = FirstLOD; i <= LastLOD; ++i)
 	{
 		int32 LodSubsectionSizeVerts = SubsectionSizeVerts >> i;
 
@@ -1424,11 +1428,16 @@ bool FLandscapeComponentSceneProxy::GetMeshElement(bool UseSeperateBatchForShado
 
 void FLandscapeComponentSceneProxy::DrawStaticElements(FStaticPrimitiveDrawInterface* PDI)
 {
+	if (AvailableMaterials.Num() == 0)
+	{
+		return;
+	}
+
 	bool UseSeperateBatchForShadow = TessellationEnabledOnDefaultMaterial;
-	const int32 NumBatchesPerLOD = (ForcedLOD < 0 && NumSubsections > 1) ? (FMath::Square(NumSubsections) + 1) : 1;
+	const int32 NumBatchesPerLOD = NumSubsections == 1 ? 1 : MAX_SUBSECTION_COUNT + 1;
 	const int32 BatchCount = AvailableMaterials.Num() > 1 && TessellationEnabledOnDefaultMaterial ? 4 : UseSeperateBatchForShadow ? 2 : 1;
 
-	StaticBatchParamArray.Empty(ForcedLOD < 0 ? (1 + LastLOD - FirstLOD) * NumBatchesPerLOD * BatchCount : BatchCount);
+	StaticBatchParamArray.Empty((1 + LastLOD - FirstLOD) * NumBatchesPerLOD * BatchCount);
 
 	// Default Batch, tesselated if enabled
 	FMeshBatch NormalMeshBatch;
@@ -1507,19 +1516,16 @@ void FLandscapeComponentSceneProxy::CalculateLODFromScreenSize(const FSceneView&
 	}
 
 	const int32 MinStreamedLOD = HeightmapTexture ? FMath::Min<int32>(((FTexture2DResource*)HeightmapTexture->Resource)->GetCurrentFirstMip(), FMath::CeilLogTwo(SubsectionSizeVerts) - 1) : 0;
+	int8 LocalLODBias = LODBias + (int8)GLandscapeMeshLODBias;
 	FViewCustomDataSubSectionLOD& SubSectionLODData = InOutLODData.SubSections[InSubSectionIndex];
 
 	if (PreferedLOD >= 0.0f)
 	{
-		PreferedLOD = FMath::Clamp<int32>(PreferedLOD, FMath::Max((float)FirstLOD, MinValidLOD), FMath::Min((float)LastLOD, MaxValidLOD));
-		PreferedLOD = FMath::Max<float>(PreferedLOD, MinStreamedLOD);
+		PreferedLOD = FMath::Clamp<float>(PreferedLOD + LocalLODBias, FMath::Max((float)MinStreamedLOD, MinValidLOD), FMath::Min((float)LastLOD, MaxValidLOD));
 	}
 	else
 	{
-		PreferedLOD = (float)GetLODFromScreenSize(InMeshScreenSizeSquared, InViewLODScale);
-		PreferedLOD = FMath::Max<float>(PreferedLOD, MinStreamedLOD);
-
-		PreferedLOD = ComputeBatchElementCurrentLOD((int32)PreferedLOD, InMeshScreenSizeSquared);
+		PreferedLOD = FMath::Clamp<float>(ComputeBatchElementCurrentLOD(GetLODFromScreenSize(InMeshScreenSizeSquared, InViewLODScale), InMeshScreenSizeSquared) + LocalLODBias, FMath::Max((float)MinStreamedLOD, MinValidLOD), FMath::Min((float)LastLOD, MaxValidLOD));
 	}
 
 	check(PreferedLOD != -1.0f);
@@ -1544,40 +1550,18 @@ uint64 FLandscapeComponentSceneProxy::GetStaticBatchElementVisibility(const FSce
 		INC_DWORD_STAT(STAT_LandscapeTessellatedComponents);
 	}
 
-	if(ForcedLOD >= 0)
-	{
-		// When forcing LOD we only create one Batch Element
-		ensure(InBatch->Elements.Num() == 1);
-		int32 BatchElementIndex = 0;
-		BatchesToRenderMask |= (((uint64)1) << BatchElementIndex);
-		INC_DWORD_STAT(STAT_LandscapeDrawCalls);
-		INC_DWORD_STAT_BY(STAT_LandscapeTriangles, InBatch->Elements[BatchElementIndex].NumPrimitives);
-	}
-	else
-	{
-		const void* ViewCustomData = InViewCustomData != nullptr ? InViewCustomData : InView.GetCustomData(GetPrimitiveSceneInfo()->GetIndex());
+	const void* ViewCustomData = InViewCustomData != nullptr ? InViewCustomData : InView.GetCustomData(GetPrimitiveSceneInfo()->GetIndex());
 
-		if (ViewCustomData != nullptr)
+	if (ViewCustomData != nullptr)
+	{
+		const FViewCustomDataLOD* CurrentLODData = (const FViewCustomDataLOD*)ViewCustomData;
+
+		if (NumSubsections > 1 && !CurrentLODData->UseCombinedMeshBatch)
 		{
-			const FViewCustomDataLOD* CurrentLODData = (const FViewCustomDataLOD*)ViewCustomData;
+			INC_DWORD_STAT(STAT_LandscapeComponentUsingSubSectionDrawCalls);
 
-			if (NumSubsections > 1 && !CurrentLODData->UseCombinedMeshBatch)
+			for (int32 SubSectionIndex = 0; SubSectionIndex < MAX_SUBSECTION_COUNT; ++SubSectionIndex)
 			{
-				INC_DWORD_STAT(STAT_LandscapeComponentUsingSubSectionDrawCalls);
-
-				for (int32 SubSectionIndex = 0; SubSectionIndex < MAX_SUBSECTION_COUNT; ++SubSectionIndex)
-				{
-					const FViewCustomDataSubSectionLOD& SubSectionLODData = CurrentLODData->SubSections[SubSectionIndex];
-					check(SubSectionLODData.StaticBatchElementIndexToRender != INDEX_NONE);
-
-					BatchesToRenderMask |= (((uint64)1) << SubSectionLODData.StaticBatchElementIndexToRender);
-					INC_DWORD_STAT(STAT_LandscapeDrawCalls);
-					INC_DWORD_STAT_BY(STAT_LandscapeTriangles, InBatch->Elements[SubSectionLODData.StaticBatchElementIndexToRender].NumPrimitives);
-				}
-			}
-			else
-			{
-				int32 SubSectionIndex = 0;
 				const FViewCustomDataSubSectionLOD& SubSectionLODData = CurrentLODData->SubSections[SubSectionIndex];
 				check(SubSectionLODData.StaticBatchElementIndexToRender != INDEX_NONE);
 
@@ -1585,6 +1569,16 @@ uint64 FLandscapeComponentSceneProxy::GetStaticBatchElementVisibility(const FSce
 				INC_DWORD_STAT(STAT_LandscapeDrawCalls);
 				INC_DWORD_STAT_BY(STAT_LandscapeTriangles, InBatch->Elements[SubSectionLODData.StaticBatchElementIndexToRender].NumPrimitives);
 			}
+		}
+		else
+		{
+			int32 SubSectionIndex = 0;
+			const FViewCustomDataSubSectionLOD& SubSectionLODData = CurrentLODData->SubSections[SubSectionIndex];
+			check(SubSectionLODData.StaticBatchElementIndexToRender != INDEX_NONE);
+
+			BatchesToRenderMask |= (((uint64)1) << SubSectionLODData.StaticBatchElementIndexToRender);
+			INC_DWORD_STAT(STAT_LandscapeDrawCalls);
+			INC_DWORD_STAT_BY(STAT_LandscapeTriangles, InBatch->Elements[SubSectionLODData.StaticBatchElementIndexToRender].NumPrimitives);
 		}
 	}
 
@@ -1703,17 +1697,17 @@ float FLandscapeComponentSceneProxy::ComputeBatchElementCurrentLOD(int32 InSelec
 
 	float LODScreenRatioRange = CurrentLODScreenRatio - NextLODScreenRatio;
 
-	float CurrentScreenSize = InComponentScreenSize;
-
-	if (InComponentScreenSize > CurrentLODScreenRatio || InComponentScreenSize < NextLODScreenRatio) // is out of valid range for this LODIndex (which mean we had a clamp done either by ForcedLOD or MIP streaming
+	if (InComponentScreenSize > CurrentLODScreenRatio || InComponentScreenSize < NextLODScreenRatio)
 	{
-		CurrentScreenSize = CurrentLODScreenRatio; // assume start of the range
+		// Find corresponding LODIndex to appropriately calculate Ratio and apply it to new LODIndex
+		int32 LODFromScreenSize = GetLODFromScreenSize(InComponentScreenSize, 1.0f); // for 4.19 only
+		CurrentLODScreenRatio = LODScreenRatioSquared[LODFromScreenSize];
+		NextLODScreenRatio = LODFromScreenSize == LODScreenRatioSquared.Num() - 1 ? 0 : LODScreenRatioSquared[LODFromScreenSize + 1];
+		LODScreenRatioRange = CurrentLODScreenRatio - NextLODScreenRatio;
 	}
 
-	float CurrentLODRangeRatio = (CurrentScreenSize - NextLODScreenRatio) / LODScreenRatioRange;
+	float CurrentLODRangeRatio = (InComponentScreenSize - NextLODScreenRatio) / LODScreenRatioRange;
 	float fLOD = (float)InSelectedLODIndex + (1.0f - CurrentLODRangeRatio);
-
-	fLOD = FMath::Clamp<float>(fLOD, (float)MinValidLOD, (float)MaxValidLOD);
 
 	return fLOD;
 }
@@ -2179,7 +2173,11 @@ void FLandscapeComponentSceneProxy::GetDynamicMeshElements(const TArray<const FS
 			FLandscapeElementParamArray& ParameterArray = Collector.AllocateOneFrameResource<FLandscapeElementParamArray>();
 			 
 			const FViewCustomDataLOD* PrimitiveCustomData = (const FViewCustomDataLOD*)View->GetCustomData(GetPrimitiveSceneInfo()->GetIndex());
-			check(PrimitiveCustomData != nullptr);
+
+			if (PrimitiveCustomData == nullptr)
+			{
+				continue;
+			}
 
 			ParameterArray.ElementParams.AddDefaulted(NumSubsections * NumSubsections);
 

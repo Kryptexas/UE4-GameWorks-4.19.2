@@ -200,6 +200,34 @@ void UBlendSpaceBase::TickAssetPlayer(FAnimTickRecord& Instance, struct FAnimNot
 				PreInterpAnimLength = GetAnimationLengthFromSampleData(NewSampleDataList);
 				UE_LOG(LogAnimation, Verbose, TEXT("BlendSpace(%s) - BlendInput(%s) : PreAnimLength(%0.5f) "), *GetName(), *BlendInput.ToString(), PreInterpAnimLength);
 
+#if WITH_EDITOR
+				//Validate target samples (samples can be deleted in editor this stops us crashing if a previous sample is now invalid)
+				float TotalWeight = 0.f;
+				bool bModified = false;
+
+				for (int32 i = OldSampleDataList.Num() - 1; i >= 0; --i)
+				{
+					if (!SampleData.IsValidIndex(OldSampleDataList[i].SampleDataIndex))
+					{
+						//Sample no longer valid
+						OldSampleDataList.RemoveAtSwap(i);
+						bModified = true;
+					}
+					else
+					{
+						TotalWeight += OldSampleDataList[i].GetWeight();
+					}
+				}
+
+				if (bModified) // Bring weights back to 1
+				{
+					for (FBlendSampleData& Sample : OldSampleDataList)
+					{
+						Sample.TotalWeight /= TotalWeight;
+					}
+				}
+#endif
+
 				// target weight interpolation
 				if (InterpolateWeightOfSampleData(DeltaTime, OldSampleDataList, NewSampleDataList, SampleDataList))
 				{
