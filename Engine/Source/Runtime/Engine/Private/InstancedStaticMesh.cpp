@@ -2017,7 +2017,7 @@ void UInstancedStaticMeshComponent::PostLoad()
 
 		if (PerInstanceSMData.Num() > 0 && PerInstanceRenderData->InstanceBuffer.GetNumInstances() == 0) // only load the data if it's not already loaded
 		{
-			PerInstanceRenderData->UpdateAllInstanceData(this);
+			PerInstanceRenderData->UpdateAllInstanceData(this, true, true);
 		}
 	}
 }
