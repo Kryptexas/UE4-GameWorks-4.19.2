@@ -1126,6 +1126,12 @@ public:
 	virtual bool IsUsedWithNiagaraRibbons() const { return false; }
 	virtual bool IsUsedWithNiagaraMeshParticles() const { return false; }
 	virtual bool IsUsedWithStaticLighting() const { return false; }
+	//#nv begin #flex
+#if WITH_FLEX
+	virtual bool IsUsedWithFlexFluidSurfaces() const { return false; }
+	virtual bool IsUsedWithFlexMeshes() const { return false; }
+#endif
+	//#nv end
 	virtual	bool IsUsedWithMorphTargets() const { return false; }
 	virtual bool IsUsedWithSplineMeshes() const { return false; }
 	virtual bool IsUsedWithInstancedStaticMeshes() const { return false; }
@@ -1801,6 +1807,12 @@ public:
 	ENGINE_API virtual bool IsUsedWithNiagaraRibbons() const override;
 	ENGINE_API virtual bool IsUsedWithNiagaraMeshParticles() const override;
 	ENGINE_API virtual bool IsUsedWithStaticLighting() const override;
+	//#nv begin #flex
+#if WITH_FLEX
+	ENGINE_API virtual bool IsUsedWithFlexFluidSurfaces() const override;
+	ENGINE_API virtual bool IsUsedWithFlexMeshes() const override;
+#endif
+	//#nv end
 	ENGINE_API virtual bool IsUsedWithMorphTargets() const override;
 	ENGINE_API virtual bool IsUsedWithSplineMeshes() const override;
 	ENGINE_API virtual bool IsUsedWithInstancedStaticMeshes() const override;

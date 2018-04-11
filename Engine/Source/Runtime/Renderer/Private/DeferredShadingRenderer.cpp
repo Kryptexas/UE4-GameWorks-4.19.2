@@ -26,6 +26,12 @@
 #include "ClearQuad.h"
 #include "RendererModule.h"
 
+//#nv begin #flex
+#if WITH_FLEX
+#include "GameWorks/IFlexFluidSurfaceRendering.h"
+#endif
+//#nv end
+
 TAutoConsoleVariable<int32> CVarEarlyZPass(
 	TEXT("r.EarlyZPass"),
 	3,	
@@ -791,6 +797,12 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		GPUSkinCache->TransitionAllToReadable(RHICmdList);
 	}
 
+	//#nv begin #flex
+#if WITH_FLEX
+	GFlexFluidSurfaceRenderer->PreRenderOpaque(RHICmdList, Views);
+#endif
+	//#nv end
+
 	// Before starting the render, all async task for the Custom data must be completed
 	if (UpdateViewCustomDataEvents.Num() > 0)
 	{
@@ -1088,6 +1100,12 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 			);
 		ServiceLocalQueue();
 	}
+
+	//#nv begin #flex
+#if WITH_FLEX
+	GFlexFluidSurfaceRenderer->PostRenderOpaque(RHICmdList, Views);
+#endif
+	//#nv end
 
 	TRefCountPtr<IPooledRenderTarget> VelocityRT;
 

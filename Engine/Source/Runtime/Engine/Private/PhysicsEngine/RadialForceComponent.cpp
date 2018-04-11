@@ -11,6 +11,12 @@
 #include "PhysicsEngine/RadialForceActor.h"
 #include "DestructibleInterface.h"
 
+//#nv begin #flex
+#if WITH_FLEX
+#include "GameWorks/IFlexPluginBridge.h"
+#endif
+//#nv end
+
 //////////////////////////////////////////////////////////////////////////
 // RADIALFORCECOMPONENT
 URadialForceComponent::URadialForceComponent(const FObjectInitializer& ObjectInitializer)
@@ -23,6 +29,11 @@ URadialForceComponent::URadialForceComponent(const FObjectInitializer& ObjectIni
 	ImpulseStrength = 1000.0f;
 	ForceStrength = 10.0f;
 	bAutoActivate = true;
+	//#nv begin #flex
+#if WITH_FLEX
+	FlexAttach = false;
+#endif
+	//#nv end
 
 	// by default we affect all 'dynamic' objects that can currently be affected by forces
 	AddCollisionChannelToAffect(ECC_Pawn);
@@ -89,6 +100,21 @@ void URadialForceComponent::TickComponent(float DeltaTime, enum ELevelTick TickT
 				}
 			}
 		}
+	
+		//#nv begin #flex
+#if WITH_FLEX
+		if (ForceStrength != 0.0f)
+		{
+			FPhysScene* PhysScene = GetWorld()->GetPhysicsScene();
+			const uint32 FlexBit = ECC_TO_BITFIELD(ECC_Flex);
+			if (PhysScene && (CollisionObjectQueryParams.GetQueryBitfield() & FlexBit) != 0)
+			{
+				GFlexPluginBridge->AddRadialForceToFlex(PhysScene, Origin, Radius, ForceStrength, Falloff);
+			}
+		}
+#endif
+		//#nv end
+
 	}
 }
 
@@ -97,6 +123,16 @@ void URadialForceComponent::BeginPlay()
 	Super::BeginPlay();
 
 	UpdateCollisionObjectQueryParams();
+
+	//#nv begin #flex
+#if WITH_FLEX
+	// create rigid attachments to overlapping Flex actors
+	if (FlexAttach && GFlexPluginBridge)
+	{
+		GFlexPluginBridge->AttachFlexToComponent(this, Radius);
+	}
+#endif
+	//#nv end
 }
 
 void URadialForceComponent::PostLoad()
@@ -165,6 +201,20 @@ void URadialForceComponent::FireImpulse()
 				}
 			}
 		}
+
+		//#nv begin #flex
+#if WITH_FLEX
+		if (ImpulseStrength != 0.0f)
+		{
+			FPhysScene* PhysScene = GetWorld()->GetPhysicsScene();
+			const uint32 FlexBit = ECC_TO_BITFIELD(ECC_Flex);
+			if (PhysScene && (CollisionObjectQueryParams.GetQueryBitfield() & FlexBit) != 0)
+			{
+				GFlexPluginBridge->AddRadialImpulseToFlex(PhysScene, Origin, Radius, ImpulseStrength, Falloff, bImpulseVelChange);
+			}
+		}
+#endif
+		//#nv end
 	}
 }
 

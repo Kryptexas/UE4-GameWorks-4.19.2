@@ -25,6 +25,13 @@
 #endif
 
 #include "PhysicsEngine/PhysSubstepTasks.h"
+
+//#nv begin #flex
+#if WITH_FLEX
+#include "GameWorks/IFlexPluginBridge.h"
+#endif
+//#nv end
+
 #include "PhysicsEngine/PhysicsCollisionHandler.h"
 #include "Components/LineBatchComponent.h"
 #include "PhysicsEngine/PhysicsSettings.h"
@@ -503,6 +510,17 @@ void FPhysScene::SetOwningWorld(UWorld* InOwningWorld)
 FPhysScene::~FPhysScene()
 {
 	FCoreUObjectDelegates::GetPreGarbageCollectDelegate().Remove(PreGarbageCollectDelegateHandle);
+
+	//#nv begin #flex
+#if WITH_FLEX
+	// Clean up Flex scenes
+	if (GFlexPluginBridge)
+	{
+		GFlexPluginBridge->CleanupFlexScenes(this);
+	}
+#endif
+	//#nv end
+
 	// Make sure no scenes are left simulating (no-ops if not simulating)
 	WaitPhysScenes();
 	// Loop through scene types to get all scenes

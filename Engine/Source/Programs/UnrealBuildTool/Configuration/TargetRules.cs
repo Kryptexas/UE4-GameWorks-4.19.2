@@ -380,6 +380,16 @@ namespace UnrealBuildTool
 		public bool bCompileAPEX = true;
 
 		/// <summary>
+		/// Whether to include NvFlex CUDA.
+		/// </summary>
+		public bool bCompileNvFlexCUDA = false;
+
+		/// <summary>
+		/// Whether to include NvFlex CUDA.
+		/// </summary>
+		public bool bCompileNvFlexD3D = true;
+
+		/// <summary>
 		/// Whether to include NvCloth.
 		/// </summary>
 		[RequiresUniqueBuildEnvironment]
@@ -1433,6 +1443,16 @@ namespace UnrealBuildTool
 		public bool bCompileAPEX
 		{
 			get { return Inner.bCompileAPEX; }
+		}
+
+		public bool bCompileNvFlexCUDA
+		{
+			get { return Inner.bCompileNvFlexCUDA; }
+		}
+
+		public bool bCompileNvFlexD3D
+		{
+			get { return Inner.bCompileNvFlexD3D; }
 		}
 
 		public bool bCompileNvCloth
