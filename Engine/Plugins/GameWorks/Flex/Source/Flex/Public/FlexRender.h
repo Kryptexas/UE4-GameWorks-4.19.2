@@ -3,6 +3,8 @@
 #include "FlexManager.h"
 #include "StaticMeshResources.h"
 
+class UFlexComponent;
+
 // if true GPU skinning will be used for soft bodies on SM4+ devices
 #define USE_FLEX_GPU_SKINNING 1	
 
@@ -86,8 +88,8 @@ public:
 class FFlexVertexFactory : public FLocalVertexFactory
 {
 public:
-	FFlexVertexFactory()
-		:FLocalVertexFactory(GetFeatureLevel(), "FFlexVertexFactory")
+	FFlexVertexFactory(ERHIFeatureLevel::Type InFeatureLevel)
+		:FLocalVertexFactory(InFeatureLevel, "FFlexVertexFactory")
 	{
 	}
 
@@ -103,7 +105,7 @@ class FFlexCPUVertexFactory : public FFlexVertexFactory
 {
 public:
 	
-	FFlexCPUVertexFactory(const FLocalVertexFactory& Base, int NumVerts, int MaxVerts, const int* ParticleMap, const FRawStaticIndexBuffer& Indices, const FStaticMeshVertexBuffer& Vertices, const FColorVertexBuffer& Colors);
+	FFlexCPUVertexFactory(const FLocalVertexFactory& Base, int NumVerts, int MaxVerts, const int* ParticleMap, const FRawStaticIndexBuffer& Indices, const FStaticMeshVertexBuffer& Vertices, const FColorVertexBuffer& Colors, ERHIFeatureLevel::Type InFeatureLevel);
 	virtual ~FFlexCPUVertexFactory();
 
 	virtual void SkinCloth(const FVector4* SimulatedPositions, const FVector* SimulatedNormals) override;
@@ -158,7 +160,7 @@ public:
 	
 public:
 
-	FFlexGPUVertexFactory(const FLocalVertexFactory& Base, const FVertexBuffer* ClusterWeightsVertexBuffer, const FVertexBuffer* ClusterIndicesVertexBuffer);
+	FFlexGPUVertexFactory(const FLocalVertexFactory& Base, const FVertexBuffer* ClusterWeightsVertexBuffer, const FVertexBuffer* ClusterIndicesVertexBuffer, ERHIFeatureLevel::Type InFeatureLevel);
 	virtual ~FFlexGPUVertexFactory();
 
 	virtual void AddVertexElements(FDataType& InData, FVertexDeclarationElementList& Elements) override;

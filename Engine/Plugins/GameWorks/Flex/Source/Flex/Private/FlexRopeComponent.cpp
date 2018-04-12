@@ -4,6 +4,10 @@
 #include "FlexContainerInstance.h"
 
 #include "DynamicMeshBuilder.h"
+#include "PrimitiveSceneProxy.h"
+#include "Materials/Material.h"
+#include "Engine/Engine.h"
+#include "Engine/CollisionProfile.h"
 
 #include "FlexManager.h"
 
@@ -38,8 +42,8 @@ class FFlexRopeVertexFactory : public FLocalVertexFactory
 {
 public:
 
-	FFlexRopeVertexFactory()
-		: FLocalVertexFactory(GetFeatureLevel(), "FFlexRopeVertexFactory")
+	FFlexRopeVertexFactory(ERHIFeatureLevel::Type InFeatureLevel)
+		: FLocalVertexFactory(InFeatureLevel, "FFlexRopeVertexFactory")
 	{}
 
 
@@ -107,6 +111,7 @@ public:
 		, Width(Component->Width)
 		, NumSides(Component->NumSides)
 		, TileMaterial(Component->TileMaterial)
+		, VertexFactory(GetScene().GetFeatureLevel())
 	{
 		VertexBuffer.NumVerts = GetRequiredVertexCount();
 		IndexBuffer.NumIndices = GetRequiredIndexCount();

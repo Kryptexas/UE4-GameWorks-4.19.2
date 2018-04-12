@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Components/MeshComponent.h"
 #include "FlexContainer.h"
 #include "FlexAsset.h"
 

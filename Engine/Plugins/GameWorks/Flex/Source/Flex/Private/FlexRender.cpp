@@ -5,6 +5,11 @@
 #include "FlexComponent.h"
 #include "FlexAssetSoft.h"
 #include "FlexAssetCloth.h"
+#include "FlexContainerInstance.h"
+
+#include "Components/StaticMeshComponent.h"
+#include "Engine/StaticMesh.h"
+#include "Materials/Material.h"
 
 #if STATS
 DECLARE_CYCLE_STAT(TEXT("Skin Mesh Time (CPU)"), STAT_Flex_RenderMeshTime, STATGROUP_Flex);
@@ -120,7 +125,9 @@ FFlexCPUVertexFactory::FFlexCPUVertexFactory(
 	const int* ParticleMap, 
 	const FRawStaticIndexBuffer& Indices, 
 	const FStaticMeshVertexBuffer& Vertices, 
-	const FColorVertexBuffer& Colors)
+	const FColorVertexBuffer& Colors,
+	ERHIFeatureLevel::Type InFeatureLevel)
+	:FFlexVertexFactory(InFeatureLevel)
 {
 	VertexBuffer.Init(NumVerts, MaxVerts);
 	
@@ -351,7 +358,8 @@ FVertexFactoryShaderParameters* FFlexGPUVertexFactory::ConstructShaderParameters
 	return ShaderFrequency == SF_Vertex ? new FFlexMeshVertexFactoryShaderParameters() : NULL;
 }
 
-FFlexGPUVertexFactory::FFlexGPUVertexFactory(const FLocalVertexFactory& Base, const FVertexBuffer* ClusterWeightsVertexBuffer, const FVertexBuffer* ClusterIndicesVertexBuffer)
+FFlexGPUVertexFactory::FFlexGPUVertexFactory(const FLocalVertexFactory& Base, const FVertexBuffer* ClusterWeightsVertexBuffer, const FVertexBuffer* ClusterIndicesVertexBuffer, ERHIFeatureLevel::Type InFeatureLevel)
+	:FFlexVertexFactory(InFeatureLevel)
 {
 	// set our streams
 	FlexData.ClusterWeights = FVertexStreamComponent(ClusterWeightsVertexBuffer, 0, sizeof(float)*4, VET_Float4);
@@ -526,7 +534,7 @@ FFlexMeshSceneProxy::FFlexMeshSceneProxy(UStaticMeshComponent* Component)
 		}
 
 		// use GPU skinning for SM4 and soft assets only
-		VertexFactory = new FFlexGPUVertexFactory(VFs.VertexFactory, &SoftAsset->WeightsVertexBuffer, &SoftAsset->IndicesVertexBuffer);
+		VertexFactory = new FFlexGPUVertexFactory(VFs.VertexFactory, &SoftAsset->WeightsVertexBuffer, &SoftAsset->IndicesVertexBuffer, FeatureLevel);
 	}
 	else
 	{
@@ -538,7 +546,8 @@ FFlexMeshSceneProxy::FFlexMeshSceneProxy(UStaticMeshComponent* Component)
 								&FlexAsset->VertexToParticleMap[0],
 								LOD.IndexBuffer,
 								LOD.VertexBuffers.StaticMeshVertexBuffer,
-								LOD.VertexBuffers.ColorVertexBuffer);
+								LOD.VertexBuffers.ColorVertexBuffer,
+								FeatureLevel);
 	}
 	LastFrame = 0;	
 }
