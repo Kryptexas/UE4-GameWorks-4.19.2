@@ -442,6 +442,12 @@ void FMovieSceneEvaluationTrack::DefaultEvaluate(FMovieSceneSegmentIdentifier Se
 
 void FMovieSceneEvaluationTrack::EvaluateStatic(FMovieSceneSegmentIdentifier SegmentID, const FMovieSceneEvaluationOperand& Operand, FMovieSceneContext Context, const FPersistentEvaluationData& PersistentData, FMovieSceneExecutionTokens& ExecutionTokens) const
 {
+	int32 SortedIndex = Segments.GetSortedIndex(SegmentID);
+	if (SortedIndex == INDEX_NONE)
+	{
+		return;
+	}
+
 	for (const FSectionEvaluationData& EvalData : GetSegment(SegmentID).Impls)
 	{
 		const FMovieSceneEvalTemplate& Template = GetChildTemplate(EvalData.ImplIndex);
