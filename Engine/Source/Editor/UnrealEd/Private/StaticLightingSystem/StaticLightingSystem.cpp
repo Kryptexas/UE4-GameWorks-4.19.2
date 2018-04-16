@@ -285,6 +285,8 @@ void FStaticLightingManager::CreateStaticLightingSystem(const FLightingBuildOpti
 	{
 		check(!ActiveStaticLightingSystem);
 
+		bBuildReflectionCapturesOnFinish = !Options.bOnlyBuildVisibility;
+
 		for (ULevel* Level : GWorld->GetLevels())
 		{
 			if (Level->bIsLightingScenario && Level->bIsVisible)
@@ -403,7 +405,10 @@ void FStaticLightingManager::FinishLightingBuild()
 		World->Scene->DumpUnbuiltLightInteractions(*GLog);
 	}
 
-	GEditor->BuildReflectionCaptures(World);
+	if (bBuildReflectionCapturesOnFinish)
+	{
+		GEditor->BuildReflectionCaptures(World);
+	}
 }
 
 void FStaticLightingManager::DestroyStaticLightingSystems()

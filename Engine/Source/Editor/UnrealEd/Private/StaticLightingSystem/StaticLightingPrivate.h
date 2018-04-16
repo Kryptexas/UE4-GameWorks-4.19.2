@@ -235,7 +235,8 @@ public:
 
 private:
 	FStaticLightingManager() 
-		: ActiveStaticLightingSystem(NULL) 
+		: ActiveStaticLightingSystem(nullptr) 
+		, bBuildReflectionCapturesOnFinish(true)
 	{}
 	
 	class FStaticLightingSystem* ActiveStaticLightingSystem;
@@ -248,6 +249,8 @@ private:
 
 	/** Singleton of static lighting manager */
 	static TSharedPtr<FStaticLightingManager> StaticLightingManager;
+
+	bool bBuildReflectionCapturesOnFinish;
 
 	void FinishLightingBuild();
 
