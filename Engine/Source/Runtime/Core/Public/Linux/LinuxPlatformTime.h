@@ -15,6 +15,8 @@
  */
 struct CORE_API FLinuxTime : public FGenericPlatformTime
 {
+	static double InitTiming();
+
 	static FORCEINLINE double Seconds()
 	{
 		struct timespec ts;

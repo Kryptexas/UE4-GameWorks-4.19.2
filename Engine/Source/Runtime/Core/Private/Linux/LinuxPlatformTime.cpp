@@ -10,7 +10,7 @@
 #include "CoreGlobals.h"
 #include <sys/resource.h>
 
-int FLinuxTime::ClockSource = FLinuxTime::CalibrateAndSelectClock();
+int FLinuxTime::ClockSource = -1;
 char FLinuxTime::CalibrationLog[4096] = {0};
 
 namespace
@@ -24,6 +24,13 @@ namespace
 	{
 		return static_cast<uint64>(ts.tv_sec) * 1000000000ULL + static_cast<uint64>(ts.tv_nsec);
 	}
+}
+
+double FLinuxTime::InitTiming()
+{
+	checkf(ClockSource == -1, TEXT("Possibly changing clock source (current = %d)"), ClockSource);
+	ClockSource = FLinuxTime::CalibrateAndSelectClock();
+	return FGenericPlatformTime::InitTiming();
 }
 
 FCPUTime FLinuxTime::GetCPUTime()
