@@ -637,7 +637,7 @@ void FindClosestExpressionByGUIDRecursive(const FName& InName, const FGuid& InGU
 				// NOTE: The case where a parameter in a function is renamed but another function in the material
 				// contains a duplicate GUID is still broken and may lose the data. This still leaves us in a
 				// more consistent state than 4.18 and should minimize the impact to a rarer occurrence.
-				if (!OutExpression || InName == ParamExpression->GetParameterName())
+				if (!OutExpression || InName == ParamExpression->ParameterName)
 				{
 					OutExpression = ParamExpression;
 				}
