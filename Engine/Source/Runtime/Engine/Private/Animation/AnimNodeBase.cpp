@@ -545,7 +545,7 @@ void FExposedValueHandler::Initialize(FAnimNode_Base* AnimNode, UObject* AnimIns
 				CopyRecord.CachedDestContainer = AnimNode;
 			}
 		}
-		else
+		else if(CopyRecord.DestProperty != nullptr)
 		{
 			CopyRecord.Dest = CopyRecord.DestProperty->ContainerPtrToValuePtr<uint8>(AnimNode, CopyRecord.DestArrayIndex);
 
@@ -575,6 +575,12 @@ void FExposedValueHandler::Initialize(FAnimNode_Base* AnimNode, UObject* AnimIns
 			{
 				CopyRecord.CopyType = ECopyType::MemCopy;
 			}
+		}
+		else
+		{
+			// Dest property is NULL, so something has gone wrong with compilation/serialization
+			UE_LOG(LogAnimation, Error, TEXT("Animation Blueprint CopyRecord with NULL DestProperty. Skipping copy."));
+			CopyRecord.PostCopyOperation = (EPostCopyOperation)((uint8)EPostCopyOperation::LogicalNegateBool + 1);
 		}
 	}
 
@@ -640,6 +646,8 @@ void FExposedValueHandler::Execute(const FAnimationBaseContext& Context) const
 					static_cast<UBoolProperty*>(DestArrayProperty->Inner)->SetPropertyValue(CopyRecord.Dest, !bValue); // added to support arrays
 				}
 			}
+			break;
+		default:
 			break;
 		}
 	}
