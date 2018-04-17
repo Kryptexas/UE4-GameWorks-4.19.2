@@ -1232,6 +1232,18 @@ void FSequencer::NotifyMovieSceneDataChangedInternal()
 
 void FSequencer::NotifyMovieSceneDataChanged( EMovieSceneDataChangeType DataChangeType )
 {
+	if (!GetFocusedMovieSceneSequence()->GetMovieScene())
+	{
+		if (RootSequence.IsValid())
+		{
+			ResetToNewRootSequence(*RootSequence.Get());
+		}
+		else
+		{
+			UE_LOG(LogSequencer, Error, TEXT("Fatal error, focused movie scene no longer valid and there is no root sequence to default to."));
+		}
+	}
+
 	if ( DataChangeType == EMovieSceneDataChangeType::ActiveMovieSceneChanged ||
 		DataChangeType == EMovieSceneDataChangeType::Unknown )
 	{

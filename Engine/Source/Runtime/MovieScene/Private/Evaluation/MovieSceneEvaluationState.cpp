@@ -158,7 +158,7 @@ void FMovieSceneObjectCache::UpdateBindings(const FGuid& InGuid, IMovieScenePlay
 
 	// Find the sequence for the current
 	UMovieSceneSequence* Sequence = WeakSequence.Get();
-	if (!ensure(Sequence))
+	if (!Sequence)
 	{
 		return;
 	}
