@@ -347,8 +347,16 @@ namespace Audio
 			// Not all wave data types have a non-zero duration
 			if (InWaveInstance->WaveData->Duration > 0)
 			{
-				NumTotalFrames = InWaveInstance->WaveData->Duration * InWaveInstance->WaveData->SampleRate;
-				check(NumTotalFrames > 0);
+				if (!InWaveInstance->WaveData->bIsBus)
+				{
+					NumTotalFrames = InWaveInstance->WaveData->Duration * InWaveInstance->WaveData->SampleRate;
+					check(NumTotalFrames > 0);
+				}
+				else if (!InWaveInstance->WaveData->IsLooping())
+				{
+					NumTotalFrames = InWaveInstance->WaveData->Duration * AudioDevice->GetSampleRate();
+					check(NumTotalFrames > 0);
+				}
 			}
 
 			// Set up buffer areas to decompress audio into
