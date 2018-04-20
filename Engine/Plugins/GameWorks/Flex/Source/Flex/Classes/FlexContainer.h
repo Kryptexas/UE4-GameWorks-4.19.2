@@ -5,7 +5,9 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "GameWorks/FlexPluginCommon.h"
+#include "Engine/EngineTypes.h"
 #include "FlexContainer.generated.h"
+
 
 DECLARE_LOG_CATEGORY_EXTERN(LogFlex, Log, All);
 

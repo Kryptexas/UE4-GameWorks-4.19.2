@@ -3,9 +3,9 @@
 #pragma once
 
 #include "FlexAsset.h"
+#include "RenderResource.h"
 
 #include "FlexAssetSoft.generated.h"
-
 
 class FFlexSoftSkinningIndicesVertexBuffer : public FVertexBuffer 
 {

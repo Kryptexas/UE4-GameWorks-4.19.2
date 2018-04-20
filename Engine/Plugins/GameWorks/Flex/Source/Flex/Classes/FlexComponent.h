@@ -4,6 +4,7 @@
 
 #include "FlexContainer.h"
 #include "FlexAsset.h"
+#include "Components/StaticMeshComponent.h"
 
 #include "FlexComponent.generated.h"
 

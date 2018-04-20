@@ -7,9 +7,13 @@
 #include "FlexAssetPreviewComponent.h"
 
 #include "FlexManager.h"
+#include "FlexContainer.h"
 
 #include "StaticMeshResources.h"
 #include "DynamicMeshBuilder.h"
+#include "Engine/StaticMesh.h"
+#include "Engine/Engine.h"
+#include "Materials/Material.h"
 
 UFlexAsset::UFlexAsset(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

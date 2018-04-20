@@ -4,6 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
+#include "Components/PrimitiveComponent.h"
+
 #include "FlexAssetPreviewComponent.generated.h"
 
 /* Component to render flex particles in the static mesh editor. */

@@ -2,6 +2,9 @@
 
 #include "FlexComponent.h"
 #include "FlexStaticMesh.h"
+#include "FlexAssetSolid.h"
+#include "FlexAssetCloth.h"
+#include "FlexAssetSoft.h"
 
 #include "StaticMeshResources.h"
 
@@ -11,6 +14,11 @@
 #include "FlexRender.h"
 
 #include "FlexManager.h"
+#include "Components/SkeletalMeshComponent.h"
+
+#include "Engine/Engine.h"
+#include "Engine/CollisionProfile.h"
+
 
 #if STATS
 
