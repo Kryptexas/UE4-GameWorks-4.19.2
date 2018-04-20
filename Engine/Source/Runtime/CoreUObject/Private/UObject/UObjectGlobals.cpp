@@ -3377,11 +3377,11 @@ protected:
 		};
 
 		if (!ensureMsgf(bIsValidObjectReference
-			, TEXT("Invalid object referenced by the PersistentFrame: 0x%016llx (Blueprint object: %s, ReferencingProperty: %s, Instance: %s, Address: 0x%016llx) - If you have a reliable repro for this, please contact the development team with it.")
+			, TEXT("Invalid object referenced by the PersistentFrame: 0x%016llx (BP: %s, Instance: %s, Property: %s, Address: 0x%016llx) - If you have a reliable repro for this, please contact the development team with it.")
 			, (int64)(PTRINT)Object
 			, *GetBlueprintObjectNameLambda(GetSerializingObject())
-			, GetSerializedProperty() ? *GetSerializedProperty()->GetFullName() : TEXT("NULL")
 			, GetSerializedDataContainer() ? *GetSerializedDataContainer()->GetFullName() : TEXT("NULL")
+			, GetSerializedProperty() ? *GetSerializedProperty()->GetFullName() : TEXT("NULL")
 			, (int64)(PTRINT)&Object))
 		{
 			// clear the property value (it's garbage)... the ubergraph-frame
