@@ -35,13 +35,27 @@ FArchive& operator<<(FArchive& Ar, FEdGraphTerminalType& T)
 
 	if (Ar.CustomVer(FFrameworkObjectVersion::GUID) >= FFrameworkObjectVersion::PinsStoreFName)
 	{
-	Ar << T.TerminalCategory;
-	Ar << T.TerminalSubCategory;
+		Ar << T.TerminalCategory;
+		Ar << T.TerminalSubCategory;
 	}
 	else
 	{
 		FString TerminalCategoryStr;
 		Ar << TerminalCategoryStr;
+
+		if (Ar.UE4Ver() < VER_UE4_ADDED_SOFT_OBJECT_PATH)
+		{
+			// Handle asset->soft object rename, this is here instead of BP code because this structure is embedded
+			if (TerminalCategoryStr == TEXT("asset"))
+			{
+				TerminalCategoryStr = TEXT("softobject");
+			}
+			else if (TerminalCategoryStr == TEXT("assetclass"))
+			{
+				TerminalCategoryStr = TEXT("softclass");
+			}
+		}
+
 		T.TerminalCategory = *TerminalCategoryStr;
 
 		FString TerminalSubCategoryStr;
