@@ -324,6 +324,30 @@ namespace LinuxMemoryPool
 				}
 			}
 		}
+		// check if we need to downscale to fit actual memory on the machine
+		else
+		{
+			uint64 TotalPhysicalMemory = FPlatformMemory::GetConstants().TotalPhysical;
+			if (PoolSize >= TotalPhysicalMemory)
+			{
+				// scale down to try to fit roughly 50% of the total physical memory
+				uint64 DesiredPoolSize = TotalPhysicalMemory - TotalPhysicalMemory / 2;
+				double Multiplier = FMath::Max(static_cast<double>(DesiredPoolSize) / static_cast<double>(PoolSize), 0.0);
+				if (Multiplier > 0.0)
+				{
+					PoolSize = 0;
+					MaxPooledAllocs = 0;
+					for (int32* PoolPtr = InOutPoolTable; *PoolPtr != -1; PoolPtr += 2)
+					{
+						uint64 BlockSize = static_cast<uint64>(PoolPtr[0]);
+						PoolPtr[1] = FMath::Max(static_cast<uint32>(PoolPtr[1] * Multiplier), 1u);
+						uint64 NumBlocks = static_cast<uint64>(PoolPtr[1]);
+						PoolSize += (BlockSize * NumBlocks);
+						MaxPooledAllocs += NumBlocks;
+					}
+				}
+			}
+		}
 
 #if UE_BUILD_DEBUG
 		printf("Pooling OS allocations (pool size: %llu MB, maximum allocations: %llu).\n", PoolSize / (1024ULL * 1024ULL), MaxPooledAllocs);
