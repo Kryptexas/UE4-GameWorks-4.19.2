@@ -1532,7 +1532,15 @@ void FPasteContextMenu::Setup()
 				continue;
 			}
 
-			const TArray<UMovieSceneSection*>& Sections = TrackNode->GetTrack()->GetAllSections();
+			TArray<UMovieSceneSection*> Sections;
+			for (auto Section : TrackNode->GetSections())
+			{
+				if (Section.Get().GetSectionObject())
+				{
+					Sections.Add(Section.Get().GetSectionObject());
+				}
+			}
+
 			UMovieSceneSection* Section = MovieSceneHelpers::FindNearestSectionAtTime(Sections, Args.PasteAtTime);
 			int32 SectionIndex = INDEX_NONE;
 			if (Section)
