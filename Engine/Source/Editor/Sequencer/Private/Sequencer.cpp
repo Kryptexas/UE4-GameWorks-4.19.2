@@ -4790,6 +4790,7 @@ FGuid FSequencer::DoAssignActor(AActor*const* InActors, int32 NumActors, FGuid I
 
 		// Replace
 		OwnerMovieScene->ReplacePossessable( OldComponentGuid, NewPossessable );
+		OwnerSequence->UnbindPossessableObjects( OldComponentGuid );
 		State.Invalidate(OldComponentGuid, ActiveTemplateIDs.Top());
 
 		FMovieScenePossessable* ThisPossessable = OwnerMovieScene->FindPossessable( NewPossessable.GetGuid() );
@@ -4844,6 +4845,7 @@ FGuid FSequencer::DoAssignActor(AActor*const* InActors, int32 NumActors, FGuid I
 
 	// Replace the actor itself after components have been updated
 	OwnerMovieScene->ReplacePossessable(InObjectBinding, NewPossessableActor);
+	OwnerSequence->UnbindPossessableObjects(InObjectBinding);
 
 	State.Invalidate(InObjectBinding, ActiveTemplateIDs.Top());
 
