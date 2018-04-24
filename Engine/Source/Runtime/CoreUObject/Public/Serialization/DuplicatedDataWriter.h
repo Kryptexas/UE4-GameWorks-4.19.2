@@ -44,10 +44,11 @@ private:
 		// Don't try to add/memcpy zero sized items
 		if (Data != NULL && Num > 0)
 		{
-			if(Offset == ObjectData.Num())
+			if (Num + Offset > ObjectData.Num())
 			{
-				ObjectData.AddUninitialized(Num);
+				ObjectData.AddUninitialized(Num + Offset - ObjectData.Num());
 			}
+
 			FMemory::Memcpy(&ObjectData[Offset],Data,Num);
 			Offset += Num;
 		}
