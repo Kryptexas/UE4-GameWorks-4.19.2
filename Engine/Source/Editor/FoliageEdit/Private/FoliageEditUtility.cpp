@@ -153,6 +153,11 @@ void FFoliageEditUtility::MoveActorFoliageInstancesToLevel(ULevel* InTargetLevel
 		if (Level != InTargetLevel)
 		{
 			AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(Level, /*bCreateIfNone*/ false);
+			
+			if (IFA == nullptr)
+			{
+				continue;
+			}
 
 			bool CanMoveInstanceType = true;
 
