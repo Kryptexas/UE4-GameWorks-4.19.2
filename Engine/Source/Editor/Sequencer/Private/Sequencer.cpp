@@ -706,7 +706,7 @@ void FSequencer::UpdateSubSequenceData()
 	RootToLocalTransform = FMovieSceneSequenceTransform();
 
 	// Find the parent sub section and set up the sub sequence range, if necessary
-	if (ActiveTemplateIDs.Num() <= 1 || Settings->ShouldEvaluateSubSequencesInIsolation())
+	if (ActiveTemplateIDs.Num() <= 1)
 	{
 		return;
 	}
