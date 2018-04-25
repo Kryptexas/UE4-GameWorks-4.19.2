@@ -136,7 +136,6 @@ void FD3D12CommandContext::ResolveTextureUsingShader(
 
 		// Write to the dest surface as a render target.
 		StateCache.SetRenderTargets(1, &DestTextureRTV, nullptr);
-
 		GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
 
 		if (DestTexture)

@@ -13,6 +13,9 @@
 #include "Distributions/DistributionVector.h"
 #include "Particles/TypeData/ParticleModuleTypeDataBase.h"
 #include "Particles/ParticleSpriteEmitter.h"
+// NvFlow begin
+#include "GridInteractionNvFlow.h"
+// NvFlow end
 #include "ParticleModuleTypeDataGpu.generated.h"
 
 class UParticleSystemComponent;
@@ -209,6 +212,20 @@ struct FGPUSpriteEmitterInfo
 	UPROPERTY()
 	FRawDistributionFloat DynamicAlphaScale;
 
+	// NvFlow begin
+	/** When true, particles are interacting with NvFlow grid. */
+	UPROPERTY()
+	uint32 bEnableGridInteraction : 1;
+
+	/** Enum indicating what interaction channel this object has */
+	UPROPERTY()
+	TEnumAsByte<enum EInteractionChannelNvFlow> InteractionChannel;
+
+	/** Custom Channels for Responses */
+	UPROPERTY()
+	struct FInteractionResponseContainerNvFlow ResponseToInteractionChannels;
+	// NvFlow end
+
 	FGPUSpriteEmitterInfo()
 		: RequiredModule(NULL)
 		, SpawnModule(NULL)
@@ -229,6 +246,10 @@ struct FGPUSpriteEmitterInfo
 		, bRemoveHMDRoll(0)
 		, MinFacingCameraBlendDistance(0.f)
 		, MaxFacingCameraBlendDistance(0.f)
+		// NvFlow begin
+		, bEnableGridInteraction(false)
+		, InteractionChannel(EIC_Channel1)
+		// NvFlow end
 	{
 	}
 
@@ -462,6 +483,20 @@ class UParticleModuleTypeDataGpu : public UParticleModuleTypeDataBase
 	/** When true, all existing partilces are cleared when the emitter is initialized. */
 	UPROPERTY(EditAnywhere, Category = ParticleModuleTypeDataGpu)
 	uint32 bClearExistingParticlesOnInit:1;
+
+	// NvFlow begin
+	/** When true, particles are interacting with NvFlow grid. */
+	UPROPERTY(EditAnywhere, Category = NvFlow)
+	uint32 bEnableGridInteraction : 1;
+
+	/** Enum indicating what interaction channel this object has */
+	UPROPERTY(EditAnywhere, Category = NvFlow)
+	TEnumAsByte<enum EInteractionChannelNvFlow> InteractionChannel;
+
+	/** Custom Channels for Responses */
+	UPROPERTY(EditAnywhere, Category = NvFlow)
+	struct FInteractionResponseContainerNvFlow ResponseToInteractionChannels;
+	// NvFlow end
 
 	//~ Begin UObject Interface
 	virtual void PostLoad() override;

@@ -761,3 +761,10 @@ void FRHICommandInvalidateCachedState::Execute(FRHICommandListBase& CmdList)
 }
 
 
+// NvFlow begin
+void FRHICommandNvFlowWork::Execute(FRHICommandListBase& CmdList)
+{
+	RHISTAT(NvFlowWork);
+	INTERNAL_DECORATOR(NvFlowWork)(WorkFunc, ParamData, NumBytes);
+}
+// NvFlow end

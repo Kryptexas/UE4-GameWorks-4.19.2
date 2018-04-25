@@ -719,7 +719,11 @@ bool FDeferredShadingSceneRenderer::ShouldPrepareForDistanceFieldAO() const
 			|| (GDistanceFieldAOApplyToStaticIndirect && ViewFamily.EngineShowFlags.DistanceFieldAO));
 }
 
-bool FDeferredShadingSceneRenderer::ShouldPrepareDistanceFieldScene() const
+bool FDeferredShadingSceneRenderer::ShouldPrepareDistanceFieldScene(
+	// NvFlow begin
+	bool bCustomShouldPrepare
+	// NvFlow end
+) const
 {
 	if (!ensure(Scene != nullptr))
 	{
@@ -733,14 +737,18 @@ bool FDeferredShadingSceneRenderer::ShouldPrepareDistanceFieldScene() const
 	}
 
 	bool bShouldPrepareForAO = SupportsDistanceFieldAO(Scene->GetFeatureLevel(), Scene->GetShaderPlatform()) && ShouldPrepareForDistanceFieldAO();
-	bool bShouldPrepareGlobalDistanceField = ShouldPrepareGlobalDistanceField();
+	bool bShouldPrepareGlobalDistanceField = ShouldPrepareGlobalDistanceField(bCustomShouldPrepare);
 	bool bShouldPrepareForDFInsetIndirectShadow = ShouldPrepareForDFInsetIndirectShadow();
 
 	// Prepare the distance field scene (object buffers and distance field atlas) if any feature needs it
 	return bShouldPrepareGlobalDistanceField || bShouldPrepareForAO || ShouldPrepareForDistanceFieldShadows() || bShouldPrepareForDFInsetIndirectShadow;
 }
 
-bool FDeferredShadingSceneRenderer::ShouldPrepareGlobalDistanceField() const
+bool FDeferredShadingSceneRenderer::ShouldPrepareGlobalDistanceField(
+	// NvFlow begin
+	bool bCustomShouldPrepare
+	// NvFlow end
+) const
 {
 	if (!ensure(Scene != nullptr))
 	{
@@ -750,7 +758,11 @@ bool FDeferredShadingSceneRenderer::ShouldPrepareGlobalDistanceField() const
 	bool bShouldPrepareForAO = SupportsDistanceFieldAO(Scene->GetFeatureLevel(), Scene->GetShaderPlatform())
 		&& (ShouldPrepareForDistanceFieldAO()
 			|| ((Views.Num() > 0) && Views[0].bUsesGlobalDistanceField)
-			|| ((Scene->FXSystem != nullptr) && Scene->FXSystem->UsesGlobalDistanceField()));
+			|| ((Scene->FXSystem != nullptr) && Scene->FXSystem->UsesGlobalDistanceField())
+			// NvFlow begin
+			|| (bCustomShouldPrepare)
+			// NvFlow end
+			);
 
 	return bShouldPrepareForAO && UseGlobalDistanceField();
 }

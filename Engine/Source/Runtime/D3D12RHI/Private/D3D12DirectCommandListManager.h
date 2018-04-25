@@ -94,6 +94,10 @@ public:
 
 	void Destroy();
 
+	// NvFlow begin
+	inline FD3D12FenceCore* GetFenceCore() const { return FenceCore; }
+	// NvFlow end
+
 protected:
 	void InternalSignal(ID3D12CommandQueue* pCommandQueue, uint64 FenceToSignal);
 

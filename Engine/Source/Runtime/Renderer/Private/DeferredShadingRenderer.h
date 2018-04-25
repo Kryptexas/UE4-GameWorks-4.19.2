@@ -457,8 +457,16 @@ private:
 	bool ShouldPrepareForDistanceFieldAO() const;
 	bool ShouldPrepareForDFInsetIndirectShadow() const;
 
-	bool ShouldPrepareDistanceFieldScene() const;
-	bool ShouldPrepareGlobalDistanceField() const;
+	bool ShouldPrepareDistanceFieldScene(
+// NvFlow begin
+		bool bCustomShouldPrepare = false
+// NvFlow end
+	) const;
+	bool ShouldPrepareGlobalDistanceField(
+// NvFlow begin
+		bool bCustomShouldPrepare = false
+// NvFlow end
+	) const;
 
 	void UpdateGlobalDistanceFieldObjectBuffers(FRHICommandListImmediate& RHICmdList);
 

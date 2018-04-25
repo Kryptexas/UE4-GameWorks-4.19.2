@@ -88,6 +88,35 @@ public:
 		}
 	}
 
+	// NvFlow begin
+	template<typename ShaderRHIParamRef>
+	FORCEINLINE_DEBUGGABLE void Set(IRHICommandContext* RHICmdCtx, const ShaderRHIParamRef ShaderRHI, const FGlobalDistanceFieldParameterData& ParameterData)
+	{
+		if (GlobalVolumeCenterAndExtent.IsBound() || GlobalVolumeWorldToUVAddAndMul.IsBound())
+		{
+			RHICmdCtx->RHISetShaderTexture(ShaderRHI, GlobalDistanceFieldTexture0.GetBaseIndex(), ParameterData.Textures[0]);
+			RHICmdCtx->RHISetShaderTexture(ShaderRHI, GlobalDistanceFieldTexture1.GetBaseIndex(), ParameterData.Textures[1]);
+			RHICmdCtx->RHISetShaderTexture(ShaderRHI, GlobalDistanceFieldTexture2.GetBaseIndex(), ParameterData.Textures[2]);
+			RHICmdCtx->RHISetShaderTexture(ShaderRHI, GlobalDistanceFieldTexture3.GetBaseIndex(), ParameterData.Textures[3]);
+
+			auto SamplerState = TStaticSamplerState<SF_Bilinear, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI();
+			RHICmdCtx->RHISetShaderSampler(ShaderRHI, GlobalDistanceFieldSampler0.GetBaseIndex(), SamplerState);
+			RHICmdCtx->RHISetShaderSampler(ShaderRHI, GlobalDistanceFieldSampler1.GetBaseIndex(), SamplerState);
+			RHICmdCtx->RHISetShaderSampler(ShaderRHI, GlobalDistanceFieldSampler2.GetBaseIndex(), SamplerState);
+			RHICmdCtx->RHISetShaderSampler(ShaderRHI, GlobalDistanceFieldSampler3.GetBaseIndex(), SamplerState);
+
+			const uint32 ArrayNumBytes = Align(sizeof(FVector4), ShaderArrayElementAlignBytes) * GMaxGlobalDistanceFieldClipmaps;
+			RHICmdCtx->RHISetShaderParameter(ShaderRHI, GlobalVolumeCenterAndExtent.GetBufferIndex(), GlobalVolumeCenterAndExtent.GetBaseIndex(), ArrayNumBytes, ParameterData.CenterAndExtent);
+			RHICmdCtx->RHISetShaderParameter(ShaderRHI, GlobalVolumeWorldToUVAddAndMul.GetBufferIndex(), GlobalVolumeWorldToUVAddAndMul.GetBaseIndex(), ArrayNumBytes, ParameterData.WorldToUVAddAndMul);
+
+			RHICmdCtx->RHISetShaderParameter(ShaderRHI, GlobalVolumeDimension.GetBufferIndex(), GlobalVolumeDimension.GetBaseIndex(), sizeof(float), &ParameterData.GlobalDFResolution);
+			float TexelSizeValue = 1.0f / ParameterData.GlobalDFResolution;
+			RHICmdCtx->RHISetShaderParameter(ShaderRHI, GlobalVolumeTexelSize.GetBufferIndex(), GlobalVolumeTexelSize.GetBaseIndex(), sizeof(float), &TexelSizeValue);
+			RHICmdCtx->RHISetShaderParameter(ShaderRHI, MaxGlobalDistance.GetBufferIndex(), MaxGlobalDistance.GetBaseIndex(), sizeof(float), &ParameterData.MaxDistance);
+		}
+	}
+	// NvFlow end
+
 private:
 	FShaderResourceParameter GlobalDistanceFieldTexture0;
 	FShaderResourceParameter GlobalDistanceFieldTexture1;

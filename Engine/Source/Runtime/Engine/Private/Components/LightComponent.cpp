@@ -248,6 +248,10 @@ FLightSceneProxy::FLightSceneProxy(const ULightComponent* InLightComponent)
 	, StatId(InLightComponent->GetStatID(true))
 	, FarShadowDistance(0)
 	, FarShadowCascadeCount(0)
+// NvFlow begin
+	, bFlowGridShadowEnabled(InLightComponent->bFlowGridShadowEnabled)
+	, FlowGridShadowChannel(InLightComponent->FlowGridShadowChannel)
+// NvFlow end
 {
 	check(SceneInterface);
 
@@ -383,6 +387,11 @@ ULightComponent::ULightComponent(const FObjectInitializer& ObjectInitializer)
 	// NVCHANGE_BEGIN: Add VXGI
 	bCastVxgiIndirectLighting = false;
 	// NVCHANGE_END: Add VXGI
+
+	// NvFlow begin
+	bFlowGridShadowEnabled = false;
+	FlowGridShadowChannel = 0;
+	// NvFlow end
 }
 
 bool ULightComponent::AffectsPrimitive(const UPrimitiveComponent* Primitive) const

@@ -16,6 +16,10 @@
 #include "SceneView.h"
 #include "PrimitiveUniformShaderParameters.h"
 
+// NvFlow begin
+#include "GameWorks/PrimitiveSceneProxyNvFlow.h"
+// NvFlow end
+
 class FLightSceneInfo;
 class FLightSceneProxy;
 class FPrimitiveDrawInterface;
@@ -687,6 +691,10 @@ public:
    	 * @param InHasSelfShadow - Indicate if we have self shadow, as it can impact which LODMask we choose
 	 */
 	ENGINE_API virtual struct FLODMask GetCustomWholeSceneShadowLOD(const FSceneView& InView, float InViewLODScale, int32 InForcedLODLevel, const struct FLODMask& InVisibilePrimitiveLODMask, float InShadowMapTextureResolution, float InShadowMapCascadeSize, int8 InShadowCascadeId, bool InHasSelfShadow) const;
+
+	// NvFlow begin
+	FPrimitiveSceneProxyNvFlow FlowData;
+	// NvFlow end
 
 protected:
 

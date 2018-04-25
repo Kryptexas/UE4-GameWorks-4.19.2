@@ -1111,6 +1111,12 @@ public:
 	virtual float GetMaxDrawDistance() const { return 0.0f; }
 	virtual float GetFadeRange() const { return 0.0f; }
 
+	// NvFlow begin
+	inline int32 GetFlowGridShadowEnabled() const { return bFlowGridShadowEnabled; }
+	inline int32 GetFlowGridShadowChannel() const { return FlowGridShadowChannel; }
+	// NvFlow end
+
+
 protected:
 
 	friend class FScene;
@@ -1262,6 +1268,11 @@ protected:
 	
 	/** Modulated shadow color. */
 	FLinearColor ModulatedShadowColor;
+
+	// NvFlow begin
+	bool bFlowGridShadowEnabled;
+	int32 FlowGridShadowChannel;
+	// NvFlow end
 
 	/**
 	 * Updates the light proxy's cached transforms.
