@@ -508,8 +508,10 @@ public:
 	// Adds a transition barrier to the barrier batch
 	void AddTransitionBarrier(FD3D12Resource* pResource, D3D12_RESOURCE_STATES Before, D3D12_RESOURCE_STATES After, uint32 Subresource);
 
+	// NVCHANGE_BEGIN: Add VXGI
 	// Adds a UAV barrier to the barrier batch
-	void AddUAVBarrier();
+	void AddUAVBarrier(FD3D12Resource* pResource);
+	// NVCHANGE_END: Add VXGI
 
 	void AddAliasingBarrier(FD3D12Resource* pResource);
 

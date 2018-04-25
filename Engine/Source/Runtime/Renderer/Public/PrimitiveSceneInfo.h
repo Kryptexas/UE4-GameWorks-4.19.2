@@ -278,6 +278,11 @@ public:
 	/** This indicate that we should call the GetCustomWholeSceneShadowLOD function on the proxy instead of the generic implementation. */
 	bool bIsUsingCustomWholeSceneShadowLODRules : 1;
 
+	// NVCHANGE_BEGIN: Add VXGI
+	int32 VxgiLastVoxelizationPass;
+	int32 VoxelizationOnlyMeshStartIdx;
+	// NVCHANGE_END: Add VXGI
+
 	/** Initialization constructor. */
 	FPrimitiveSceneInfo(UPrimitiveComponent* InPrimitive,FScene* InScene);
 

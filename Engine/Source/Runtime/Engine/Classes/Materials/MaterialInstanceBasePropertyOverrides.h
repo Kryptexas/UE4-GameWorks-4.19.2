@@ -37,6 +37,23 @@ struct ENGINE_API FMaterialInstanceBasePropertyOverrides
 	UPROPERTY(EditAnywhere, Category = Material)
 	bool bOverride_TwoSided;
 
+	// NVCHANGE_BEGIN: Add VXGI
+	UPROPERTY(EditAnywhere, Category = Material)
+	uint32 bOverride_VxgiConeTracingEnabled : 1;
+
+	UPROPERTY(EditAnywhere, Category = Material)
+	uint32 bOverride_UsedWithVxgiVoxelization : 1;
+
+	UPROPERTY(EditAnywhere, Category = Material)
+	uint32 bOverride_VxgiAllowTesselationDuringVoxelization : 1;
+
+	UPROPERTY(EditAnywhere, Category = Material)
+	uint32 bOverride_VxgiAdaptiveMaterialSamplingRate : 1;
+
+	UPROPERTY(EditAnywhere, Category = Material)
+	uint32 bOverride_VxgiOpacityScale : 1;
+	// NVCHANGE_END: Add VXGI
+
 	/** If BlendMode is BLEND_Masked, the surface is not rendered where OpacityMask < OpacityMaskClipValue. */
 	UPROPERTY(EditAnywhere, Category = Material, meta = (editcondition = "bOverride_OpacityMaskClipValue", NoSpinbox = true))
 	float OpacityMaskClipValue;
@@ -60,6 +77,23 @@ struct ENGINE_API FMaterialInstanceBasePropertyOverrides
 	/** Whether the material should cast shadows as masked even though it has a translucent blend mode. */
 	UPROPERTY(EditAnywhere, Category = Material, meta = (editcondition = "bOverride_CastShadowAsMasked", NoSpinbox = true))
 	uint32 bCastDynamicShadowAsMasked:1;
+
+	// NVCHANGE_BEGIN: Add VXGI
+	UPROPERTY(EditAnywhere, Category = VXGI, meta = (DisplayName = "Enable VXGI Cone Tracing Functions", editcondition = "bOverride_VxgiConeTracingEnabled"))
+	uint32 bVxgiConeTracingEnabled : 1;
+
+	UPROPERTY(EditAnywhere, Category = VXGI, meta = (DisplayName = "Used with VXGI Voxelization", editcondition = "bOverride_UsedWithVxgiVoxelization"))
+	uint32 bUsedWithVxgiVoxelization : 1;
+
+	UPROPERTY(EditAnywhere, Category = VXGI, meta = (DisplayName = "Allow Tessellation During Voxelization", editcondition = "bOverride_VxgiAllowTesselationDuringVoxelization"))
+	uint32 bVxgiAllowTesselationDuringVoxelization : 1;
+	
+	UPROPERTY(EditAnywhere, Category = VXGI, meta = (DisplayName = "Adaptive Material Sampling Rate", editcondition = "bOverride_VxgiAdaptiveMaterialSamplingRate"))
+	uint32 bVxgiAdaptiveMaterialSamplingRate : 1;
+
+	UPROPERTY(EditAnywhere, Category = VXGI, meta = (DisplayName = "Opacity Scale", ClampMin = "0", ClampMax = "2", editcondition = "bOverride_VxgiOpacityScale"))
+	float VxgiOpacityScale;
+	// NVCHANGE_END: Add VXGI
 
 	FMaterialInstanceBasePropertyOverrides();
 

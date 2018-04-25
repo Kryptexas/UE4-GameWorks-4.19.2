@@ -355,17 +355,20 @@ void FD3D12Adapter::CreateSignatures()
 	commandSignatureDesc.ByteStride = 20;
 	commandSignatureDesc.NodeMask = ActiveGPUNodes;
 
+	// NVCHANGE_BEGIN: Add VXGI
 	D3D12_INDIRECT_ARGUMENT_DESC indirectParameterDesc[1] = {};
-	indirectParameterDesc[0].Type = D3D12_INDIRECT_ARGUMENT_TYPE_DRAW_INDEXED;
+	indirectParameterDesc[0].Type = D3D12_INDIRECT_ARGUMENT_TYPE_DRAW;
 
 	commandSignatureDesc.pArgumentDescs = indirectParameterDesc;
 
-	commandSignatureDesc.ByteStride = sizeof(D3D12_DRAW_INDEXED_ARGUMENTS);
+	commandSignatureDesc.ByteStride = sizeof(D3D12_DRAW_ARGUMENTS);
 
 	VERIFYD3D12RESULT(Device->CreateCommandSignature(&commandSignatureDesc, nullptr, IID_PPV_ARGS(DrawIndirectCommandSignature.GetInitReference())));
 
 	indirectParameterDesc[0].Type = D3D12_INDIRECT_ARGUMENT_TYPE_DRAW_INDEXED;
+	commandSignatureDesc.ByteStride = sizeof(D3D12_DRAW_INDEXED_ARGUMENTS);
 	VERIFYD3D12RESULT(Device->CreateCommandSignature(&commandSignatureDesc, nullptr, IID_PPV_ARGS(DrawIndexedIndirectCommandSignature.GetInitReference())));
+	// NVCHANGE_END: Add VXGI
 
 	indirectParameterDesc[0].Type = D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH;
 	commandSignatureDesc.ByteStride = sizeof(D3D12_DISPATCH_ARGUMENTS);

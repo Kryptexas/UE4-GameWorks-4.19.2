@@ -108,10 +108,15 @@ class ENGINE_API USceneCaptureComponent : public USceneComponent
 	UPROPERTY(EditAnywhere, interp, Category=SceneCapture)
 	TArray<struct FEngineShowFlagsSetting> ShowFlagSettings;
 
+	// NVCHANGE_BEGIN: Add VXGI
+	/** Whether to enable VXGI diffuse and specular tracing for this capture. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SceneCapture)
+	bool bEnableVxgi;
+	// NVCHANGE_END: Add VXGI
+
 	// TODO: Make this a UStruct to set directly?
 	/** Settings stored here read from the strings and int values in the ShowFlagSettings array */
 	FEngineShowFlags ShowFlags;
-
 public:
 	/** Indicates which stereo pass this component is capturing for, if any */
     EStereoscopicPass CaptureStereoPass;

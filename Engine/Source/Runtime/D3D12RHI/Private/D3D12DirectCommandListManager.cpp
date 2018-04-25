@@ -491,6 +491,16 @@ uint32 FD3D12CommandListManager::GetResourceBarrierCommandList(FD3D12CommandList
 				// Add the desc
 				BarrierDescs.Add(Desc);
 			}
+			// NVCHANGE_BEGIN: Add VXGI
+			else if (Before == D3D12_RESOURCE_STATE_UNORDERED_ACCESS && Before == D3D12_RESOURCE_STATE_UNORDERED_ACCESS)
+			{
+				D3D12_RESOURCE_BARRIER UavBarrierDesc = {};
+				UavBarrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
+				UavBarrierDesc.UAV.pResource = PRB.Resource->GetResource();
+
+				BarrierDescs.Add(UavBarrierDesc);
+			}
+			// NVCHANGE_END: Add VXGI
 
 			// Update the state to the what it will be after hList executes
 			const D3D12_RESOURCE_STATES CommandListState = hList.GetResourceState(PRB.Resource).GetSubresourceState(Desc.Transition.Subresource);

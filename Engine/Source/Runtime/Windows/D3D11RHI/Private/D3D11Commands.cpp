@@ -1123,29 +1123,31 @@ void FD3D11DynamicRHI::RHISetRenderTargets(
 		bTargetChanged = true;
 	}
 
+	// NVCHANGE_BEGIN: Add VXGI
 	// Only make the D3D call to change render targets if something actually changed.
 	if(bTargetChanged)
 	{
 		CommitRenderTargetsAndUAVs();
-	}
-	
-	// Set the viewport to the full size of render target 0.
-	if (NewRenderTargetViews[0])
-	{
-		// check target 0 is valid
-		check(0 < NewNumSimultaneousRenderTargets && NewRenderTargetsRHI[0].Texture != nullptr);
-		FRTVDesc RTTDesc = GetRenderTargetViewDesc(NewRenderTargetViews[0]);
-		RHISetViewport(0, 0, 0.0f, RTTDesc.Width, RTTDesc.Height, 1.0f);
-	}
-	else if( DepthStencilView )
-	{
-		TRefCountPtr<ID3D11Texture2D> DepthTargetTexture;
-		DepthStencilView->GetResource((ID3D11Resource**)DepthTargetTexture.GetInitReference());
 
-		D3D11_TEXTURE2D_DESC DTTDesc;
-		DepthTargetTexture->GetDesc(&DTTDesc);
-		RHISetViewport(0, 0, 0.0f, DTTDesc.Width, DTTDesc.Height, 1.0f);
+		// Set the viewport to the full size of render target 0.
+		if (NewRenderTargetViews[0])
+		{
+			// check target 0 is valid
+			check(0 < NewNumSimultaneousRenderTargets && NewRenderTargetsRHI[0].Texture != nullptr);
+			FRTVDesc RTTDesc = GetRenderTargetViewDesc(NewRenderTargetViews[0]);
+			RHISetViewport(0, 0, 0.0f, RTTDesc.Width, RTTDesc.Height, 1.0f);
+		}
+		else if (DepthStencilView)
+		{
+			TRefCountPtr<ID3D11Texture2D> DepthTargetTexture;
+			DepthStencilView->GetResource((ID3D11Resource**)DepthTargetTexture.GetInitReference());
+
+			D3D11_TEXTURE2D_DESC DTTDesc;
+			DepthTargetTexture->GetDesc(&DTTDesc);
+			RHISetViewport(0, 0, 0.0f, DTTDesc.Width, DTTDesc.Height, 1.0f);
+		}
 	}
+	// NVCHANGE_END: Add VXGI
 }
 
 void FD3D11DynamicRHI::RHIDiscardRenderTargets(bool Depth, bool Stencil, uint32 ColorBitMask)
@@ -1605,6 +1607,26 @@ void FD3D11DynamicRHI::RHIDrawPrimitiveIndirect(uint32 PrimitiveType,FVertexBuff
 	Direct3DDeviceIMContext->DrawInstancedIndirect(ArgumentBuffer->Resource,ArgumentOffset);
 }
 
+// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+void FD3D11DynamicRHI::RHIDrawIndirect(uint32 PrimitiveType, FStructuredBufferRHIParamRef ArgumentBufferRHI, uint32 ArgumentOffset)
+{
+	FD3D11StructuredBuffer* ArgumentBuffer = ResourceCast(ArgumentBufferRHI);
+
+	RHI_DRAW_CALL_INC();
+
+	GPUProfilingData.RegisterGPUWork(0);
+
+	CommitGraphicsResourceTables();
+	CommitNonComputeShaderConstants();
+
+	VerifyPrimitiveType(PSOPrimitiveType, PrimitiveType);
+	StateCache.SetPrimitiveTopology(GetD3D11PrimitiveType(PrimitiveType, bUsingTessellation));
+	Direct3DDeviceIMContext->DrawInstancedIndirect(ArgumentBuffer->Resource, ArgumentOffset);
+}
+#endif
+// NVCHANGE_END: Add VXGI
+
 void FD3D11DynamicRHI::RHIDrawIndexedIndirect(FIndexBufferRHIParamRef IndexBufferRHI, uint32 PrimitiveType, FStructuredBufferRHIParamRef ArgumentsBufferRHI, int32 DrawArgumentsIndex, uint32 NumInstances)
 {
 	FD3D11IndexBuffer* IndexBuffer = ResourceCast(IndexBufferRHI);
@@ -2020,3 +2042,73 @@ void FD3D11DynamicRHI::RHITransitionResources(EResourceTransitionAccess Transiti
 		WriteFence->WriteFence();
 	}
 }
+
+// NVCHANGE_BEGIN: Add HBAO+
+#if WITH_GFSDK_SSAO
+
+void FD3D11DynamicRHI::RHIRenderHBAO(
+	const FTextureRHIParamRef SceneDepthTextureRHI,
+	const FTextureRHIParamRef SceneDepthTextureRHI2ndLayer,
+	const FMatrix& ProjectionMatrix,
+	const FTextureRHIParamRef SceneNormalTextureRHI,
+	const FMatrix& ViewMatrix,
+	const FTextureRHIParamRef SceneColorTextureRHI,
+	const GFSDK_SSAO_Parameters& BaseParams
+)
+{
+	if (!HBAOContext)
+	{
+		return;
+	}
+
+	D3D11_VIEWPORT Viewport;
+	uint32 NumViewports = 1;
+	Direct3DDeviceIMContext->RSGetViewports(&NumViewports, &Viewport);
+
+	FD3D11TextureBase* DepthTexture = GetD3D11TextureFromRHITexture(SceneDepthTextureRHI);
+	ID3D11ShaderResourceView* DepthSRV = DepthTexture->GetShaderResourceView();
+
+	FD3D11TextureBase* DepthTexture2ndLayer = GetD3D11TextureFromRHITexture(SceneDepthTextureRHI2ndLayer);
+	ID3D11ShaderResourceView* DepthSRV2ndLayer = DepthTexture2ndLayer->GetShaderResourceView();
+
+	FD3D11TextureBase* NewRenderTarget = GetD3D11TextureFromRHITexture(SceneColorTextureRHI);
+	ID3D11RenderTargetView* RenderTargetView = NewRenderTarget->GetRenderTargetView(0, -1);
+
+	GFSDK_SSAO_InputData_D3D11 Input;
+	Input.DepthData.DepthTextureType = GFSDK_SSAO_HARDWARE_DEPTHS;
+	Input.DepthData.pFullResDepthTextureSRV = DepthSRV;
+	Input.DepthData.pFullResDepthTexture2ndLayerSRV = BaseParams.EnableDualLayerAO ? DepthSRV2ndLayer : NULL;
+
+	Input.DepthData.Viewport.Enable = true;
+	Input.DepthData.Viewport.TopLeftX = uint32(Viewport.TopLeftX);
+	Input.DepthData.Viewport.TopLeftY = uint32(Viewport.TopLeftY);
+	Input.DepthData.Viewport.Width = uint32(Viewport.Width);
+	Input.DepthData.Viewport.Height = uint32(Viewport.Height);
+	Input.DepthData.ProjectionMatrix.Data = GFSDK_SSAO_Float4x4(&ProjectionMatrix.M[0][0]);
+	Input.DepthData.ProjectionMatrix.Layout = GFSDK_SSAO_ROW_MAJOR_ORDER;
+	Input.DepthData.MetersToViewSpaceUnits = 100.f;
+
+	FD3D11TextureBase* NormalTexture = GetD3D11TextureFromRHITexture(SceneNormalTextureRHI);
+	ID3D11ShaderResourceView* NormalSRV = NormalTexture->GetShaderResourceView();
+
+	int32 bHBAOGbufferNormals = IConsoleManager::Get().FindConsoleVariable(TEXT("r.HBAO.GBufferNormals"))->GetInt();
+	Input.NormalData.Enable = bHBAOGbufferNormals;
+	Input.NormalData.pFullResNormalTextureSRV = NormalSRV;
+	Input.NormalData.DecodeScale = 2.f;
+	Input.NormalData.DecodeBias = -1.f;
+	Input.NormalData.WorldToViewMatrix.Data = GFSDK_SSAO_Float4x4(&ViewMatrix.M[0][0]);
+	Input.NormalData.WorldToViewMatrix.Layout = GFSDK_SSAO_ROW_MAJOR_ORDER;
+
+	int32 bHBAOVisualizeAO = IConsoleManager::Get().FindConsoleVariable(TEXT("r.HBAO.VisualizeAO"))->GetInt();
+	GFSDK_SSAO_Output_D3D11 Output;
+	ZeroMemory(&Output, sizeof(Output));
+	Output.pRenderTargetView = RenderTargetView;
+	Output.Blend.Mode = bHBAOVisualizeAO ? GFSDK_SSAO_OVERWRITE_RGB : GFSDK_SSAO_MULTIPLY_RGB;
+
+	GFSDK_SSAO_Status Status;
+	Status = HBAOContext->RenderAO(Direct3DDeviceIMContext, Input, BaseParams, Output, GFSDK_SSAO_RenderMask::GFSDK_SSAO_RENDER_AO);
+	check(Status == GFSDK_SSAO_OK);
+}
+
+#endif
+// NVCHANGE_END: Add HBAO+

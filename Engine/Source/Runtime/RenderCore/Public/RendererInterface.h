@@ -45,6 +45,9 @@ enum class EShowMaterialDrawEventTypes
 	Translucent					= 1 << 15, //32768
 	Velocity					= 1 << 16, //65536
 	FogVoxelization				= 1 << 17, //131072
+// NVCHANGE_BEGIN: Add VXGI
+	VxgiVoxelization			= 1 << 18, //262144
+// NVCHANGE_END: Add VXGI
 };
 ENUM_CLASS_FLAGS(EShowMaterialDrawEventTypes)
 

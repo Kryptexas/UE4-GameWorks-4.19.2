@@ -984,6 +984,15 @@ FD3D12Texture3D* FD3D12DynamicRHI::CreateD3D12Texture3D(uint32 SizeX, uint32 Siz
 		SizeZ,
 		NumMips);
 
+	// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+	if (TextureDesc.Format == DXGI_FORMAT_R32_FLOAT)
+		TextureDesc.Format = DXGI_FORMAT_R32_TYPELESS;
+	else if (TextureDesc.Format == DXGI_FORMAT_R10G10B10A2_UNORM)
+		TextureDesc.Format = DXGI_FORMAT_R10G10B10A2_TYPELESS;
+#endif
+	// NVCHANGE_END: Add VXGI
+
 	if (Flags & TexCreate_UAV)
 	{
 		TextureDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;

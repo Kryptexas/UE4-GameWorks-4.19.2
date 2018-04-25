@@ -116,93 +116,93 @@ int32 FWindowsOSVersionHelper::GetOSVersions( FString& out_OSVersionLabel, FStri
 
 		switch (OsVersionInfo.dwMajorVersion)
 		{
-		case 5:
+			case 5:
 			switch (OsVersionInfo.dwMinorVersion)
-			{
-			case 0:
+				{
+					case 0:
 				out_OSVersionLabel = TEXT("Windows 2000");
 				if (OsVersionInfo.wProductType == VER_NT_WORKSTATION)
-				{
+						{
 					out_OSSubVersionLabel = TEXT("Professional");
-				}
-				else
-				{
+						}
+						else
+						{
 					if (OsVersionInfo.wSuiteMask & VER_SUITE_DATACENTER)
-					{
+							{
 						out_OSSubVersionLabel = TEXT("Datacenter Server");
-					}
+							}
 					else if (OsVersionInfo.wSuiteMask & VER_SUITE_ENTERPRISE)
-					{
+							{
 						out_OSSubVersionLabel = TEXT("Advanced Server");
-					}
-					else
-					{
+							}
+							else
+							{
 						out_OSSubVersionLabel = TEXT("Server");
-					}
-				}
-				break;
-			case 1:
+							}
+						}
+						break;
+					case 1:
 				out_OSVersionLabel = TEXT("Windows XP");
 				if (OsVersionInfo.wSuiteMask & VER_SUITE_PERSONAL)
-				{
+						{
 					out_OSSubVersionLabel = TEXT("Home Edition");
-				}
-				else
-				{
+						}
+						else
+						{
 					out_OSSubVersionLabel = TEXT("Professional");
-				}
-				break;
-			case 2:
+						}
+						break;
+					case 2:
 				if (GetSystemMetrics(SM_SERVERR2))
-				{
+						{
 					out_OSVersionLabel = TEXT("Windows Server 2003 R2");
-				}
+						}
 				else if (OsVersionInfo.wSuiteMask & VER_SUITE_STORAGE_SERVER)
-				{
+						{
 					out_OSVersionLabel = TEXT("Windows Storage Server 2003");
-				}
+						}
 				else if (OsVersionInfo.wSuiteMask & VER_SUITE_WH_SERVER)
-				{
+						{
 					out_OSVersionLabel = TEXT("Windows Home Server");
-				}
+						}
 				else if (OsVersionInfo.wProductType == VER_NT_WORKSTATION && SystemInfo.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64)
-				{
+						{
 					out_OSVersionLabel = TEXT("Windows XP");
 					out_OSSubVersionLabel = TEXT("Professional x64 Edition");
-				}
-				else
-				{
+						}
+						else
+						{
 					out_OSVersionLabel = TEXT("Windows Server 2003");
+						}
+						break;
+					default:
+						ErrorCode |= (int32)ERROR_UNKNOWNVERSION;
 				}
 				break;
-			default:
-				ErrorCode |= (int32)ERROR_UNKNOWNVERSION;
-			}
-			break;
-		case 6:
+			case 6:
 			switch (OsVersionInfo.dwMinorVersion)
-			{
-			case 0:
-				if (OsVersionInfo.wProductType == VER_NT_WORKSTATION)
 				{
+					case 0:
+				if (OsVersionInfo.wProductType == VER_NT_WORKSTATION)
+						{
 					out_OSVersionLabel = TEXT("Windows Vista");
-				}
-				else
-				{
+						}
+						else
+						{
 					out_OSVersionLabel = TEXT("Windows Server 2008");
-				}
-				break;
-			case 1:
+						}
+						break;
+					case 1:
 				if (OsVersionInfo.wProductType == VER_NT_WORKSTATION)
-				{
+						{
 					out_OSVersionLabel = TEXT("Windows 7");
-				}
-				else
-				{
+						}
+						else
+						{
 					out_OSVersionLabel = TEXT("Windows Server 2008 R2");
-				}
-				break;
-			case 2:
+						}
+						break;
+					case 2:
 				if (OsVersionInfo.wProductType == VER_NT_WORKSTATION)
 				{
 					out_OSVersionLabel = TEXT("Windows 8");
@@ -211,7 +211,7 @@ int32 FWindowsOSVersionHelper::GetOSVersions( FString& out_OSVersionLabel, FStri
 				{
 					out_OSVersionLabel = TEXT("Windows Server 2012");
 				}
-				break;
+						break;
 			case 3:
 				if (OsVersionInfo.wProductType == VER_NT_WORKSTATION)
 				{
@@ -222,10 +222,10 @@ int32 FWindowsOSVersionHelper::GetOSVersions( FString& out_OSVersionLabel, FStri
 					out_OSVersionLabel = TEXT("Windows Server 2012 R2");
 				}
 				break;
-			default:
-				ErrorCode |= (int32)ERROR_UNKNOWNVERSION;
+					default:
+						ErrorCode |= (int32)ERROR_UNKNOWNVERSION;
 				break;
-			}
+				}
 			break;
 		case 10:
 			switch (OsVersionInfo.dwMinorVersion)
@@ -251,81 +251,81 @@ int32 FWindowsOSVersionHelper::GetOSVersions( FString& out_OSVersionLabel, FStri
 		}
 
 		if(OsVersionInfo.dwMajorVersion >= 6)
-		{
+			{
 #pragma warning( push )
 #pragma warning( disable: 4191 )	// unsafe conversion from 'type of expression' to 'type required'
-			typedef BOOL( WINAPI *LPFN_GETPRODUCTINFO )(DWORD, DWORD, DWORD, DWORD, PDWORD);
-			LPFN_GETPRODUCTINFO fnGetProductInfo = (LPFN_GETPRODUCTINFO)GetProcAddress( GetModuleHandle( TEXT( "kernel32.dll" ) ), "GetProductInfo" );
+				typedef BOOL( WINAPI *LPFN_GETPRODUCTINFO )(DWORD, DWORD, DWORD, DWORD, PDWORD);
+				LPFN_GETPRODUCTINFO fnGetProductInfo = (LPFN_GETPRODUCTINFO)GetProcAddress( GetModuleHandle( TEXT( "kernel32.dll" ) ), "GetProductInfo" );
 #pragma warning( pop )
-			if( fnGetProductInfo != NULL )
-			{
-				DWORD Type;
-				fnGetProductInfo( OsVersionInfo.dwMajorVersion, OsVersionInfo.dwMinorVersion, 0, 0, &Type );
-
-				switch( Type )
+				if( fnGetProductInfo != NULL )
 				{
-					case PRODUCT_ULTIMATE:
-						out_OSSubVersionLabel = TEXT( "Ultimate Edition" );
-						break;
-					case PRODUCT_PROFESSIONAL:
-						out_OSSubVersionLabel = TEXT( "Professional" );
-						break;
-					case PRODUCT_HOME_PREMIUM:
-						out_OSSubVersionLabel = TEXT( "Home Premium Edition" );
-						break;
-					case PRODUCT_HOME_BASIC:
-						out_OSSubVersionLabel = TEXT( "Home Basic Edition" );
-						break;
-					case PRODUCT_ENTERPRISE:
-						out_OSSubVersionLabel = TEXT( "Enterprise Edition" );
-						break;
-					case PRODUCT_BUSINESS:
-						out_OSSubVersionLabel = TEXT( "Business Edition" );
-						break;
-					case PRODUCT_STARTER:
-						out_OSSubVersionLabel = TEXT( "Starter Edition" );
-						break;
-					case PRODUCT_CLUSTER_SERVER:
-						out_OSSubVersionLabel = TEXT( "Cluster Server Edition" );
-						break;
-					case PRODUCT_DATACENTER_SERVER:
-						out_OSSubVersionLabel = TEXT( "Datacenter Edition" );
-						break;
-					case PRODUCT_DATACENTER_SERVER_CORE:
-						out_OSSubVersionLabel = TEXT( "Datacenter Edition (core installation)" );
-						break;
-					case PRODUCT_ENTERPRISE_SERVER:
-						out_OSSubVersionLabel = TEXT( "Enterprise Edition" );
-						break;
-					case PRODUCT_ENTERPRISE_SERVER_CORE:
-						out_OSSubVersionLabel = TEXT( "Enterprise Edition (core installation)" );
-						break;
-					case PRODUCT_ENTERPRISE_SERVER_IA64:
-						out_OSSubVersionLabel = TEXT( "Enterprise Edition for Itanium-based Systems" );
-						break;
-					case PRODUCT_SMALLBUSINESS_SERVER:
-						out_OSSubVersionLabel = TEXT( "Small Business Server" );
-						break;
-					case PRODUCT_SMALLBUSINESS_SERVER_PREMIUM:
-						out_OSSubVersionLabel = TEXT( "Small Business Server Premium Edition" );
-						break;
-					case PRODUCT_STANDARD_SERVER:
-						out_OSSubVersionLabel = TEXT( "Standard Edition" );
-						break;
-					case PRODUCT_STANDARD_SERVER_CORE:
-						out_OSSubVersionLabel = TEXT( "Standard Edition (core installation)" );
-						break;
-					case PRODUCT_WEB_SERVER:
-						out_OSSubVersionLabel = TEXT( "Web Server Edition" );
-						break;
+					DWORD Type;
+					fnGetProductInfo( OsVersionInfo.dwMajorVersion, OsVersionInfo.dwMinorVersion, 0, 0, &Type );
+
+					switch( Type )
+					{
+						case PRODUCT_ULTIMATE:
+							out_OSSubVersionLabel = TEXT( "Ultimate Edition" );
+							break;
+						case PRODUCT_PROFESSIONAL:
+							out_OSSubVersionLabel = TEXT( "Professional" );
+							break;
+						case PRODUCT_HOME_PREMIUM:
+							out_OSSubVersionLabel = TEXT( "Home Premium Edition" );
+							break;
+						case PRODUCT_HOME_BASIC:
+							out_OSSubVersionLabel = TEXT( "Home Basic Edition" );
+							break;
+						case PRODUCT_ENTERPRISE:
+							out_OSSubVersionLabel = TEXT( "Enterprise Edition" );
+							break;
+						case PRODUCT_BUSINESS:
+							out_OSSubVersionLabel = TEXT( "Business Edition" );
+							break;
+						case PRODUCT_STARTER:
+							out_OSSubVersionLabel = TEXT( "Starter Edition" );
+							break;
+						case PRODUCT_CLUSTER_SERVER:
+							out_OSSubVersionLabel = TEXT( "Cluster Server Edition" );
+							break;
+						case PRODUCT_DATACENTER_SERVER:
+							out_OSSubVersionLabel = TEXT( "Datacenter Edition" );
+							break;
+						case PRODUCT_DATACENTER_SERVER_CORE:
+							out_OSSubVersionLabel = TEXT( "Datacenter Edition (core installation)" );
+							break;
+						case PRODUCT_ENTERPRISE_SERVER:
+							out_OSSubVersionLabel = TEXT( "Enterprise Edition" );
+							break;
+						case PRODUCT_ENTERPRISE_SERVER_CORE:
+							out_OSSubVersionLabel = TEXT( "Enterprise Edition (core installation)" );
+							break;
+						case PRODUCT_ENTERPRISE_SERVER_IA64:
+							out_OSSubVersionLabel = TEXT( "Enterprise Edition for Itanium-based Systems" );
+							break;
+						case PRODUCT_SMALLBUSINESS_SERVER:
+							out_OSSubVersionLabel = TEXT( "Small Business Server" );
+							break;
+						case PRODUCT_SMALLBUSINESS_SERVER_PREMIUM:
+							out_OSSubVersionLabel = TEXT( "Small Business Server Premium Edition" );
+							break;
+						case PRODUCT_STANDARD_SERVER:
+							out_OSSubVersionLabel = TEXT( "Standard Edition" );
+							break;
+						case PRODUCT_STANDARD_SERVER_CORE:
+							out_OSSubVersionLabel = TEXT( "Standard Edition (core installation)" );
+							break;
+						case PRODUCT_WEB_SERVER:
+							out_OSSubVersionLabel = TEXT( "Web Server Edition" );
+							break;
+					}
+				}
+				else
+				{
+					out_OSSubVersionLabel = TEXT( "(type unknown)" );
+					ErrorCode |= (int32)ERROR_GETPRODUCTINFO_FAILED;
 				}
 			}
-			else
-			{
-				out_OSSubVersionLabel = TEXT( "(type unknown)" );
-				ErrorCode |= (int32)ERROR_GETPRODUCTINFO_FAILED;
-			}
-		}
 
 #if 0
 		// THIS BIT ADDS THE SERVICE PACK INFO TO THE EDITION STRING
@@ -2622,3 +2622,41 @@ IPlatformChunkInstall* FWindowsPlatformMisc::GetPlatformChunkInstall()
 
 	return ChunkInstall;
 }
+
+// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+
+#include "WindowsPlatformProcess.h"
+
+static void* VXGIDLLHandle = 0;
+static int32 VXGIDLLHandleRefCount = 0;
+static FCriticalSection VXGILoadCS;
+
+void FWindowsPlatformMisc::LoadVxgiModule()
+{
+	if (FPlatformAtomics::InterlockedIncrement(&VXGIDLLHandleRefCount) == 1)
+	{
+		VXGILoadCS.Lock();
+		check(VXGIDLLHandle == 0);
+		FString VXGIBinariesRoot = FPaths::EngineDir() / TEXT("Binaries/ThirdParty/GameWorks/VXGI/");
+		FString VXGIPath(VXGIBinariesRoot + TEXT("GFSDK_VXGI_x64.dll"));
+		VXGIDLLHandle = FPlatformProcess::GetDllHandle(*VXGIPath);
+		check(VXGIDLLHandle);
+		VXGILoadCS.Unlock();
+	}
+}
+
+void FWindowsPlatformMisc::UnloadVxgiModule()
+{
+	if (FPlatformAtomics::InterlockedDecrement(&VXGIDLLHandleRefCount) == 0)
+	{
+		VXGILoadCS.Lock();
+		check(VXGIDLLHandle != 0);
+		FPlatformProcess::FreeDllHandle(VXGIDLLHandle);
+		VXGIDLLHandle = 0;
+		VXGILoadCS.Unlock();
+	}
+}
+
+#endif
+// NVCHANGE_END: Add VXGI

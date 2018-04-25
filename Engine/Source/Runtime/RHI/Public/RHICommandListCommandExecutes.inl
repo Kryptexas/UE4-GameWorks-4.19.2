@@ -507,6 +507,88 @@ void FRHICommandWaitComputeFence<CmdListType>::Execute(FRHICommandListBase& CmdL
 template struct FRHICommandWaitComputeFence<ECmdList::EGfx>;
 template struct FRHICommandWaitComputeFence<ECmdList::ECompute>;
 
+// NVCHANGE_BEGIN: Add HBAO+
+#if WITH_GFSDK_SSAO
+
+void FRHICommandRenderHBAO::Execute(FRHICommandListBase& CmdList)
+{
+	RHISTAT(RenderHBAO);
+	INTERNAL_DECORATOR(RHIRenderHBAO)(
+		SceneDepthTextureRHI,
+		SceneDepthTextureRHI2ndLayer,
+		ProjectionMatrix,
+		SceneNormalTextureRHI,
+		ViewMatrix,
+		SceneColorTextureRHI,
+		AOParams);
+}
+
+#endif
+// NVCHANGE_END: Add HBAO+
+
+// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+
+void FRHIVXGICleanupAfterVoxelization::Execute(FRHICommandListBase& CmdList)
+{
+	RHISTAT(VXGICleanupAfterVoxelization);
+	INTERNAL_DECORATOR(RHIVXGICleanupAfterVoxelization)();
+}
+
+void FRHISetViewportsAndScissorRects::Execute(FRHICommandListBase& CmdList)
+{
+	RHISTAT(SetViewportsAndScissorRects);
+	INTERNAL_DECORATOR(RHISetViewportsAndScissorRects)(Count, Viewports.GetData(), ScissorRects.GetData());
+}
+
+void FRHIDispatchIndirectComputeShaderStructured::Execute(FRHICommandListBase& CmdList)
+{
+	RHISTAT(DispatchIndirectComputeShaderStructured);
+	INTERNAL_DECORATOR(RHIDispatchIndirectComputeShaderStructured)(ArgumentBuffer, ArgumentOffset);
+}
+
+void FRHIDrawIndirect::Execute(FRHICommandListBase& CmdList)
+{
+	RHISTAT(DrawIndirect);
+	INTERNAL_DECORATOR(RHIDrawIndirect)(PrimitiveType, ArgumentBuffer, ArgumentOffset);
+}
+
+void FRHICopyStructuredBufferData::Execute(FRHICommandListBase& CmdList)
+{
+	RHISTAT(CopyStructuredBufferData);
+	INTERNAL_DECORATOR(RHICopyStructuredBufferData)(DestBuffer, DestOffset, SrcBuffer, SrcOffset, DataSize);
+}
+
+void FRHISetEnableUAVBarriers::Execute(FRHICommandListBase& CmdList)
+{
+	RHISTAT(SetEnableUAVBarriers);
+
+	TArray<FTextureRHIParamRef, TFixedAllocator<FRHISetEnableUAVBarriers::MAX_ELEMENTS>> TextureParamRefs;
+	TArray<FStructuredBufferRHIParamRef, TFixedAllocator<FRHISetEnableUAVBarriers::MAX_ELEMENTS>> BufferParamRefs;
+
+	for (int32 TextureIndex = 0; TextureIndex < Textures.Num(); TextureIndex++)
+	{
+		TextureParamRefs.Add(Textures[TextureIndex]);
+	}
+
+	for (int32 BufferIndex = 0; BufferIndex < Buffers.Num(); BufferIndex++)
+	{
+		BufferParamRefs.Add(Buffers[BufferIndex]);
+	}
+
+	FTextureRHIParamRef* pTextures = nullptr;
+	if (Textures.Num()) pTextures = &TextureParamRefs[0];
+
+	FStructuredBufferRHIParamRef* pBuffers = nullptr;
+	if (Buffers.Num()) pBuffers = &BufferParamRefs[0];
+
+	
+	INTERNAL_DECORATOR(RHISetEnableUAVBarriers)(bEnable, pTextures, Textures.Num(), pBuffers, Buffers.Num());
+}
+
+#endif
+// NVCHANGE_END: Add VXGI
+
 void FRHICommandBuildLocalGraphicsPipelineState::Execute(FRHICommandListBase& CmdList)
 {
 	LLM_SCOPE(ELLMTag::Shaders);

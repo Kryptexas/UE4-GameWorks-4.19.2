@@ -1367,6 +1367,5 @@ bool FDeferredShadingSceneRenderer::RenderBasePassView(FRHICommandListImmediate&
 	SetupBasePassView(RHICmdList, View, this, DrawRenderState, BasePassDepthStencilAccess, ViewFamily.EngineShowFlags.ShaderComplexity);
 	bDirty |= RenderBasePassStaticData(RHICmdList, View, DrawRenderState);
 	RenderBasePassDynamicData(RHICmdList, View, DrawRenderState, bDirty);
-
 	return bDirty;
 }

@@ -424,6 +424,14 @@ int32 FStatUnitData::DrawStat(FViewport* InViewport, FCanvas* InCanvas, int32 In
 	RawGPUFrameTime = FPlatformTime::ToMilliseconds(GPUCycles);
 	GPUFrameTime = 0.9 * GPUFrameTime + 0.1 * RawGPUFrameTime;
 
+	// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+	GDynamicRHI->RHIVXGIGetGPUTime(RawVxgiWorldSpaceTime, RawVxgiScreenSpaceTime);
+	VxgiWorldSpaceTime = 0.9 * VxgiWorldSpaceTime + 0.1 * RawVxgiWorldSpaceTime;
+	VxgiScreenSpaceTime = 0.9 * VxgiScreenSpaceTime + 0.1 * RawVxgiScreenSpaceTime;
+#endif
+	// NVCHANGE_END: Add VXGI
+
 	SET_FLOAT_STAT(STAT_UnitFrame, FrameTime);
 	SET_FLOAT_STAT(STAT_UnitRender, RenderThreadTime);
 	SET_FLOAT_STAT(STAT_UnitGame, GameThreadTime);
@@ -592,6 +600,24 @@ int32 FStatUnitData::DrawStat(FViewport* InViewport, FCanvas* InCanvas, int32 In
 			}
 			InY += RowHeight;
 		}
+
+		// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+		const bool bHaveVxgiData = (VxgiWorldSpaceTime > 0) || (VxgiScreenSpaceTime > 0);
+		if (bHaveVxgiData)
+		{
+			const int32 X1V = X2 - Font->GetStringSize(TEXT("VXGI WS: "));
+			FColor Color = VxgiWorldSpaceTime < 10.0f ? FColor::Green : (VxgiWorldSpaceTime < 25.0f ? FColor::Yellow : FColor::Red);
+			InCanvas->DrawShadowedString(X1V, InY, TEXT("VXGI WS:"), Font, FColor::White);
+			InCanvas->DrawShadowedString(X2, InY, *FString::Printf(TEXT("%3.2f ms"), VxgiWorldSpaceTime), Font, Color);
+			InY += RowHeight;
+			Color = VxgiScreenSpaceTime < 10.0f ? FColor::Green : (VxgiScreenSpaceTime < 25.0f ? FColor::Yellow : FColor::Red);
+			InCanvas->DrawShadowedString(X1V, InY, TEXT("VXGI SS:"), Font, FColor::White);
+			InCanvas->DrawShadowedString(X2, InY, *FString::Printf(TEXT("%3.2f ms"), VxgiScreenSpaceTime), Font, Color);
+			InY += RowHeight;
+		}
+#endif
+		// NVCHANGE_END: Add VXGI
 	}
 
 #if !UE_BUILD_SHIPPING

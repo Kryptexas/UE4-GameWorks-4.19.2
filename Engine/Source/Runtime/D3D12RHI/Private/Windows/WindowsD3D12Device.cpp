@@ -666,6 +666,12 @@ void FD3D12DynamicRHI::Init()
 	// Indicate that the RHI needs to use the engine's deferred deletion queue.
 	GRHINeedsExtraDeletionLatency = true;
 
+	// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+	CreateVxgiInterface();
+#endif
+	// NVCHANGE_END: Add VXGI
+
 	// Set the RHI initialized flag.
 	GIsRHIInitialized = true;
 }

@@ -670,7 +670,7 @@ void FD3D12CommandContext::RHISetShaderUniformBuffer(FVertexShaderRHIParamRef Ve
 
 	if (!GRHINeedsExtraDeletionLatency)
 	{
-		BoundUniformBufferRefs[SF_Vertex][BufferIndex] = BufferRHI;
+	BoundUniformBufferRefs[SF_Vertex][BufferIndex] = BufferRHI;
 	}
 	BoundUniformBuffers[SF_Vertex][BufferIndex] = Buffer;
 	DirtyUniformBuffers[SF_Vertex] |= (1 << BufferIndex);
@@ -686,7 +686,7 @@ void FD3D12CommandContext::RHISetShaderUniformBuffer(FHullShaderRHIParamRef Hull
 
 	if (!GRHINeedsExtraDeletionLatency)
 	{
-		BoundUniformBufferRefs[SF_Hull][BufferIndex] = BufferRHI;
+	BoundUniformBufferRefs[SF_Hull][BufferIndex] = BufferRHI;
 	}
 	BoundUniformBuffers[SF_Hull][BufferIndex] = Buffer;
 	DirtyUniformBuffers[SF_Hull] |= (1 << BufferIndex);
@@ -702,7 +702,7 @@ void FD3D12CommandContext::RHISetShaderUniformBuffer(FDomainShaderRHIParamRef Do
 
 	if (!GRHINeedsExtraDeletionLatency)
 	{
-		BoundUniformBufferRefs[SF_Domain][BufferIndex] = BufferRHI;
+	BoundUniformBufferRefs[SF_Domain][BufferIndex] = BufferRHI;
 	}
 	BoundUniformBuffers[SF_Domain][BufferIndex] = Buffer;
 	DirtyUniformBuffers[SF_Domain] |= (1 << BufferIndex);
@@ -718,7 +718,7 @@ void FD3D12CommandContext::RHISetShaderUniformBuffer(FGeometryShaderRHIParamRef 
 
 	if (!GRHINeedsExtraDeletionLatency)
 	{
-		BoundUniformBufferRefs[SF_Geometry][BufferIndex] = BufferRHI;
+	BoundUniformBufferRefs[SF_Geometry][BufferIndex] = BufferRHI;
 	}
 	BoundUniformBuffers[SF_Geometry][BufferIndex] = Buffer;
 	DirtyUniformBuffers[SF_Geometry] |= (1 << BufferIndex);
@@ -734,7 +734,7 @@ void FD3D12CommandContext::RHISetShaderUniformBuffer(FPixelShaderRHIParamRef Pix
 
 	if (!GRHINeedsExtraDeletionLatency)
 	{
-		BoundUniformBufferRefs[SF_Pixel][BufferIndex] = BufferRHI;
+	BoundUniformBufferRefs[SF_Pixel][BufferIndex] = BufferRHI;
 	}
 	BoundUniformBuffers[SF_Pixel][BufferIndex] = Buffer;
 	DirtyUniformBuffers[SF_Pixel] |= (1 << BufferIndex);
@@ -750,7 +750,7 @@ void FD3D12CommandContext::RHISetShaderUniformBuffer(FComputeShaderRHIParamRef C
 
 	if (!GRHINeedsExtraDeletionLatency)
 	{
-		BoundUniformBufferRefs[SF_Compute][BufferIndex] = BufferRHI;
+	BoundUniformBufferRefs[SF_Compute][BufferIndex] = BufferRHI;
 	}
 	BoundUniformBuffers[SF_Compute][BufferIndex] = Buffer;
 	DirtyUniformBuffers[SF_Compute] |= (1 << BufferIndex);
@@ -1480,7 +1480,9 @@ void FD3D12CommandContext::RHIDrawPrimitiveIndirect(uint32 PrimitiveType, FVerte
 
 	numDraws++;
 	CommandListHandle->ExecuteIndirect(
-		GetParentDevice()->GetParentAdapter()->GetDrawIndirectCommandSignature(),
+		// NVCHANGE_BEGIN: Add VXGI
+		GetParentDevice()->GetParentAdapter()->GetDrawIndexedIndirectCommandSignature(),
+		// NVCHANGE_END: Add VXGI
 		1,
 		Location.GetResource()->GetResource(),
 		Location.GetOffsetFromBaseOfResource() + ArgumentOffset,
@@ -1496,6 +1498,49 @@ void FD3D12CommandContext::RHIDrawPrimitiveIndirect(uint32 PrimitiveType, FVerte
 	DEBUG_EXECUTE_COMMAND_LIST(this);
 
 }
+
+// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+void FD3D12CommandContext::RHIDrawIndirect(uint32 PrimitiveType, FStructuredBufferRHIParamRef ArgumentBufferRHI, uint32 ArgumentOffset)
+{
+	FD3D12StructuredBuffer* ArgumentBuffer = RetrieveObject<FD3D12StructuredBuffer>(ArgumentBufferRHI);
+
+	RHI_DRAW_CALL_INC();
+
+	if (IsDefaultContext())
+	{
+		GetParentDevice()->RegisterGPUWork(0);
+	}
+
+	CommitGraphicsResourceTables();
+	CommitNonComputeShaderConstants();
+
+	StateCache.SetPrimitiveTopology(GetD3D12PrimitiveType(PrimitiveType, bUsingTessellation));
+
+	FD3D12ResourceLocation& Location = ArgumentBuffer->ResourceLocation;
+	FD3D12DynamicRHI::TransitionResource(CommandListHandle, Location.GetResource(), D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
+
+	StateCache.ApplyState();
+
+	numDraws++;
+	CommandListHandle->ExecuteIndirect(
+		GetParentDevice()->GetParentAdapter()->GetDrawIndirectCommandSignature(),
+		1,
+		Location.GetResource()->GetResource(),
+		Location.GetOffsetFromBaseOfResource() + ArgumentOffset,
+		NULL,
+		0
+	);
+
+	CommandListHandle.UpdateResidency(Location.GetResource());
+
+#if UE_BUILD_DEBUG	
+	OwningRHI.DrawCount++;
+#endif
+	DEBUG_EXECUTE_COMMAND_LIST(this);
+}
+#endif
+// NVCHANGE_END: Add VXGI
 
 void FD3D12CommandContext::RHIDrawIndexedIndirect(FIndexBufferRHIParamRef IndexBufferRHI, uint32 PrimitiveType, FStructuredBufferRHIParamRef ArgumentsBufferRHI, int32 DrawArgumentsIndex, uint32 NumInstances)
 {
@@ -2111,3 +2156,135 @@ void FD3D12CommandContext::RHIBroadcastTemporalEffect(const FName& InEffectName,
 	}
 #endif
 }
+// NVCHANGE_BEGIN: Add HBAO+
+#if WITH_GFSDK_SSAO
+
+void FD3D12CommandContext::RHIRenderHBAO(
+	const FTextureRHIParamRef SceneDepthTextureRHI,
+	const FTextureRHIParamRef SceneDepthTextureRHI2ndLayer,
+	const FMatrix& ProjectionMatrix,
+	const FTextureRHIParamRef SceneNormalTextureRHI,
+	const FMatrix& ViewMatrix,
+	const FTextureRHIParamRef SceneColorTextureRHI,
+	const GFSDK_SSAO_Parameters& BaseParams
+)
+{
+	// Empty method because HBAO+ doesn't support DX12 yet.
+	// Just override the base so that the engine doesn't crash.
+	if (!OwningRHI.HBAOContext || OwningRHI.HBAODescriptorHeaps == NULL)
+	{
+		return;
+	}
+	const BOOL isDualLayerAO = BaseParams.EnableDualLayerAO;
+	D3D12_VIEWPORT Viewport;
+	uint32 NumViewports = 1;
+	StateCache.GetViewports(&NumViewports, &Viewport);
+
+	GFSDK_SSAO_InputData_D3D12 InputData = {};
+	ID3D12DescriptorHeap* const HBAOSRVHeap = OwningRHI.HBAODescriptorHeaps->CBV_SRV_UAV.pDescHeap;
+	uint32 HBAOSRVHeapBaseSlot = OwningRHI.HBAODescriptorHeaps->CBV_SRV_UAV.BaseIndex-3; // -3 for dual depth and normal SRV
+	uint32 SRVDescriptorSize = GetParentDevice()->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+	//Set Depth data
+	InputData.DepthData.DepthTextureType = GFSDK_SSAO_HARDWARE_DEPTHS;
+	InputData.DepthData.Viewport.Enable = true;
+	InputData.DepthData.Viewport.TopLeftX = uint32(Viewport.TopLeftX);
+	InputData.DepthData.Viewport.TopLeftY = uint32(Viewport.TopLeftY);
+	InputData.DepthData.Viewport.Width = uint32(Viewport.Width);
+	InputData.DepthData.Viewport.Height = uint32(Viewport.Height);
+
+	//Depth SRV creation on HBAO descriptor heap
+	CD3DX12_GPU_DESCRIPTOR_HANDLE DepthSrvGpuHandle(HBAOSRVHeap->GetGPUDescriptorHandleForHeapStart(), HBAOSRVHeapBaseSlot, SRVDescriptorSize);
+	CD3DX12_CPU_DESCRIPTOR_HANDLE DepthSrvCpuHandle(HBAOSRVHeap->GetCPUDescriptorHandleForHeapStart(), HBAOSRVHeapBaseSlot, SRVDescriptorSize);
+	FD3D12TextureBase* DepthTexture = GetD3D12TextureFromRHITexture(SceneDepthTextureRHI);
+	ID3D12Resource* DepthResource = DepthTexture->GetResource()->GetResource();
+	const D3D12_SHADER_RESOURCE_VIEW_DESC DepthSRVDesc = DepthTexture->GetShaderResourceView()->GetDesc();
+	GetParentDevice()->GetDevice()->CreateShaderResourceView(DepthResource, &DepthSRVDesc, DepthSrvCpuHandle);
+	InputData.DepthData.FullResDepthTextureSRV.pResource = DepthResource;
+	InputData.DepthData.FullResDepthTextureSRV.GpuHandle = DepthSrvGpuHandle.ptr;
+
+	if (isDualLayerAO)
+	{
+		CD3DX12_GPU_DESCRIPTOR_HANDLE DepthSrvGpuHandle2nd(HBAOSRVHeap->GetGPUDescriptorHandleForHeapStart(), HBAOSRVHeapBaseSlot+2, SRVDescriptorSize);
+		CD3DX12_CPU_DESCRIPTOR_HANDLE DepthSrvCpuHandle2nd(HBAOSRVHeap->GetCPUDescriptorHandleForHeapStart(), HBAOSRVHeapBaseSlot+2, SRVDescriptorSize);
+		FD3D12TextureBase* DepthTexture2nd = GetD3D12TextureFromRHITexture(SceneDepthTextureRHI2ndLayer);
+		ID3D12Resource* DepthResource2nd = DepthTexture2nd->GetResource()->GetResource();
+		const D3D12_SHADER_RESOURCE_VIEW_DESC DepthSRVDesc2nd = DepthTexture2nd->GetShaderResourceView()->GetDesc();
+		GetParentDevice()->GetDevice()->CreateShaderResourceView(DepthResource2nd, &DepthSRVDesc2nd, DepthSrvCpuHandle2nd);
+		InputData.DepthData.FullResDepthTexture2ndLayerSRV.pResource = DepthResource2nd;
+		InputData.DepthData.FullResDepthTexture2ndLayerSRV.GpuHandle = DepthSrvGpuHandle2nd.ptr;
+	}
+
+	InputData.DepthData.ProjectionMatrix.Data = GFSDK_SSAO_Float4x4((const GFSDK_SSAO_FLOAT*)&ProjectionMatrix.M[0][0]);
+	InputData.DepthData.ProjectionMatrix.Layout = GFSDK_SSAO_ROW_MAJOR_ORDER;
+	InputData.DepthData.MetersToViewSpaceUnits = 100.0f;
+
+	//Set Normal data
+	int32 bHBAOGbufferNormals = IConsoleManager::Get().FindConsoleVariable(TEXT("r.HBAO.GBufferNormals"))->GetInt();
+	InputData.NormalData.Enable = bHBAOGbufferNormals;
+	if (InputData.NormalData.Enable)
+	{
+		CD3DX12_GPU_DESCRIPTOR_HANDLE NormalSrvGpuHandle( HBAOSRVHeap->GetGPUDescriptorHandleForHeapStart(), HBAOSRVHeapBaseSlot+1, SRVDescriptorSize);
+		CD3DX12_CPU_DESCRIPTOR_HANDLE NormalSrvCpuHandle( HBAOSRVHeap->GetCPUDescriptorHandleForHeapStart(), HBAOSRVHeapBaseSlot+1, SRVDescriptorSize);
+		FD3D12TextureBase* NormalTexture = GetD3D12TextureFromRHITexture(SceneNormalTextureRHI);
+		ID3D12Resource* NormalResource = NormalTexture->GetResource()->GetResource();
+		const D3D12_SHADER_RESOURCE_VIEW_DESC NormalSRVDesc = NormalTexture->GetShaderResourceView()->GetDesc();
+		GetParentDevice()->GetDevice()->CreateShaderResourceView(NormalResource, &NormalSRVDesc, NormalSrvCpuHandle);
+		InputData.NormalData.DecodeScale = 2.f;
+		InputData.NormalData.DecodeBias = -1.f;
+		InputData.NormalData.FullResNormalTextureSRV.pResource = NormalResource;
+		InputData.NormalData.FullResNormalTextureSRV.GpuHandle = NormalSrvGpuHandle.ptr;
+		InputData.NormalData.WorldToViewMatrix.Data = GFSDK_SSAO_Float4x4((const GFSDK_SSAO_FLOAT*)&ViewMatrix.M[0][0]);
+		InputData.NormalData.WorldToViewMatrix.Layout = GFSDK_SSAO_ROW_MAJOR_ORDER;
+	}
+
+	//Set Output data
+	int32 bHBAOVisualizeAO = IConsoleManager::Get().FindConsoleVariable(TEXT("r.HBAO.VisualizeAO"))->GetInt();
+	FD3D12TextureBase* ColorTexture = GetD3D12TextureFromRHITexture(SceneColorTextureRHI);
+	FD3D12RenderTargetView* ColorRTV = ColorTexture->GetRenderTargetView(0, -1);
+	GFSDK_SSAO_Output_D3D12 Output;
+	GFSDK_SSAO_RenderTargetView_D3D12 HBAOColorRTV = {};
+	HBAOColorRTV.CpuHandle = ColorRTV->GetView().ptr;
+	HBAOColorRTV.pResource = ColorTexture->GetResource()->GetResource();
+	Output.pRenderTargetView = &HBAOColorRTV;
+	Output.Blend.Mode = bHBAOVisualizeAO ? GFSDK_SSAO_OVERWRITE_RGB : GFSDK_SSAO_MULTIPLY_RGB;
+
+	auto cmdList = CommandListHandle.GraphicsCommandList();
+	//Saving current states to restore them after RenderAO
+	ID3D12DescriptorHeap* CurrentSRVHeap = StateCache.GetDescriptorCache()->GetViewDescriptorHeap();
+	ID3D12DescriptorHeap* CurrentSamplerHeap = StateCache.GetDescriptorCache()->GetSamplerDescriptorHeap();
+	ID3D12RootSignature* CurrentRootSigniture = StateCache.GetGraphicsRootSignature()->GetRootSignature();
+	ID3D12PipelineState* CurrentPSO = StateCache.GetPipelineStateObject();
+
+	FD3D12RenderTargetView* RenderTargetViews[MaxSimultaneousRenderTargets];
+	FD3D12DepthStencilView* DSView = nullptr;
+	uint32 NumSimultaneousRTs = 0;
+	StateCache.GetRenderTargets(RenderTargetViews, &NumSimultaneousRTs, &DSView);
+	D3D12_CPU_DESCRIPTOR_HANDLE RTVDescriptors[D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT];
+	for (uint32 i = 0; i < NumSimultaneousRTs; i++)
+	{
+		RTVDescriptors[i] = RenderTargetViews[i]->GetView();
+	}
+
+	//Call RenderAO
+	auto status = OwningRHI.HBAOContext->RenderAO(GetCommandListManager().GetD3DCommandQueue(), CommandListHandle.GraphicsCommandList(), InputData, BaseParams, Output);
+	check(status == GFSDK_SSAO_OK);
+
+	////Restore previous state
+	ID3D12DescriptorHeap* CurrentHeaps[2] = { CurrentSRVHeap, CurrentSamplerHeap }; 
+	cmdList->SetDescriptorHeaps(2, CurrentHeaps);
+	cmdList->SetGraphicsRootSignature(CurrentRootSigniture);
+	cmdList->SetPipelineState(CurrentPSO);
+	if(DSView != nullptr)
+	{ 
+		D3D12_CPU_DESCRIPTOR_HANDLE DSVDescriptor(DSView->GetView());
+		cmdList->OMSetRenderTargets(NumSimultaneousRTs, RTVDescriptors, 1, &DSVDescriptor);
+	}
+	else
+	{
+		cmdList->OMSetRenderTargets(NumSimultaneousRTs, RTVDescriptors, 0, nullptr);
+	}
+}
+
+#endif
+// NVCHANGE_END: Add HBAO+

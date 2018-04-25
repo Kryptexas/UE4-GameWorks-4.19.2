@@ -21,6 +21,19 @@ DECLARE_LOG_CATEGORY_EXTERN(LogD3D11RHI, Log, All);
 #include "Windows/D3D11RHIBasePrivate.h"
 #include "StaticArray.h"
 
+// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+#include "GFSDK_VXGI.h"
+#include "D3D11NvRHI.h"
+#endif
+// NVCHANGE_END: Add VXGI
+
+// NVCHANGE_BEGIN: Add HBAO+
+#if WITH_GFSDK_SSAO
+#include "GFSDK_SSAO.h"
+#endif
+// NVCHANGE_END: Add HBAO+
+
 // D3D RHI public headers.
 #include "D3D11Util.h"
 #include "D3D11State.h"
@@ -267,6 +280,15 @@ struct FD3DGPUProfiler : public FGPUProfiler
 
 	/** GPU hitch profile histories */
 	TIndirectArray<FD3D11EventNodeFrame> GPUHitchEventNodeFrames;
+
+		// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI 
+	bool bRequestProfileForStatUnitVxgi;
+	bool bLatchedRequestProfileForStatUnitVxgi;
+	float VxgiWorldSpaceTime;
+	float VxgiScreenSpaceTime;
+#endif
+	// NVCHANGE_END: Add VXGI
 
 	FD3DGPUProfiler(class FD3D11DynamicRHI* InD3DRHI);
 
@@ -535,6 +557,51 @@ public:
 	virtual FTextureCubeRHIRef RHICreateTextureCubeFromResource(EPixelFormat Format, uint32 TexCreateFlags, const FClearValueBinding& ClearValueBinding, ID3D11Texture2D* Resource);
 	virtual void RHIAliasTextureResources(FTextureRHIParamRef DestTexture, FTextureRHIParamRef SrcTexture);
 
+	// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+	NVRHI::FRendererInterfaceD3D11* VxgiRendererD3D11;
+	virtual VXGI::IGlobalIllumination* RHIVXGIGetInterface() final override;
+	virtual NVRHI::IRendererInterface* RHIVXGIGetRendererInterface() final override;
+    virtual bool RHIVXGIIsInitialized() final override;
+    virtual void RHIVXGISetVoxelizationParameters(const VXGI::VoxelizationParameters& Parameters) final override;
+	virtual void RHIVXGISetPixelShaderResourceAttributes(NVRHI::ShaderHandle PixelShader, const TArray<uint8>& ShaderResourceTable, bool bUsesGlobalCB) final override;
+	virtual void RHIVXGIApplyDrawStateOverrideShaders(const NVRHI::DrawCallState& DrawCallState, const FBoundShaderStateInput* BoundShaderStateInput, EPrimitiveType PrimitiveTypeOverride) final override;
+	virtual void RHIVXGIApplyShaderResources(const NVRHI::DrawCallState& DrawCallState) final override;
+	virtual void RHIVXGISetCommandList(FRHICommandList* RHICommandList) final override;
+	virtual FRHITexture* GetRHITextureFromVXGI(NVRHI::TextureHandle texture) final override;
+	virtual NVRHI::TextureHandle GetVXGITextureFromRHI(FRHITexture* texture) final override;
+	virtual void RHIVXGIReleaseUnmanagedTextures() final override;
+	virtual FRHIShader* GetRHIShaderFromVXGI(NVRHI::ShaderHandle shader) final override;
+	virtual void RHIVXGIGetGPUTime(float& OutWorldSpaceTime, float& OutScreenSpaceTime) final override;
+	virtual void RHIVXGICleanupAfterVoxelization() final override;
+	virtual void RHISetViewportsAndScissorRects(uint32 Count, const FViewportBounds* Viewports, const FScissorRect* ScissorRects) final override;
+	virtual void RHIDispatchIndirectComputeShaderStructured(FStructuredBufferRHIParamRef ArgumentBuffer, uint32 ArgumentOffset) final override;
+	virtual void RHIDrawIndirect(uint32 PrimitiveType, FStructuredBufferRHIParamRef ArgumentBuffer, uint32 ArgumentOffset) final override;
+	virtual void RHICopyStructuredBufferData(FStructuredBufferRHIParamRef DestBuffer, uint32 DestOffset, FStructuredBufferRHIParamRef SrcBuffer, uint32 SrcOffset, uint32 DataSize) final override;
+	virtual void RHISetEnableUAVBarriers(bool bEnable, const FTextureRHIParamRef* Textures, uint32 NumTextures, const FStructuredBufferRHIParamRef* Buffers, uint32 NumBuffers) final override;
+private:
+	VXGI::IGlobalIllumination* VxgiInterface;
+	VXGI::VoxelizationParameters VxgiVoxelizationParameters;
+	bool bVxgiVoxelizationParametersSet;
+	void CreateVxgiInterface();
+	void ReleaseVxgiInterface();
+public:
+#endif
+	// NVCHANGE_END: Add VXGI
+
+	// NVCHANGE_BEGIN: Add HBAO+
+#if WITH_GFSDK_SSAO
+	virtual void RHIRenderHBAO(
+		const FTextureRHIParamRef SceneDepthTextureRHI,
+		const FTextureRHIParamRef SceneDepthTextureRHI2ndLayer,
+		const FMatrix& ProjectionMatrix,
+		const FTextureRHIParamRef SceneNormalTextureRHI,
+		const FMatrix& ViewMatrix,
+		const FTextureRHIParamRef SceneColorTextureRHI,
+		const GFSDK_SSAO_Parameters& AOParams) final override;
+#endif
+	// NVCHANGE_END: Add HBAO+
+
 	// Accessors.
 	ID3D11Device* GetDevice() const
 	{
@@ -644,6 +711,13 @@ protected:
 
 	/** The global D3D device's immediate context */
 	TRefCountPtr<FD3D11Device> Direct3DDevice;
+
+	// NVCHANGE_BEGIN: Add HBAO+
+#if WITH_GFSDK_SSAO
+	GFSDK_SSAO_Context_D3D11* HBAOContext;
+	HMODULE HBAOModuleHandle;
+#endif
+	// NVCHANGE_END: Add HBAO+
 
 	FD3D11StateCache StateCache;
 
@@ -950,6 +1024,9 @@ inline DXGI_FORMAT FindShaderResourceDXGIFormat(DXGI_FORMAT InFormat,bool bSRGB)
 		case DXGI_FORMAT_R24G8_TYPELESS: return DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
 		case DXGI_FORMAT_R32_TYPELESS: return DXGI_FORMAT_R32_FLOAT;
 		case DXGI_FORMAT_R16_TYPELESS: return DXGI_FORMAT_R16_UNORM;
+			// NVCHANGE_BEGIN: Add VXGI
+		case DXGI_FORMAT_R8_TYPELESS: return DXGI_FORMAT_R8_UNORM;
+			// NVCHANGE_END: Add VXGI
 #if DEPTH_32_BIT_CONVERSION
 		// Changing Depth Buffers to 32 bit on Dingo as D24S8 is actually implemented as a 32 bit buffer in the hardware
 		case DXGI_FORMAT_R32G8X24_TYPELESS: return DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS; 

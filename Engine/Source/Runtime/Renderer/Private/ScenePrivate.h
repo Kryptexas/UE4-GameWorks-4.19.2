@@ -41,6 +41,10 @@
 #include "MobileBasePassRendering.h"
 #include "VolumeRendering.h"
 
+// NVCHANGE_BEGIN: Add VXGI
+#include "VxgiRendering.h"
+// NVCHANGE_END: Add VXGI
+
 /** Factor by which to grow occlusion tests **/
 #define OCCLUSION_SLOP (1.0f)
 
@@ -851,6 +855,19 @@ public:
 	 */
 	FLightPropagationVolume* GetLightPropagationVolume(ERHIFeatureLevel::Type InFeatureLevel, bool bIncludeStereo = false) const;
 
+	// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+	// We should keep on in here instead of global so that we don't trash texture rendering previews
+	mutable VXGI::IViewTracer* VxgiViewTracer;
+	NVRHI::ConstantBufferHandle VxgiViewTracerConstantBuffer;
+
+	TArray<TRefCountPtr<IPooledRenderTarget>> PrevGBufferA;
+	TArray<TRefCountPtr<IPooledRenderTarget>> PrevGBufferB;
+	TArray<FViewMatrices> PrevViewMatricesPerGPU;
+	TArray<FIntRect> PrevViewRectPerGPU;
+#endif
+	// NVCHANGE_END: Add VXGI
+
 	/** Default constructor. */
 	FSceneViewState();
 
@@ -1053,7 +1070,7 @@ public:
 			for (int32 CacheType = 0; CacheType < ARRAY_COUNT(GlobalDistanceFieldClipmapState[CascadeIndex].Cache); CacheType++)
 			{
 				GlobalDistanceFieldClipmapState[CascadeIndex].Cache[CacheType].VolumeTexture.SafeRelease();
-			}
+		}
 		}
 
 		IndirectShadowCapsuleShapesVertexBuffer.SafeRelease();
@@ -1068,6 +1085,18 @@ public:
 		ForwardLightingResources.Release();
 		ForwardLightingCullingResources.Release();
 		LightScatteringHistory.SafeRelease();
+
+		// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+		PrevGBufferA.Reset();
+		PrevGBufferB.Reset();
+		if (VxgiViewTracer)
+		{
+			GDynamicRHI->RHIVXGIGetInterface()->destroyTracer(VxgiViewTracer);
+			VxgiViewTracer = NULL;
+		}
+#endif
+		// NVCHANGE_END: Add VXGI
 	}
 
 	// FSceneViewStateInterface
@@ -1972,6 +2001,13 @@ public:
 	/** Draw list to use for selected static meshes in the editor only */
 	TStaticMeshDrawList<FEditorSelectionDrawingPolicy> EditorSelectionDrawList;
 #endif
+	// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+	/** Voxelization draw list */
+	TStaticMeshDrawList<TVXGIVoxelizationDrawingPolicy< FVXGIVoxelizationNoLightMapPolicy> > VxgiVoxelizationDrawList;
+#endif
+	// NVCHANGE_END: Add VXGI
+
 	/**
 	 * The following arrays are densely packed primitive data needed by various
 	 * rendering passes. PrimitiveSceneInfo->PackedIndex maintains the index

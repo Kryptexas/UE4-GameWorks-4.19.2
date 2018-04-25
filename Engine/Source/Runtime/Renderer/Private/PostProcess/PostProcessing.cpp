@@ -1371,6 +1371,17 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, const FViewI
 		//
 		EStereoscopicPass StereoPass = View.StereoPass;
 		//
+		// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+		{
+			// Disable the tonemapper for opacity voxels visualization, enable it for emittance and irradiance
+			if (View.Family->EngineShowFlags.VxgiOpacityVoxels && View.Family->Views.Num() == 1)
+			{
+				bAllowTonemapper = false;
+			}
+		}
+#endif
+		// NVCHANGE_END: Add VXGI
 		FSceneViewState* ViewState = (FSceneViewState*)Context.View.State;
 
 		{

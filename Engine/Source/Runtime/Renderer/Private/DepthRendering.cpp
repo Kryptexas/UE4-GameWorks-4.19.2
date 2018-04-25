@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DepthRendering.cpp: Depth rendering implementation.
@@ -976,6 +976,31 @@ bool FDeferredShadingSceneRenderer::RenderPrePassView(FRHICommandList& RHICmdLis
 			bDirty |= Scene->MaskedDepthDrawList.DrawVisibleInstancedStereo(RHICmdList, StereoView, DrawRenderState);
 		}
 	}
+// NVCHANGE_BEGIN: Add HBAO+
+#if WITH_GFSDK_SSAO
+
+	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
+	static IConsoleVariable* HBAOEnable = IConsoleManager::Get().FindConsoleVariable(TEXT("r.HBAO.Enable"));
+	static IConsoleVariable* HBAODualLayer = IConsoleManager::Get().FindConsoleVariable(TEXT("r.HBAO.DualLayerBlend"));
+
+	if (GMaxRHIShaderPlatform == SP_PCD3D_SM5 &&
+		HBAOEnable->GetInt() &&
+		HBAODualLayer->GetInt() &&
+		ViewFamily.EngineShowFlags.HBAO)
+	{
+		if (View.IsPerspectiveProjection() && View.FinalPostProcessSettings.HBAOPowerExponent > 0.f && !View.bIsReflectionCapture)
+		{
+			//copy depth buffer after static pre-pass
+			RHICmdList.CopyToResolveTarget(
+				SceneContext.GetSceneDepthTexture(),
+				SceneContext.GetHBAOSceneDepthTexture(),
+				true,
+				FResolveParams()
+			);
+		}
+	}
+#endif //WITH_GFSDK_SSAO
+// NVCHANGE_END: Add HBAO+
 
 	{
 		SCOPED_DRAW_EVENT(RHICmdList, Dynamic);
@@ -1106,6 +1131,7 @@ bool FDeferredShadingSceneRenderer::RenderPrePassViewParallel(const FViewInfo& V
 			// Dynamic
 			FRHICommandList* CmdList = ParallelCommandListSet.NewParallelCommandList();
 
+
 			FGraphEventRef AnyThreadCompletionEvent = TGraphTask<FRenderPrepassDynamicDataThreadTask>::CreateTask(ParallelCommandListSet.GetPrereqs(), ENamedThreads::GetRenderThread())
 				.ConstructAndDispatchWhenReady(*this, *CmdList, View, ParallelCommandListSet.DrawRenderState);
 
@@ -1119,6 +1145,32 @@ bool FDeferredShadingSceneRenderer::RenderPrePassViewParallel(const FViewInfo& V
 			}
 		}
 	}
+
+// NVCHANGE_BEGIN: Add HBAO+
+#if WITH_GFSDK_SSAO
+
+	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(ParentCmdList);
+	static IConsoleVariable* HBAOEnable = IConsoleManager::Get().FindConsoleVariable(TEXT("r.HBAO.Enable"));
+	static IConsoleVariable* HBAODualLayer = IConsoleManager::Get().FindConsoleVariable(TEXT("r.HBAO.DualLayerBlend"));
+
+	if (GMaxRHIShaderPlatform == SP_PCD3D_SM5 &&
+		HBAOEnable->GetInt() &&
+		HBAODualLayer->GetInt() &&
+		ViewFamily.EngineShowFlags.HBAO)
+	{
+		if (View.IsPerspectiveProjection() && View.FinalPostProcessSettings.HBAOPowerExponent > 0.f && !View.bIsReflectionCapture)
+		{
+			//copy depth buffer after static pre-pass
+			ParentCmdList.CopyToResolveTarget(
+				SceneContext.GetSceneDepthTexture(),
+				SceneContext.GetHBAOSceneDepthTexture(),
+				true,
+				FResolveParams()
+			);
+		}
+	}
+#endif //WITH_GFSDK_SSAO
+// NVCHANGE_END: Add HBAO+
 
 	if (GStartPrepassParallelTranslatesImmediately)
 	{

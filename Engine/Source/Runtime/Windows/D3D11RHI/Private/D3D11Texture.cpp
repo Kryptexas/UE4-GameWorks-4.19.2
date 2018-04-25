@@ -585,6 +585,14 @@ TD3D11Texture2D<BaseResourceType>* FD3D11DynamicRHI::CreateD3D11Texture2D(uint32
 	TextureDesc.MipLevels = NumMips;
 	TextureDesc.ArraySize = SizeZ;
 	TextureDesc.Format = PlatformResourceFormat;
+	// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+	if (TextureDesc.Format == DXGI_FORMAT_R32_FLOAT)
+		TextureDesc.Format = DXGI_FORMAT_R32_TYPELESS;
+	else if (TextureDesc.Format == DXGI_FORMAT_R10G10B10A2_UNORM)
+		TextureDesc.Format = DXGI_FORMAT_R10G10B10A2_TYPELESS;
+#endif
+	// NVCHANGE_END: Add VXGI
 	TextureDesc.SampleDesc.Count = ActualMSAACount;
 	TextureDesc.SampleDesc.Quality = ActualMSAAQuality;
 	TextureDesc.Usage = TextureUsage;
@@ -810,6 +818,12 @@ TD3D11Texture2D<BaseResourceType>* FD3D11DynamicRHI::CreateD3D11Texture2D(uint32
 						DSVDesc.Flags |= (AccessType & FExclusiveDepthStencil::DepthWrite_StencilRead) ? D3D11_DSV_READ_ONLY_STENCIL : 0;
 					}
 				}
+				// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+				if (TextureDesc.Format == DXGI_FORMAT_R32_TYPELESS)
+					DSVDesc.Format = DXGI_FORMAT_D32_FLOAT;
+#endif
+				// NVCHANGE_END: Add VXGI
 				VERIFYD3D11RESULT_EX(Direct3DDevice->CreateDepthStencilView(TextureResource,&DSVDesc,DepthStencilViews[AccessType].GetInitReference()), Direct3DDevice);
 			}
 		}
@@ -931,6 +945,15 @@ FD3D11Texture3D* FD3D11DynamicRHI::CreateD3D11Texture3D(uint32 SizeX,uint32 Size
 	TextureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 	TextureDesc.CPUAccessFlags = 0;
 	TextureDesc.MiscFlags = 0;
+
+	// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+	if (TextureDesc.Format == DXGI_FORMAT_R32_FLOAT)
+		TextureDesc.Format = DXGI_FORMAT_R32_TYPELESS;
+	else if (TextureDesc.Format == DXGI_FORMAT_R10G10B10A2_UNORM)
+		TextureDesc.Format = DXGI_FORMAT_R10G10B10A2_TYPELESS;
+#endif
+	// NVCHANGE_END: Add VXGI
 
 	if (Flags & TexCreate_GenerateMipCapable)
 	{
@@ -1233,6 +1256,16 @@ FShaderResourceViewRHIRef FD3D11DynamicRHI::RHICreateShaderResourceView(FTexture
 	SRVDesc.Texture2D.MipLevels = 1;
 
 	SRVDesc.Format = PlatformShaderResourceFormat;
+	
+	// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+	if (SRVDesc.Format == DXGI_FORMAT_R32_TYPELESS)
+		SRVDesc.Format = Texture2D->GetFormat() == PF_R32_FLOAT ? DXGI_FORMAT_R32_FLOAT : DXGI_FORMAT_R32_UINT;
+	else if (SRVDesc.Format == DXGI_FORMAT_R10G10B10A2_TYPELESS)
+		SRVDesc.Format = DXGI_FORMAT_R32_UINT;
+#endif
+	// NVCHANGE_END: Add VXGI
+
 	TRefCountPtr<ID3D11ShaderResourceView> ShaderResourceView;
 	VERIFYD3D11RESULT_EX(Direct3DDevice->CreateShaderResourceView(Texture2D->GetResource(), &SRVDesc, (ID3D11ShaderResourceView**)ShaderResourceView.GetInitReference()), Direct3DDevice);
 

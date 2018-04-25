@@ -1,0 +1,46 @@
+// NVCHANGE_BEGIN: Add VXGI
+
+#include "/Engine/Private/Common.ush"
+#include "/Engine/Private/DeferredShadingCommon.ush"
+
+bool EnableVxgiDiffuse;
+bool EnableAreaLightDiffuse;
+
+void AddVxgiDiffusePS(in FScreenVertexOutput Input, out float4 SceneColor : SV_TARGET0)
+{
+	FScreenSpaceData ScreenSpaceData = GetScreenSpaceData(Input.UV);
+	FGBufferData GBuffer = ScreenSpaceData.GBuffer;
+
+	if (GBuffer.ShadingModelID > 0)
+	{
+		float3 IndirectDiffuse = 0;
+
+		if (EnableVxgiDiffuse)
+			IndirectDiffuse += ScreenSpaceData.VxgiDiffuse.rgb;
+
+		if (EnableAreaLightDiffuse)
+			IndirectDiffuse += ScreenSpaceData.VxgiAreaLightDiffuse.rgb;
+
+		SceneColor.rgb = ScreenSpaceData.AmbientOcclusion * GBuffer.DiffuseColor.rgb * IndirectDiffuse.rgb;
+		SceneColor.a = Luminance(SceneColor.rgb);
+	}
+	else
+	{
+		SceneColor = float4(0,0,0,0);
+	}
+}
+
+void AddVxgiRawDiffusePS(in FScreenVertexOutput Input, out float4 SceneColor : SV_TARGET0)
+{
+	FScreenSpaceData ScreenSpaceData = GetScreenSpaceData(Input.UV);
+
+	SceneColor = 0;
+
+	if (EnableVxgiDiffuse)
+		SceneColor.rgb += ScreenSpaceData.VxgiDiffuse.rgb;
+
+	if (EnableAreaLightDiffuse)
+		SceneColor.rgb += ScreenSpaceData.VxgiAreaLightDiffuse.rgb;
+}
+
+// NVCHANGE_END: Add VXGI

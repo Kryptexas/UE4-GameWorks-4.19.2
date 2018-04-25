@@ -80,6 +80,14 @@ void FEditorViewportCommands::RegisterCommands()
 	UI_COMMAND( CollisionPawn, "Player Collision", "Renders player collision visualization", EUserInterfaceActionType::RadioButton, FInputChord() );
 	UI_COMMAND( CollisionVisibility, "Visibility Collision", "Renders visibility collision visualization", EUserInterfaceActionType::RadioButton, FInputChord() );
 
+	// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+	UI_COMMAND(VxgiOpacityVoxelsMode, "VXGI Opacity Voxels Mode", "Visualize the VXGI opacity voxel information", EUserInterfaceActionType::RadioButton, FInputChord());
+	UI_COMMAND(VxgiEmittanceVoxelsMode, "VXGI Emittance Voxels Mode", "Visualize the VXGI emittance voxel information", EUserInterfaceActionType::RadioButton, FInputChord());
+	UI_COMMAND(VxgiIrradianceVoxelsMode, "VXGI Irradiance Voxels Mode", "Visualize the VXGI indirect irradiance voxel information", EUserInterfaceActionType::RadioButton, FInputChord());
+#endif
+	// NVCHANGE_END: Add VXGI
+
 	UI_COMMAND( ToggleRealTime, "Realtime", "Toggles real time rendering in this viewport", EUserInterfaceActionType::ToggleButton, FInputChord( EModifierKey::Control, EKeys::R ) );
 	UI_COMMAND( ToggleStats, "Show Stats", "Toggles the ability to show stats in this viewport (enables realtime)", EUserInterfaceActionType::ToggleButton, FInputChord( EModifierKey::Shift, EKeys::L ) );
 	UI_COMMAND( ToggleFPS, "Show FPS", "Toggles showing frames per second in this viewport (enables realtime)", EUserInterfaceActionType::ToggleButton, FInputChord( EModifierKey::Control|EModifierKey::Shift, EKeys::H ) );

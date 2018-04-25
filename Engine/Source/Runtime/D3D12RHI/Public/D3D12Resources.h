@@ -108,6 +108,11 @@ private:
 	void* ResourceBaseAddress;
 	FName DebugName;
 
+	// NVCHANGE_BEGIN: Add VXGI
+	bool bEnableUAVBarriers;
+	bool bFirstUAVBarrierPlaced;
+	// NVCHANGE_END: Add VXGI
+
 #if UE_BUILD_DEBUG
 	static int64 TotalResourceCount;
 	static int64 NoStateTrackingResourceCount;
@@ -253,6 +258,28 @@ public:
 		const uint32 bBuffer : 1;
 		const uint32 bReadBackResource : 1;
 	};
+
+	// NVCHANGE_BEGIN: Add VXGI
+	void SetEnableUAVBarriers(bool Enable)
+	{
+		bEnableUAVBarriers = Enable;
+		bFirstUAVBarrierPlaced = false;
+	}
+
+	bool RequestUAVBarrier()
+	{
+		if (bEnableUAVBarriers)
+			return true;
+
+		if (!bFirstUAVBarrierPlaced)
+		{
+			bFirstUAVBarrierPlaced = true;
+			return true;
+		}
+
+		return false;
+	}
+	// NVCHANGE_END: Add VXGI
 
 private:
 	void InitalizeResourceState(D3D12_RESOURCE_STATES InitialState)
@@ -752,15 +779,17 @@ public:
 	explicit FD3D12ResourceBarrierBatcher()
 	{};
 
-	// Add a UAV barrier to the batch. Ignoring the actual resource for now.
-	void AddUAV()
+	// NVCHANGE_BEGIN: Add VXGI
+	// Add a UAV barrier to the batch. 
+	void AddUAV(ID3D12Resource* pResource)
 	{
 		Barriers.AddUninitialized();
 		D3D12_RESOURCE_BARRIER& Barrier = Barriers.Last();
 		Barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
 		Barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-		Barrier.UAV.pResource = nullptr;	// Ignore the resource ptr for now. HW doesn't do anything with it.
+		Barrier.UAV.pResource = pResource;
 	}
+	// NVCHANGE_END: Add VXGI
 
 	// Add a transition resource barrier to the batch.
 	void AddTransition(ID3D12Resource* pResource, D3D12_RESOURCE_STATES Before, D3D12_RESOURCE_STATES After, uint32 Subresource)

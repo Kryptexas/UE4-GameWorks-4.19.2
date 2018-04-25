@@ -29,11 +29,19 @@ void FD3D12HighLevelGraphicsPipelineStateDesc::GetLowLevelDesc(FD3D12LowLevelGra
 		Desc.Desc.StreamOutput = BoundShaderState->GetGeometryShader()->StreamOutput;
 	}
 
+	// NVCHANGE_BEGIN: Add VXGI
+	auto addNvidiaExtensions = [&Desc](const TArray<const void*>& Extensions) {
+		check(Desc.NumNvidiaShaderExtensions + Extensions.Num() < _countof(Desc.NvidiaShaderExtensions));
+		FMemory::Memcpy(Desc.NvidiaShaderExtensions + Desc.NumNvidiaShaderExtensions, Extensions.GetData(), Extensions.Num() * sizeof(void*));
+		Desc.NumNvidiaShaderExtensions += Extensions.Num();
+	};
+
 #define COPY_SHADER(Initial, Name) \
 	if (FD3D12##Name##Shader* Shader = BoundShaderState->Get##Name##Shader()) \
 	{ \
 		Desc.Desc.Initial##S = Shader->ShaderBytecode.GetShaderBytecode(); \
 		Desc.Initial##SHash = Shader->ShaderBytecode.GetHash(); \
+		addNvidiaExtensions(Shader->NvidiaShaderExtensions); \
 	}
 	COPY_SHADER(V, Vertex);
 	COPY_SHADER(P, Pixel);
@@ -41,6 +49,7 @@ void FD3D12HighLevelGraphicsPipelineStateDesc::GetLowLevelDesc(FD3D12LowLevelGra
 	COPY_SHADER(H, Hull);
 	COPY_SHADER(G, Geometry);
 #undef COPY_SHADER
+	// NVCHANGE_END: Add VXGI
 
 	Desc.Desc.BlendState = BlendState ? *BlendState : CD3DX12_BLEND_DESC(D3D12_DEFAULT);
 	Desc.Desc.RasterizerState = RasterizerState ? *RasterizerState : CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);

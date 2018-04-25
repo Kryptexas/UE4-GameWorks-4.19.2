@@ -506,7 +506,8 @@ private:
 	FForwardLightingParameters ForwardLightingParameters;
 };
 
-template< uint32 bUseLightmaps, uint32 bHasSkyLight, uint32 bBoxCapturesOnly, uint32 bSphereCapturesOnly, uint32 bSupportDFAOIndirectOcclusion >
+// NVCHANGE_BEGIN: Add VXGI
+template< uint32 bUseLightmaps, uint32 bHasSkyLight, uint32 bBoxCapturesOnly, uint32 bSphereCapturesOnly, uint32 bSupportDFAOIndirectOcclusion, uint32 bVxgiSpecular >
 class TReflectionEnvironmentTiledDeferredPS : public FReflectionEnvironmentTiledDeferredPS
 {
 	DECLARE_SHADER_TYPE(TReflectionEnvironmentTiledDeferredPS, Global);
@@ -526,16 +527,18 @@ public:
 		OutEnvironment.SetDefine(TEXT("REFLECTION_COMPOSITE_HAS_BOX_CAPTURES"), bBoxCapturesOnly);
 		OutEnvironment.SetDefine(TEXT("REFLECTION_COMPOSITE_HAS_SPHERE_CAPTURES"), bSphereCapturesOnly);
 		OutEnvironment.SetDefine(TEXT("SUPPORT_DFAO_INDIRECT_OCCLUSION"), bSupportDFAOIndirectOcclusion);
+		OutEnvironment.SetDefine(TEXT("APPLY_VXGI"), bVxgiSpecular);
 	}
 
 	static const TCHAR* GetDebugName()
 	{
-		static const FString Name = FString::Printf(TEXT("TReflectionEnvironmentTiledDeferredPS(%s,%s,%s,%s,%s)"),
+		static const FString Name = FString::Printf(TEXT("TReflectionEnvironmentTiledDeferredPS(%s,%s,%s,%s,%s,%s)"),
 			bUseLightmaps == 1 ? TEXT("true") : TEXT("false"),
 			bHasSkyLight == 1 ? TEXT("true") : TEXT("false"),
 			bBoxCapturesOnly == 1 ? TEXT("true") : TEXT("false"),
 			bSphereCapturesOnly == 1 ? TEXT("true") : TEXT("false"),
-			bSupportDFAOIndirectOcclusion == 1 ? TEXT("true") : TEXT("false")
+			bSupportDFAOIndirectOcclusion == 1 ? TEXT("true") : TEXT("false"),
+			bVxgiSpecular == 1 ? TEXT("true") : TEXT("false")
 		);
 
 		return *Name;
@@ -548,11 +551,12 @@ public:
 // Templatized version of IMPLEMENT_SHADER_TYPE
 // This allows us to avoid 32 IMPLEMENT_SHADER_TYPE macros, one per shader variation
 IMPLEMENT_SHADER_TYPE_WITH_DEBUG_NAME(
-	ARG_WITH_COMMAS(template<uint32 A, uint32 B, uint32 C, uint32 D, uint32 E>),
-	ARG_WITH_COMMAS(TReflectionEnvironmentTiledDeferredPS<A, B, C, D, E>),
+	ARG_WITH_COMMAS(template<uint32 A, uint32 B, uint32 C, uint32 D, uint32 E, uint32 F>),
+	ARG_WITH_COMMAS(TReflectionEnvironmentTiledDeferredPS<A, B, C, D, E, F>),
 	TEXT("/Engine/Private/ReflectionEnvironmentPixelShader.usf"),
 	TEXT("ReflectionEnvironmentTiledDeferredMain"),
 	SF_Pixel)
+// NVCHANGE_END: Add VXGI
 
 // This function selects a shader variation dynamically at runtime based on its parameters
 // Intuitively it can be seen as translating SelectShader(1, 0, 1, 1, 0) into ShaderInstance<1, 0, 1, 1, 0>()
@@ -699,41 +703,41 @@ void GatherAndSortReflectionCaptures(const FViewInfo& View, const FScene* Scene,
 				NewSortEntry.CaptureOffsetAndAverageBrightness.W = ComponentStatePtr ? ComponentStatePtr->AverageBrightness : 1.0f;
 			}
 
-			NewSortEntry.Guid = CurrentCapture->Guid;
-			NewSortEntry.PositionAndRadius = FVector4(CurrentCapture->Position, CurrentCapture->InfluenceRadius);
-			float ShapeTypeValue = (float)CurrentCapture->Shape;
+				NewSortEntry.Guid = CurrentCapture->Guid;
+				NewSortEntry.PositionAndRadius = FVector4(CurrentCapture->Position, CurrentCapture->InfluenceRadius);
+				float ShapeTypeValue = (float)CurrentCapture->Shape;
 			NewSortEntry.CaptureProperties = FVector4(CurrentCapture->Brightness, NewSortEntry.CaptureIndex, ShapeTypeValue, 0);
 
-			if (CurrentCapture->Shape == EReflectionCaptureShape::Plane)
-			{
-				//planes count as boxes in the compute shader.
-				++OutNumBoxCaptures;
-				NewSortEntry.BoxTransform = FMatrix(
-					FPlane(CurrentCapture->ReflectionPlane),
-					FPlane(CurrentCapture->ReflectionXAxisAndYScale),
-					FPlane(0, 0, 0, 0),
-					FPlane(0, 0, 0, 0));
+				if (CurrentCapture->Shape == EReflectionCaptureShape::Plane)
+				{
+					//planes count as boxes in the compute shader.
+					++OutNumBoxCaptures;
+					NewSortEntry.BoxTransform = FMatrix(
+						FPlane(CurrentCapture->ReflectionPlane),
+						FPlane(CurrentCapture->ReflectionXAxisAndYScale),
+						FPlane(0, 0, 0, 0),
+						FPlane(0, 0, 0, 0));
 
-				NewSortEntry.BoxScales = FVector4(0);
-			}
-			else if (CurrentCapture->Shape == EReflectionCaptureShape::Sphere)
-			{
-				++OutNumSphereCaptures;
-			}
-			else
-			{
-				++OutNumBoxCaptures;
-				NewSortEntry.BoxTransform = CurrentCapture->BoxTransform;
-				NewSortEntry.BoxScales = FVector4(CurrentCapture->BoxScales, CurrentCapture->BoxTransitionDistance);
-			}
+					NewSortEntry.BoxScales = FVector4(0);
+				}
+				else if (CurrentCapture->Shape == EReflectionCaptureShape::Sphere)
+				{
+					++OutNumSphereCaptures;
+				}
+				else
+				{
+					++OutNumBoxCaptures;
+					NewSortEntry.BoxTransform = CurrentCapture->BoxTransform;
+					NewSortEntry.BoxScales = FVector4(CurrentCapture->BoxScales, CurrentCapture->BoxTransitionDistance);
+				}
 
-			const FSphere BoundingSphere(CurrentCapture->Position, CurrentCapture->InfluenceRadius);
-			const float Distance = View.ViewMatrices.GetViewMatrix().TransformPosition(BoundingSphere.Center).Z + BoundingSphere.W;
-			OutFurthestReflectionCaptureDistance = FMath::Max(OutFurthestReflectionCaptureDistance, Distance);
+				const FSphere BoundingSphere(CurrentCapture->Position, CurrentCapture->InfluenceRadius);
+				const float Distance = View.ViewMatrices.GetViewMatrix().TransformPosition(BoundingSphere.Center).Z + BoundingSphere.W;
+				OutFurthestReflectionCaptureDistance = FMath::Max(OutFurthestReflectionCaptureDistance, Distance);
 
-			OutSortData.Add(NewSortEntry);
+				OutSortData.Add(NewSortEntry);
+			}
 		}
-	}
 
 	OutSortData.Sort();	
 }
@@ -786,7 +790,15 @@ void FDeferredShadingSceneRenderer::RenderTiledDeferredImageBasedReflections(FRH
 
 		const bool bPlanarReflections = RenderDeferredPlanarReflections(RHICmdList, View, false, SSROutput);
 
-		bool bRequiresApply = bSkyLight || bReflectionEnv || bSSR || bPlanarReflections;
+		// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+		const bool bVxgiSpecular = !!View.FinalPostProcessSettings.VxgiSpecularTracingEnabled || !!View.FinalPostProcessSettings.VxgiAreaLightsEnabled;
+#else
+		const bool bVxgiSpecular = 0;
+#endif
+
+		bool bRequiresApply = bSkyLight || bReflectionEnv || bSSR || bPlanarReflections || bVxgiSpecular;
+		// NVCHANGE_END: Add VXGI
 
 		if(bRequiresApply)
 		{
@@ -799,9 +811,11 @@ void FDeferredShadingSceneRenderer::RenderTiledDeferredImageBasedReflections(FRH
 
 			TShaderMapRef<FPostProcessVS> VertexShader(View.ShaderMap);
 
+			// NVCHANGE_BEGIN: Add VXGI
 			FReflectionEnvironmentTiledDeferredPS* PixelShader =
 				SelectShaderVariation<FReflectionEnvironmentTiledDeferredPS, TReflectionEnvironmentTiledDeferredPS>
-				(View.ShaderMap, bUseLightmaps, bSkyLight, bHasBoxCaptures, bHasSphereCaptures, DynamicBentNormalAO != NULL);
+				(View.ShaderMap, bUseLightmaps, bSkyLight, bHasBoxCaptures, bHasSphereCaptures, DynamicBentNormalAO != NULL, bVxgiSpecular);
+			// NVCHANGE_END: Add VXGI
 
 			FGraphicsPipelineStateInitializer GraphicsPSOInit;
 
@@ -870,6 +884,6 @@ void FDeferredShadingSceneRenderer::RenderDeferredReflections(FRHICommandListImm
 	}
 	else
 	{
-		RenderTiledDeferredImageBasedReflections(RHICmdList, DynamicBentNormalAO, VelocityRT);
-	}
+			RenderTiledDeferredImageBasedReflections(RHICmdList, DynamicBentNormalAO, VelocityRT);
+		}
 }

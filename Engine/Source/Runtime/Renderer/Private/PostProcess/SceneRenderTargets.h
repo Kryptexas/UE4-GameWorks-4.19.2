@@ -16,6 +16,14 @@
 #include "SceneView.h"
 #include "RendererInterface.h"
 
+// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+#include "SystemTextures.h"
+#include "GFSDK_VXGI.h"
+#define NUM_SHADOW_CASCADE_SURFACES 8
+#endif
+// NVCHANGE_END: Add VXGI
+
 class FViewInfo;
 
 /** Number of cube map shadow depth surfaces that will be created and used for rendering one pass point light shadows. */
@@ -606,6 +614,39 @@ public:
 
 	/** Temporary storage during SH irradiance map generation. */
 	TRefCountPtr<IPooledRenderTarget> SkySHIrradianceMap;
+
+	// NVCHANGE_BEGIN: Add HBAO+
+#if WITH_GFSDK_SSAO
+	TRefCountPtr<IPooledRenderTarget> HBAOSceneDepthDualLayer;
+	const FTexture2DRHIRef& GetHBAOSceneDepthTexture() const { return (const FTexture2DRHIRef&)HBAOSceneDepthDualLayer->GetRenderTargetItem().ShaderResourceTexture; }
+#endif
+	// NVCHANGE_END: Add HBAO+
+
+	// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+public:
+	FTexture2DRHIRef VxgiOutputDiffuse;
+	FTexture2DRHIRef VxgiOutputSpec;
+	FTexture2DRHIRef VxgiOutputConfidence;
+    FTexture2DRHIRef VxgiOutputAreaLightDiffuse;
+    FTexture2DRHIRef VxgiOutputAreaLightSpecular;
+
+	TRefCountPtr<IPooledRenderTarget> PrevSceneDepthZ;
+
+	FTextureRHIParamRef GetVxgiOutputDiffuse() const { return IsValidRef(VxgiOutputDiffuse) ? (FTextureRHIParamRef)VxgiOutputDiffuse : (FTextureRHIParamRef)GSystemTextures.BlackDummy->GetRenderTargetItem().ShaderResourceTexture; }
+	FTextureRHIParamRef GetVxgiOutputSpecular() const { return IsValidRef(VxgiOutputSpec) ? (FTextureRHIParamRef)VxgiOutputSpec : (FTextureRHIParamRef)GSystemTextures.BlackDummy->GetRenderTargetItem().ShaderResourceTexture; }
+	FTextureRHIParamRef GetVxgiOutputConfidence() const { return IsValidRef(VxgiOutputConfidence) ? (FTextureRHIParamRef)VxgiOutputConfidence : (FTextureRHIParamRef)GSystemTextures.BlackDummy->GetRenderTargetItem().ShaderResourceTexture; }
+    FTextureRHIParamRef GetVxgiOutputAreaLightDiffuse() const { return IsValidRef(VxgiOutputAreaLightDiffuse) ? (FTextureRHIParamRef)VxgiOutputAreaLightDiffuse : (FTextureRHIParamRef)GSystemTextures.BlackDummy->GetRenderTargetItem().ShaderResourceTexture; }
+    FTextureRHIParamRef GetVxgiOutputAreaLightSpecular() const { return IsValidRef(VxgiOutputAreaLightSpecular) ? (FTextureRHIParamRef)VxgiOutputAreaLightSpecular : (FTextureRHIParamRef)GSystemTextures.BlackDummy->GetRenderTargetItem().ShaderResourceTexture; }
+	void ReleaseVxgiTargets();
+#endif
+	// NVCHANGE_END: Add VXGI
+
+	/** Temporary storage, used during reflection capture filtering. 
+	  * 0 - R32 version for > ES2
+	  * 1 - RGBAF version for ES2
+	  */
+	TRefCountPtr<IPooledRenderTarget> ReflectionBrightness[2];
 
 	/** Volume textures used for lighting translucency. */
 	TRefCountPtr<IPooledRenderTarget> TranslucencyLightingVolumeAmbient[NumTranslucentVolumeRenderTargetSets];

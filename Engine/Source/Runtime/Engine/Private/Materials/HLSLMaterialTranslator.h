@@ -2772,6 +2772,38 @@ protected:
 		return AddInlinedCodeChunk(MCT_Float3,TEXT("Parameters.CameraVector"));
 	}
 
+	// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+	// So we can tell if the current render pass is voxelizing or not inside the material graph.
+	// Typically this node is connected as the input of a switch or branch node to select different sub-parts of the material graph
+	virtual int32 VxgiVoxelization() override
+	{
+		return AddCodeChunk(MCT_Float, TEXT("GetVxgiVoxelizationActive()"));
+	}
+
+	virtual int32 VxgiTraceCone(int32 PositionArg, int32 DirectionArg, int32 ConeFactorArg, int32 InitialOffsetArg, int32 TracingStepArg, int32 MaxSamples) override
+	{
+		if (ShaderFrequency != SF_Pixel)
+		{
+			return NonPixelShaderExpressionError();
+		}
+
+		if (PositionArg == INDEX_NONE || DirectionArg == INDEX_NONE || ConeFactorArg == INDEX_NONE)
+		{
+			return INDEX_NONE;
+		}
+
+		return AddCodeChunk(MCT_Float3, TEXT("VxgiTraceConeWrapper(%s, %s, %s, %s, %s, %d)"),
+			*GetParameterCode(PositionArg),
+			*GetParameterCode(DirectionArg),
+			*GetParameterCode(ConeFactorArg),
+			*GetParameterCode(InitialOffsetArg),
+			*GetParameterCode(TracingStepArg),
+			MaxSamples);
+	}
+#endif
+	// NVCHANGE_END: Add VXGI
+
 	virtual int32 LightVector() override
 	{
 		if (ShaderFrequency != SF_Pixel && ShaderFrequency != SF_Compute)

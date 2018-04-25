@@ -23,6 +23,9 @@ private:
 	bool IsLightBrightnessEnabled() const;
 	bool IsUseIESBrightnessEnabled() const;
 	bool IsIESBrightnessScaleEnabled() const;
+	// NVCHANGE_BEGIN: Add VXGI
+	bool IsCastVXGIIndirectLightingEnabled() const;
+	// NVCHANGE_END: Add VXGI
 
 
 private:
@@ -30,4 +33,8 @@ private:
 	TSharedPtr<IPropertyHandle> IESBrightnessEnabledProperty;
 	TSharedPtr<IPropertyHandle> IESBrightnessScaleProperty;
 	TSharedPtr<IPropertyHandle> LightIntensityProperty;
+	// NVCHANGE_BEGIN: Add VXGI
+	TSharedPtr<IPropertyHandle> CastVXGIIndirectLightingProperty;
+	TSharedPtr<IPropertyHandle> MobilityProperty;
+	// NVCHANGE_END: Add VXGI
 };

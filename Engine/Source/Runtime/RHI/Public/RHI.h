@@ -15,6 +15,16 @@
 #define RHI_COMMAND_LIST_DEBUG_TRACES 0
 #endif
 
+// NVCHANGE_BEGIN: Add HBAO+
+#ifndef WITH_GFSDK_SSAO
+#define WITH_GFSDK_SSAO 0
+#endif
+#if WITH_GFSDK_SSAO
+#include "GFSDK_SSAO.h"
+#endif
+// NVCHANGE_END: Add HBAO+
+
+
 class FResourceArrayInterface;
 class FResourceBulkDataInterface;
 
@@ -48,6 +58,26 @@ class RHI_API FRHICommandList;
  * RHI capabilities.
  */
 
+// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+
+namespace NVRHI
+{
+	class IRenderThreadCommand;
+}
+namespace VXGI
+{
+	class IGlobalIllumination;
+}
+extern RHI_API void RHIAllowTessellation(bool bAllowTessellation);
+extern RHI_API bool RHITessellationAllowed();
+
+extern RHI_API void RHIPushVoxelizationFlag();
+extern RHI_API void RHIPopVoxelizationFlag();
+extern RHI_API bool RHIIsVoxelizing();
+
+#endif
+// NVCHANGE_END: Add VXGI
 
 /** The maximum number of mip-maps that a texture can contain. 	*/
 extern	RHI_API int32		GMaxTextureMipCount;
@@ -914,6 +944,17 @@ struct FViewportBounds
 	}
 };
 
+/**
+*	Scissor rectangle structure to set multiple scissor rects
+*  (needs to be 1:1 to the D3D11 structure)
+*/
+struct FScissorRect
+{
+	int32 Left;
+	int32 Top;
+	int32 Right;
+	int32 Bottom;
+};
 
 typedef TArray<FScreenResolutionRHI>	FScreenResolutionArray;
 

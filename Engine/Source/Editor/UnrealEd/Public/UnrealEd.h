@@ -280,6 +280,12 @@ MONOLITHIC_HEADER_BOILERPLATE()
 #include "Classes/Commandlets/UpdateGameProjectCommandlet.h"
 #include "Classes/UserDefinedStructure/UserDefinedStructEditorData.h"
 #include "Classes/Commandlets/WrangleContentCommandlet.h"
+
+// NVCHANGE_BEGIN: Add VXGI
+#include "Classes/ActorFactories/ActorFactoryVxgiAnchor.h"
+#include "Classes/ActorFactories/ActorFactoryAreaLight.h"
+// NVCHANGE_END: Add VXGI
+
 //////////////////////	@todo Classes.h
 
 #include "Kismet2/ComponentEditorUtils.h"

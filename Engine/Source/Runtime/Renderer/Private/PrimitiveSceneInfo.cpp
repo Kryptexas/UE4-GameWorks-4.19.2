@@ -104,6 +104,10 @@ FPrimitiveSceneInfo::FPrimitiveSceneInfo(UPrimitiveComponent* InComponent,FScene
 	bNeedsStaticMeshUpdate(false),
 	bNeedsUniformBufferUpdate(false),
 	bPrecomputedLightingBufferDirty(false)
+	// NVCHANGE_BEGIN: Add VXGI
+	, VxgiLastVoxelizationPass(0)
+	, VoxelizationOnlyMeshStartIdx(0)
+	// NVCHANGE_END: Add VXGI
 {
 	check(ComponentForDebuggingOnly);
 	check(PrimitiveComponentId.IsValid());
@@ -148,6 +152,51 @@ void FPrimitiveSceneInfo::AddStaticMeshes(FRHICommandListImmediate& RHICmdList, 
 	FBatchingSPDI BatchingSPDI(this);
 	BatchingSPDI.SetHitProxy(DefaultDynamicHitProxy);
 	Proxy->DrawStaticElements(&BatchingSPDI);
+
+	// NVCHANGE_BEGIN: Add VXGI
+	VoxelizationOnlyMeshStartIdx = StaticMeshes.Num();
+#if WITH_GFSDK_VXGI
+	if (Scene->GetFeatureLevel() >= ERHIFeatureLevel::SM5 && StaticMeshes.Num() > 0
+		&& RHISupportsTessellation(GShaderPlatformForFeatureLevel[Scene->GetFeatureLevel()]))
+	{
+		bool bRequiresDifferentIndexBufferForVoxelization = false;
+		for (int32 MeshIndex = 0; MeshIndex < VoxelizationOnlyMeshStartIdx && !bRequiresDifferentIndexBufferForVoxelization; MeshIndex++)
+		{
+			FStaticMesh& Mesh = StaticMeshes[MeshIndex];
+			if (!Mesh.VertexFactory->GetType()->SupportsTessellationShaders())
+			{
+				continue;
+			}
+			const FMaterial* MaterialResource = Mesh.MaterialRenderProxy->GetMaterial(Scene->GetFeatureLevel());
+			check(MaterialResource);
+			
+			// This partially duplicates RequiresAdjacencyInformation but the logic is simple
+			auto TessellationMode = MaterialResource->GetTessellationMode();
+			bool bEnableCrackFreeDisplacement = MaterialResource->IsCrackFreeDisplacementEnabled();
+			bool bRequiresAdjacencyInformation = (TessellationMode == MTM_PNTriangles) || (TessellationMode == MTM_FlatTessellation && bEnableCrackFreeDisplacement);
+			
+			bool bUsedWithVxgiVoxelization = MaterialResource->GetVxgiMaterialProperties().bUsedWithVxgiVoxelization;
+			bool bVxgiAllowTesselationDuringVoxelization = MaterialResource->GetVxgiMaterialProperties().bVxgiAllowTesselationDuringVoxelization;
+			bool bIsTranslucent = IsTranslucentBlendMode(MaterialResource->GetBlendMode());
+
+			bRequiresDifferentIndexBufferForVoxelization = bRequiresAdjacencyInformation
+				&& bUsedWithVxgiVoxelization
+				&& !bVxgiAllowTesselationDuringVoxelization
+				&& !bIsTranslucent;
+		}
+
+		if (bRequiresDifferentIndexBufferForVoxelization)
+		{
+			//Set this flag so that inside here we will pick the right index buffer
+			RHIPushVoxelizationFlag();
+			//Add the meshes a second time to StaticMeshes making it larger than VoxelizationOnlyMeshStartIdx
+			Proxy->DrawStaticElements(&BatchingSPDI);
+			RHIPopVoxelizationFlag();
+		}
+		check(VoxelizationOnlyMeshStartIdx == StaticMeshes.Num() || bRequiresDifferentIndexBufferForVoxelization);
+	}
+#endif
+
 	StaticMeshes.Shrink();
 
 	for(int32 MeshIndex = 0;MeshIndex < StaticMeshes.Num();MeshIndex++)
@@ -166,13 +215,23 @@ void FPrimitiveSceneInfo::AddStaticMeshes(FRHICommandListImmediate& RHICmdList, 
 			Scene->StaticMeshBatchVisibility[Mesh.BatchVisibilityId] = true;
 		}
 
-		if (bAddToStaticDrawLists)
+		if (bAddToStaticDrawLists && MeshIndex < VoxelizationOnlyMeshStartIdx)
 		{
 			// By this point, the index buffer render resource must be initialized
 			// Add the static mesh to the appropriate draw lists.
 			Mesh.AddToDrawLists(RHICmdList, Scene);
 		}
+#if WITH_GFSDK_VXGI
+		//The meshes beginning at VoxelizationOnlyMeshStartIdx in the StaticMeshes array are the special ones for use with voxelization only.
+		//However in the non-tessellated case or when tessellation is allowed in voxelization the same FStaticMesh can be used for both the voxelization and non-voxelization mesh
+		//so VoxelizationOnlyMeshStartIdx == StaticMeshes.Num() since no more meshes were added. In this case all the meshes go into both AddToDrawLists and AddToVXGIDrawLists
+		if (bAddToStaticDrawLists && (MeshIndex >= VoxelizationOnlyMeshStartIdx || VoxelizationOnlyMeshStartIdx == StaticMeshes.Num()))
+		{
+			Mesh.AddToVXGIDrawLists(RHICmdList, Scene);
+		}
+#endif
 	}
+	// NVCHANGE_END: Add VXGI
 }
 
 void FPrimitiveSceneInfo::AddToScene(FRHICommandListImmediate& RHICmdList, bool bUpdateStaticDrawLists, bool bAddToStaticDrawLists)
@@ -358,10 +417,20 @@ void FPrimitiveSceneInfo::UpdateStaticMeshes(FRHICommandListImmediate& RHICmdLis
 	for (int32 MeshIndex = 0; MeshIndex < StaticMeshes.Num(); MeshIndex++)
 	{
 		StaticMeshes[MeshIndex].RemoveFromDrawLists();
-		if (bReAddToDrawLists)
+		// NVCHANGE_BEGIN: Add VXGI
+		if (bReAddToDrawLists && MeshIndex < VoxelizationOnlyMeshStartIdx)
 		{
+			// By this point, the index buffer render resource must be initialized
+			// Add the static mesh to the appropriate draw lists.
 			StaticMeshes[MeshIndex].AddToDrawLists(RHICmdList, Scene);
 		}
+#if WITH_GFSDK_VXGI
+		if (bReAddToDrawLists && (MeshIndex >= VoxelizationOnlyMeshStartIdx || VoxelizationOnlyMeshStartIdx == StaticMeshes.Num()))
+		{
+			StaticMeshes[MeshIndex].AddToVXGIDrawLists(RHICmdList, Scene);
+		}
+#endif
+		// NVCHANGE_END: Add VXGI
 	}
 }
 

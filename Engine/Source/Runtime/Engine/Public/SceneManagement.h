@@ -876,6 +876,12 @@ public:
 	float MinOcclusion;
 	FLinearColor OcclusionTint;
 	EOcclusionCombineMode OcclusionCombineMode;
+
+	// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+	bool bCastVxgiIndirectLighting;
+#endif
+	// NVCHANGE_END: Add VXGI
 };
 
 struct FLightParameters
@@ -1072,6 +1078,11 @@ public:
 	inline bool AffectsTranslucentLighting() const { return bAffectTranslucentLighting; }
 	inline bool UseRayTracedDistanceFieldShadows() const { return bUseRayTracedDistanceFieldShadows; }
 	inline float GetRayStartOffsetDepthScale() const { return RayStartOffsetDepthScale; }
+	// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+	inline bool CastVxgiIndirectLighting() const { return bCastVxgiIndirectLighting; }
+#endif
+	// NVCHANGE_END: Add VXGI
 	inline uint8 GetLightType() const { return LightType; }
 	inline uint8 GetLightingChannelMask() const { return LightingChannelMask; }
 	inline FName GetComponentName() const { return ComponentName; }
@@ -1222,6 +1233,12 @@ protected:
 	uint32 bUseWholeSceneCSMForMovableObjects : 1;
 
 	float RayStartOffsetDepthScale;
+
+	// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+	const uint32 bCastVxgiIndirectLighting : 1;
+#endif
+	// NVCHANGE_END: Add VXGI
 
 	/** The light type (ELightComponentType) */
 	const uint8 LightType;

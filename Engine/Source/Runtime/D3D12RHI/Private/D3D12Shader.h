@@ -50,6 +50,17 @@ public:
 	int32 Offset;
 
 	FShaderCodePackedResourceCounts ResourceCounts;
+
+	// NVCHANGE_BEGIN: Add VXGI
+	TArray<const void*> NvidiaShaderExtensions;
+
+	virtual ~FD3D12VertexShader()
+	{
+		for (int32 Idx = 0; Idx < NvidiaShaderExtensions.Num(); Idx++)
+			delete NvidiaShaderExtensions[Idx];
+		NvidiaShaderExtensions.Reset();
+	}
+	// NVCHANGE_END: Add VXGI
 };
 
 class FD3D12GeometryShader : public FRHIGeometryShader
@@ -74,6 +85,10 @@ public:
 
 	FShaderCodePackedResourceCounts ResourceCounts;
 
+	// NVCHANGE_BEGIN: Add VXGI
+	TArray<const void*> NvidiaShaderExtensions;
+	// NVCHANGE_END: Add VXGI
+
 	FD3D12GeometryShader()
 		: bShaderNeedsStreamOutput(false)
 		, pStreamOutEntries(nullptr)
@@ -95,6 +110,12 @@ public:
 			delete[] pStreamOutStrides;
 			pStreamOutStrides = nullptr;
 		}
+
+		// NVCHANGE_BEGIN: Add VXGI
+		for (int32 Idx = 0; Idx < NvidiaShaderExtensions.Num(); Idx++)
+			delete NvidiaShaderExtensions[Idx];
+		NvidiaShaderExtensions.Reset();
+		// NVCHANGE_END: Add VXGI
 	}
 };
 
@@ -112,6 +133,17 @@ public:
 	TArray<uint8> Code;
 
 	FShaderCodePackedResourceCounts ResourceCounts;
+
+	// NVCHANGE_BEGIN: Add VXGI
+	TArray<const void*> NvidiaShaderExtensions;
+
+	virtual ~FD3D12HullShader()
+	{
+		for (int32 Idx = 0; Idx < NvidiaShaderExtensions.Num(); Idx++)
+			delete NvidiaShaderExtensions[Idx];
+		NvidiaShaderExtensions.Reset();
+	}
+	// NVCHANGE_END: Add VXGI
 };
 
 class FD3D12DomainShader : public FRHIDomainShader
@@ -128,6 +160,17 @@ public:
 	TArray<uint8> Code;
 
 	FShaderCodePackedResourceCounts ResourceCounts;
+
+	// NVCHANGE_BEGIN: Add VXGI
+	TArray<const void*> NvidiaShaderExtensions;
+
+	virtual ~FD3D12DomainShader()
+	{
+		for (int32 Idx = 0; Idx < NvidiaShaderExtensions.Num(); Idx++)
+			delete NvidiaShaderExtensions[Idx];
+		NvidiaShaderExtensions.Reset();
+	}
+	// NVCHANGE_END: Add VXGI
 };
 
 class FD3D12PixelShader : public FRHIPixelShader
@@ -144,6 +187,17 @@ public:
 	FD3D12ShaderResourceTable ShaderResourceTable;
 
 	FShaderCodePackedResourceCounts ResourceCounts;
+
+	// NVCHANGE_BEGIN: Add VXGI
+	TArray<const void*> NvidiaShaderExtensions;
+
+	virtual ~FD3D12PixelShader()
+	{
+		for (int32 Idx = 0; Idx < NvidiaShaderExtensions.Num(); Idx++)
+			delete NvidiaShaderExtensions[Idx];
+		NvidiaShaderExtensions.Reset();
+	}
+	// NVCHANGE_END: Add VXGI
 };
 
 class FD3D12ComputeShader : public FRHIComputeShader

@@ -53,10 +53,30 @@ static TAutoConsoleVariable<int32> CVarSSRCone(
 	TEXT(" 0 is off (default), 1 is on"),
 	ECVF_RenderThreadSafe);
 
+// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+static TAutoConsoleVariable<int32> CVarCombineVXGISpecularWithSSR(
+	TEXT("r.VXGI.CombineSpecularWithSSR"),
+	0,
+	TEXT("Defines if VXGI specular tracing fills is combined with SSR or replaces it\n")
+	TEXT(" 0 is replace, 1 is combine"),
+	ECVF_RenderThreadSafe);
+#endif
+// NVCHANGE_END: Add VXGI
+
 DECLARE_GPU_STAT_NAMED(ScreenSpaceReflections, TEXT("ScreenSpace Reflections"));
 
 bool ShouldRenderScreenSpaceReflections(const FViewInfo& View)
 {
+	// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+	if (View.FinalPostProcessSettings.VxgiSpecularTracingEnabled && !CVarCombineVXGISpecularWithSSR.GetValueOnRenderThread())
+	{
+		return false;
+	}
+#endif
+	// NVCHANGE_END: Add VXGI
+
 	if(!View.Family->EngineShowFlags.ScreenSpaceReflections)
 	{
 		return false;
@@ -235,7 +255,7 @@ class FPostProcessScreenSpaceReflectionsPS : public FGlobalShader
 		if ((PermutationVector.Get<FSSRQualityDim>() == 0) && PermutationVector.Get<FSSRPrevFrameColorDim>())
 		{
 			return false;
-		}
+	}
 		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4);
 	}
 
@@ -305,7 +325,7 @@ class FPostProcessScreenSpaceReflectionsPS : public FGlobalShader
 				ViewportOffset = Context.View.PrevViewInfo.TemporalAAHistory.ViewportRect.Min;
 				ViewportExtent = Context.View.PrevViewInfo.TemporalAAHistory.ViewportRect.Size();
 				BufferSize = Context.View.PrevViewInfo.TemporalAAHistory.ReferenceBufferSize;
-			}
+	}
 
 			FVector2D InvBufferSize(1.0f / float(BufferSize.X), 1.0f / float(BufferSize.Y));
 

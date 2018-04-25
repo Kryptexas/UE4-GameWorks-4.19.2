@@ -356,6 +356,22 @@ void TStaticMeshDrawList<DrawingPolicyType>::ReleaseRHI()
 }
 
 template<typename DrawingPolicyType>
+void TStaticMeshDrawList<DrawingPolicyType>::IterateOverMeshes(TFunctionRef<void(FStaticMesh*)> ProcessMesh)
+{
+	for (int32 Index = 0; Index < OrderedDrawingPolicies.Num(); Index++)
+	{
+		FDrawingPolicyLink* DrawingPolicyLink = &DrawingPolicySet[OrderedDrawingPolicies[Index]];
+		const int32 NumElements = DrawingPolicyLink->Elements.Num();
+		uint32 Count = 0;
+		for (int32 ElementIndex = 0; ElementIndex < NumElements; ElementIndex++)
+		{
+			const FElement& Element = DrawingPolicyLink->Elements[ElementIndex];
+			ProcessMesh(Element.Mesh);
+		}
+	}
+}
+
+template<typename DrawingPolicyType>
 template<InstancedStereoPolicy InstancedStereo>
 bool TStaticMeshDrawList<DrawingPolicyType>::DrawVisibleInner(
 	FRHICommandList& RHICmdList,

@@ -84,6 +84,10 @@ protected:
 	    update the blueprint's CDO properties with state from the asset for this factory.
 		IMPORTANT: If you override this, you should usually also override PostSpawnActor()! */
 	virtual void PostCreateBlueprint( UObject* Asset, AActor* CDO );
+
+	// NVCHANGE_BEGIN: Add VXGI
+	virtual FString GetDefaultLabel (UObject* Asset);
+	// NVCHANGE_END: Add VXGI
 };
 
 extern UNREALED_API FQuat FindActorAlignmentRotation(const FQuat& InActorRotation, const FVector& InModelAxis, const FVector& InWorldNormal);

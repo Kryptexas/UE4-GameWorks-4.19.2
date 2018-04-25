@@ -177,6 +177,12 @@ public:
 	/** Adds the static mesh to the appropriate draw lists in a scene. */
 	void AddToDrawLists(FRHICommandListImmediate& RHICmdList, FScene* Scene);
 
+	// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+	void AddToVXGIDrawLists(FRHICommandListImmediate& RHICmdList, FScene* Scene);
+#endif
+	// NVCHANGE_END: Add VXGI
+
 	/** Removes the static mesh from all draw lists. */
 	void RemoveFromDrawLists();
 

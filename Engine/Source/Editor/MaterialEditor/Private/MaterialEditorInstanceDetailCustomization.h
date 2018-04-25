@@ -86,6 +86,20 @@ private:
 	void OnOverrideTwoSidedChanged(bool NewValue);
 	void OnOverrideDitheredLODTransitionChanged(bool NewValue);
 
+	// NVCHANGE_BEGIN: Add VXGI
+	bool OverrideIsVxgiConeTracingEnabled() const;
+	bool OverrideIsUsedWithVxgiVoxelizationEnabled() const;
+	bool OverrideGetVxgiAllowTesselationDuringVoxelizationEnabled() const;
+	bool OverrideGetVxgiOpacityScaleEnabled() const;
+	bool OverrideGetVxgiAdaptiveMaterialSamplingRateEnabled() const;
+
+	void OnOverrideIsVxgiConeTracingEnabled(bool NewValue);
+	void OnOverrideIsUsedWithVxgiVoxelizationEnabled(bool NewValue);
+	void OnOverrideGetVxgiAllowTesselationDuringVoxelizationEnabled(bool NewValue);
+	void OnOverrideGetVxgiOpacityScaleEnabled(bool NewValue);
+	void OnOverrideGetVxgiAdaptiveMaterialSamplingRateEnabled(bool NewValue);
+	// NVCHANGE_END: Add VXGI
+
 private:
 	/** Object that stores all of the possible parameters we can edit */
 	UMaterialEditorInstanceConstant* MaterialEditorInstance;

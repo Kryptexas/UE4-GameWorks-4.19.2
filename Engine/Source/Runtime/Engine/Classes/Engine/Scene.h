@@ -13,6 +13,11 @@
 #include "Engine/BlendableInterface.h"
 #include "Scene.generated.h"
 
+// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+#include "GFSDK_VXGI.h"
+#endif
+// NVCHANGE_END: Add VXGI
 
 struct FPostProcessSettings;
 
@@ -566,6 +571,41 @@ struct FWeightedBlendables
 	TArray<FWeightedBlendable> Array;
 };
 
+// NVCHANGE_BEGIN: Add VXGI
+
+UENUM()
+enum EVxgiDiffuseTracingResolution
+{
+	VXGIDTR_Half UMETA(DisplayName = "Half-Res"),
+	VXGIDTR_Third UMETA(DisplayName = "Third-Res"),
+	VXGIDTR_Quarter UMETA(DisplayName = "Quarter-Res"),
+	VXGIDTR_MAX,
+};
+
+UENUM()
+enum EVxgiLightLeakingMode
+{
+	VXGILLM_Minimal UMETA(DisplayName = "Minimal"),
+	VXGILLM_Moderate UMETA(DisplayName = "Moderate"),
+	VXGILLM_Heavy UMETA(DisplayName = "Heavy"),
+	VXGILLM_MAX,
+};
+
+// NVCHANGE_END: Add VXGI
+
+
+// NVCHANGE_BEGIN: Add HBAO+
+
+UENUM()
+enum EHBAOBlurRadius
+{
+	AOBR_BlurRadius0 UMETA(DisplayName = "Disabled"),
+	AOBR_BlurRadius2 UMETA(DisplayName = "2 pixels"),
+	AOBR_BlurRadius4 UMETA(DisplayName = "4 pixels"),
+	AOBR_MAX,
+};
+
+// NVCHANGE_END: Add HBAO+
 
 /** To be able to use struct PostProcessSettings. */
 // Each property consists of a bool to enable it (by default off),
@@ -861,6 +901,43 @@ struct FPostProcessSettings
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault, InlineEditConditionToggle))
 	uint32 bOverride_AmbientOcclusionFadeRadius:1;
 
+	// NVCHANGE_BEGIN: Add HBAO+
+    UPROPERTY(BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault))
+	uint32 bOverride_HBAOPowerExponent : 1;
+
+	UPROPERTY(BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault))
+	uint32 bOverride_HBAORadius : 1;
+
+	UPROPERTY(BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault))
+	uint32 bOverride_HBAOBias : 1;
+
+	UPROPERTY(BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault))
+	uint32 bOverride_HBAOSmallScaleAO : 1;
+
+	UPROPERTY(BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault))
+	uint32 bOverride_HBAOBlurRadius : 1;
+
+	UPROPERTY(BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault))
+	uint32 bOverride_HBAOBlurSharpness : 1;
+	UPROPERTY(BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault))
+ 	uint32 bOverride_HBAOMaxViewDepth : 1;
+
+	UPROPERTY(BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault))
+	uint32 bOverride_HBAODepthSharpness : 1;
+
+	UPROPERTY(BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault))
+	uint32 bOverride_HBAOForegroundAOEnable : 1;
+
+	UPROPERTY(BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault))
+	uint32 bOverride_HBAOForegroundAODistance : 1;
+
+	UPROPERTY(BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault))
+	uint32 bOverride_HBAOBackgroundAOEnable : 1;
+
+	UPROPERTY(BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault))
+	uint32 bOverride_HBAOBackgroundAODistance : 1;
+	// NVCHANGE_END: Add HBAO+
+
 	UPROPERTY()
 	uint32 bOverride_AmbientOcclusionDistance_DEPRECATED:1;
 
@@ -1025,6 +1102,139 @@ struct FPostProcessSettings
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault, InlineEditConditionToggle))
 	uint32 bOverride_ScreenSpaceReflectionRoughnessScale:1;
+
+	// NVCHANGE_BEGIN: Add VXGI
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_VxgiDiffuseTracingEnabled : 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_VxgiSpecularTracingEnabled : 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_VxgiDiffuseTracingIntensity : 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_VxgiSpecularTracingIntensity : 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_VxgiDiffuseTracingResolution : 1;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_VxgiDiffuseLightLeaking : 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_VxgiDiffuseTracingQuality : 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_VxgiDiffuseTracingDirectionalSamplingRate : 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_VxgiDiffuseTracingStep : 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_VxgiSpecularTracingStep : 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_VxgiDiffuseTracingOpacityCorrectionFactor : 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_VxgiSpecularTracingOpacityCorrectionFactor : 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_VxgiDiffuseTracingSoftness : 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_VxgiDiffuseTracingInitialOffsetBias : 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_VxgiDiffuseTracingInitialOffsetDistanceFactor : 1;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_bVxgiAmbientOcclusionEnabled : 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_VxgiAmbientRange : 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_VxgiAmbientScale : 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_VxgiAmbientBias : 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_VxgiAmbientPowerExponent : 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_VxgiAmbientMixIntensity : 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_VxgiSpecularTracingInitialOffsetBias : 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_VxgiSpecularTracingInitialOffsetDistanceFactor : 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_bVxgiSpecularTracingTemporalFilterEnabled : 1;
+    
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_VxgiSpecularTracingTemporalReprojectionPreviousFrameWeight : 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_bVxgiSpecularTracingConeJitterEnabled : 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_bVxgiDiffuseTracingTemporalReprojectionEnabled : 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_VxgiDiffuseTracingTemporalReprojectionPreviousFrameWeight : 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_VxgiDiffuseTracingTemporalReprojectionMaxDistanceInVoxels : 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_VxgiDiffuseTracingTemporalReprojectionNormalWeightExponent : 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_VxgiDiffuseTracingTemporalReprojectionDetailReconstruction : 1;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_VxgiMultiBounceEnabled : 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_VxgiMultiBounceFeedbackGain : 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_VxgiMultiBounceLightLeaking : 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_VxgiAreaLightsEnabled : 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_VxgiAreaLightTracingResolution : 1;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_bVxgiAreaLightTemporalReprojectionEnabled : 1;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_VxgiAreaLightTracingStep : 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_VxgiAreaLightOpacityCorrectionFactor : 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_VxgiAreaLightInitialOffsetBias : 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_VxgiAreaLightInitialOffsetDistanceFactor : 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_VxgiAreaLightTemporalReprojectionMaxDistanceInVoxels : 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_VxgiAreaLightTemporalReprojectionNormalWeightExponent : 1;
+
+	// NVCHANGE_END: Add VXGI
 
 	// -----------------------------------------------------------------------
 
@@ -1401,6 +1611,57 @@ struct FPostProcessSettings
 	UPROPERTY(interp, BlueprintReadWrite, Category="Lens|Image Effects", meta=(UIMin = "0.0", UIMax = "1.0", editcondition = "bOverride_GrainIntensity"))
 	float GrainIntensity;
 
+	// NVCHANGE_BEGIN: Add HBAO+
+	/** 0..4 >0 to enable HBAO+ (DX11/Windows only) .. the greater this parameter, the darker is the HBAO */
+	UPROPERTY(interp, BlueprintReadWrite, Category = "HBAO+", meta = (ClampMin = "0.0", UIMax = "4.0", editcondition = "bOverride_HBAOPowerExponent", DisplayName = "Power Exponent"))
+	float HBAOPowerExponent;
+
+	/** 0..2 in meters, bigger values means even distant surfaces affect the ambient occlusion */
+	UPROPERTY(interp, BlueprintReadWrite, Category = "HBAO+", meta = (ClampMin = "0.1", UIMax = "2.0", editcondition = "bOverride_HBAORadius", DisplayName = "Radius"))
+	float HBAORadius;
+
+	/** 0.0..0.2 increase to hide tesselation artifacts */
+	UPROPERTY(interp, BlueprintReadWrite, Category = "HBAO+", meta = (ClampMin = "0.0", UIMax = "0.2", editcondition = "bOverride_HBAOBias", DisplayName = "Bias"))
+	float HBAOBias;
+
+	/** 0..1 strength of the low-range occlusion .. set to 0.0 to improve performance */
+	UPROPERTY(interp, BlueprintReadWrite, Category = "HBAO+", meta = (ClampMin = "0.0", UIMax = "1.0", editcondition = "bOverride_HBAOSmallScaleAO", DisplayName = "SmallScale AO"))
+	float HBAOSmallScaleAO;
+
+	/** The HBAO blur is needed to hide noise artifacts .. Blur radius = 4 pixels is recommended */
+	UPROPERTY(interp, BlueprintReadWrite, Category = "HBAO+", meta = (editcondition = "bOverride_HBAOBlurRadius", DisplayName = "Blur Radius"))
+	TEnumAsByte<enum EHBAOBlurRadius> HBAOBlurRadius;
+
+	/** 0..32 the larger, the more the HBAO blur preserves edges */
+	UPROPERTY(interp, BlueprintReadWrite, Category = "HBAO+", meta = (ClampMin = "0.0", UIMax = "32.0", editcondition = "bOverride_HBAOBlurSharpness", DisplayName = "Blur Sharpness"))
+	float HBAOBlurSharpness;
+
+	/** depth threshold max view depth */
+	UPROPERTY(interp, BlueprintReadWrite, Category = "HBAO+", meta = (ClampMin = "0.0", UIMax = "400.0", editcondition = "bOverride_HBAOMaxViewDepth", DisplayName = "Max Depth"))
+	float HBAOMaxViewDepth;
+
+	/** depth threshold sharpness in edge */
+	UPROPERTY(interp, BlueprintReadWrite, Category = "HBAO+", meta = (ClampMin = "0.0", UIMax = "100.0", editcondition = "bOverride_HBAODepthSharpness", DisplayName = "Depth Sharpness"))
+	float HBAODepthSharpness;
+
+
+	/** Enables clamping of AO radius for foreground objects */
+	UPROPERTY(interp, BlueprintReadWrite, Category = "HBAO+", meta = (editcondition = "bOverride_HBAOForegroundAOEnable", DisplayName = "Clamp Foreground AO"))
+	uint32 HBAOForegroundAOEnable : 1;
+	
+	/** Distance from camera at which the foreground AO radius should be clamped */
+	UPROPERTY(interp, BlueprintReadWrite, Category = "HBAO+", meta = (ClampMin = "0.0", UIMax = "1000.0", editcondition = "bOverride_HBAOForegroundAODistance", DisplayName = "Foreground AO Distance"))
+	float HBAOForegroundAODistance;
+
+	/** Enables clamping of AO radius for background objects */
+	UPROPERTY(interp, BlueprintReadWrite, Category = "HBAO+", meta = (editcondition = "bOverride_HBAOBackgroundAOEnable", DisplayName = "Clamp Background AO"))
+	uint32 HBAOBackgroundAOEnable : 1;
+
+	/** Distance from camera at which the background AO radius should be clamped */
+	UPROPERTY(interp, BlueprintReadWrite, Category = "HBAO+", meta = (ClampMin = "0.0", UIMax = "10000.0", editcondition = "bOverride_HBAOBackgroundAODistance", DisplayName = "Background AO Distance"))
+	float HBAOBackgroundAODistance;
+	// NVCHANGE_END: Add HBAO+
+
 	/** 0..1 0=off/no ambient occlusion .. 1=strong ambient occlusion, defines how much it affects the non direct lighting after base pass */
 	UPROPERTY(interp, BlueprintReadWrite, Category="Rendering Features|Ambient Occlusion", meta=(ClampMin = "0.0", ClampMax = "1.0", editcondition = "bOverride_AmbientOcclusionIntensity", DisplayName = "Intensity"))
 	float AmbientOcclusionIntensity;
@@ -1637,6 +1898,187 @@ struct FPostProcessSettings
 	*/
 	UPROPERTY(interp, BlueprintReadWrite, Category="Rendering Features|Misc", meta=(ClampMin = "0.0", ClampMax = "400.0", editcondition = "bOverride_ScreenPercentage"))
 	float ScreenPercentage;
+
+	// NVCHANGE_BEGIN: Add VXGI
+	/** To toggle VXGI Diffuse Tracing (adds fully-dynamic diffuse indirect lighting to the direct lighting) */
+	UPROPERTY(interp, BlueprintReadWrite, Category = "VXGI Diffuse", meta = (editcondition = "bOverride_VxgiDiffuseTracingEnabled"), DisplayName = "Enable Diffuse Tracing")
+	uint32 VxgiDiffuseTracingEnabled : 1;
+
+	/** Intensity multiplier for the diffuse component. */
+	UPROPERTY(interp, BlueprintReadWrite, Category = "VXGI Diffuse", meta = (ClampMin = "0.0", editcondition = "bOverride_VxgiDiffuseTracingIntensity"), DisplayName = "Indirect Lighting Intensity")
+	float VxgiDiffuseTracingIntensity;
+
+	/** Resolution at which diffuse tracing is performed. Lower resolution means better performance but less accurate results. */
+	UPROPERTY(interp, BlueprintReadWrite, Category = "VXGI Diffuse", meta = (editcondition = "bOverride_VxgiDiffuseTracingResolution"), DisplayName = "Tracing Resolution")
+	TEnumAsByte<EVxgiDiffuseTracingResolution> VxgiDiffuseTracingResolution;
+	
+	/** Amount of light leaking. Set to Heavy to match the behavior of VXGI 1. */
+	UPROPERTY(interp, BlueprintReadWrite, Category = "VXGI Diffuse", meta = (editcondition = "bOverride_VxgiDiffuseLightLeaking"), DisplayName = "Light Leaking")
+	TEnumAsByte<EVxgiLightLeakingMode> VxgiDiffuseLightLeaking;
+
+	/** Overall quality of tracing results. */
+	UPROPERTY(interp, BlueprintReadWrite, Category = "VXGI Diffuse", meta = (ClampMin = "0.0", ClampMax = "1.0", editcondition = "bOverride_VxgiDiffuseTracingQuality"), DisplayName = "Quality")
+	float VxgiDiffuseTracingQuality;
+
+	/** Fraction of hemisphere around each surface to be sampled on one frame.
+	    Lower sampling rates greatly improve performance but produce more noise, which can be reduced using temporal filtering. */
+	UPROPERTY(interp, BlueprintReadWrite, Category = "VXGI Diffuse", meta = (ClampMin = "0.25", ClampMax = "1.0", editcondition = "bOverride_VxgiDiffuseTracingDirectionalSamplingRate"), DisplayName = "Sampling Rate")
+	float VxgiDiffuseTracingDirectionalSamplingRate;
+
+	/** Controls whether diffuse highlights should be softer or more focused. */
+	UPROPERTY(interp, BlueprintReadWrite, Category = "VXGI Diffuse", meta = (ClampMin = "0.0", ClampMax = "1.0", editcondition = "bOverride_VxgiDiffuseTracingSoftness"), DisplayName = "Softness")
+	float VxgiDiffuseTracingSoftness;
+
+	/** Distance between samples along a cone. Sampling with lower step produces more stable results with less banding, but is significantly slower. */
+	UPROPERTY(interp, BlueprintReadWrite, Category = "VXGI Diffuse", meta = (ClampMin = "0.01", ClampMax = "2.0", UIMin = "0.1", UIMax = "1.0", editcondition = "bOverride_VxgiDiffuseTracingStep"), DisplayName = "Tracing Step")
+	float VxgiDiffuseTracingStep;
+
+	/** Opacity correction factor for diffuse component. Higher values produce more contrast rendering, overall picture looks darker. */
+	UPROPERTY(interp, BlueprintReadWrite, Category = "VXGI Diffuse", meta = (ClampMin = "0.01", ClampMax = "10.0", UIMax = "2.0", editcondition = "bOverride_VxgiDiffuseTracingOpacityCorrectionFactor"), DisplayName = "Opacity Correction Factor")
+	float VxgiDiffuseTracingOpacityCorrectionFactor;
+
+	/** Uniform bias to reduce false occlusion for diffuse tracing. */
+	UPROPERTY(interp, BlueprintReadWrite, Category = "VXGI Diffuse", meta = (ClampMin = "0.0", UIMin = "1.0", UIMax = "4.0", editcondition = "bOverride_VxgiDiffuseTracingInitialOffsetBias"), DisplayName = "Initial Offset Bias")
+	float VxgiDiffuseTracingInitialOffsetBias;
+
+	/** Bias factor to reduce false occlusion for diffuse tracing linearly with distance. */
+	UPROPERTY(interp, BlueprintReadWrite, Category = "VXGI Diffuse", meta = (ClampMin = "0.0", UIMin = "1.0", UIMax = "4.0", editcondition = "bOverride_VxgiDiffuseTracingInitialOffsetDistanceFactor"), DisplayName = "Initial Offset Distance Factor")
+	float VxgiDiffuseTracingInitialOffsetDistanceFactor;
+
+	/** Enables reuse of diffuse tracing results from the previous frame, to reduce any flickering artifacts. */
+	UPROPERTY(interp, BlueprintReadWrite, Category = "VXGI Diffuse", meta = (editcondition = "bOverride_bVxgiDiffuseTracingTemporalReprojectionEnabled"), DisplayName = "Use Temporal Filtering")
+	uint32 bVxgiDiffuseTracingTemporalReprojectionEnabled : 1;
+
+	/**
+	* Weight of the reprojected irradiance data relative to newly computed data, Reasonable values in [0.5, 0.9].
+	* where 0 means do not use reprojection, and values closer to 1 mean accumulate data over more previous frames.
+	*/
+	UPROPERTY(interp, BlueprintReadWrite, Category = "VXGI Diffuse", meta = (ClampMin = "0.0", ClampMax = "1.0", editcondition = "bOverride_VxgiDiffuseTracingTemporalReprojectionPreviousFrameWeight"), DisplayName = "Temporal Filter Previous Frame Weight")
+	float VxgiDiffuseTracingTemporalReprojectionPreviousFrameWeight;
+
+	/** Maximum distance between two samples for which they're still considered to be the same surface, expressed in voxels. */
+	UPROPERTY(interp, BlueprintReadWrite, Category = "VXGI Diffuse", AdvancedDisplay, meta = (ClampMin = "0.0", editcondition = "bOverride_VxgiDiffuseTracingTemporalReprojectionMaxDistanceInVoxels"), DisplayName = "Temporal Filter Max Surface Distance")
+	float VxgiDiffuseTracingTemporalReprojectionMaxDistanceInVoxels;
+
+	/** The exponent used for the dot product of old and new normals in the temporal reprojection filter. Set to 0.0 to disable this weight factor. */
+	UPROPERTY(interp, BlueprintReadWrite, Category = "VXGI Diffuse", AdvancedDisplay, meta = (ClampMin = "0.0", editcondition = "bOverride_VxgiDiffuseTracingTemporalReprojectionNormalWeightExponent"), DisplayName = "Temporal Filter Normal Difference Exponent")
+	float VxgiDiffuseTracingTemporalReprojectionNormalWeightExponent;
+
+	/** Controls the tradeoff between noise in high-detail areas (0) and temporal trailing under dynamic lighting (1). */
+	UPROPERTY(interp, BlueprintReadWrite, Category = "VXGI Diffuse", AdvancedDisplay, meta = (ClampMin = "0.0", ClampMax = "1.0", editcondition = "bOverride_VxgiDiffuseTracingTemporalReprojectionDetailReconstruction"), DisplayName = "Temporal Filter Detail Reconstruction")
+	float VxgiDiffuseTracingTemporalReprojectionDetailReconstruction;
+
+	/** Enables the use of VXGI diffuse tracing results for ambient occlusion. */
+	UPROPERTY(interp, BlueprintReadWrite, Category = "VXGI Ambient", meta = (editcondition = "bOverride_bVxgiAmbientOcclusionEnabled"), DisplayName = "Enable Ambient Occlusion")
+	uint32 bVxgiAmbientOcclusionEnabled : 1;
+
+	/** World-space distance at which the contribution of geometry to ambient occlusion will be 10x smaller than near the surface. */
+	UPROPERTY(interp, BlueprintReadWrite, Category = "VXGI Ambient", meta = (ClampMin = "0.0", editcondition = "bOverride_VxgiAmbientRange"), DisplayName = "Range")
+	float VxgiAmbientRange;
+
+	/** Multiplier for VXAO ambient term, applied before gamma correction. */
+	UPROPERTY(interp, BlueprintReadWrite, Category = "VXGI Ambient", meta = (ClampMin = "0.0", ClampMax = "10.0", UIMax = "3.0", editcondition = "bOverride_VxgiAmbientScale"), DisplayName = "Scale")
+	float VxgiAmbientScale;
+
+	/** Bias for VXAO ambient term, applied before gamma correction. */
+	UPROPERTY(interp, BlueprintReadWrite, Category = "VXGI Ambient", meta = (ClampMin = "0.0", ClampMax = "1.0", editcondition = "bOverride_VxgiAmbientBias"), DisplayName = "Bias")
+	float VxgiAmbientBias;
+
+	/** Gamma correction factor for VXAO ambient term. */
+	UPROPERTY(interp, BlueprintReadWrite, Category = "VXGI Ambient", meta = (ClampMin = "0.01", ClampMax = "10.0", editcondition = "bOverride_VxgiAmbientPowerExponent"), DisplayName = "Power Exponent")
+	float VxgiAmbientPowerExponent;
+
+	/** Intensity for mixing VXAO effect on top of engine SSAO effect. You can set this to 0 and use the "VXGI Diffuse" channel in a post-process material instead. */
+	UPROPERTY(interp, BlueprintReadWrite, Category = "VXGI Ambient", meta = (ClampMin = "0.0", ClampMax = "1.0", editcondition = "bOverride_VxgiAmbientMixIntensity"), DisplayName = "Mix Intensity")
+	float VxgiAmbientMixIntensity;
+
+	/** To toggle VXGI Specular Tracing (replaces any Reflection Environment or SSR with VXGI Specular Tracing) */
+	UPROPERTY(interp, BlueprintReadWrite, Category = "VXGI Specular", meta = (editcondition = "bOverride_VxgiSpecularTracingEnabled"), DisplayName = "Enable Specular Tracing")
+	uint32 VxgiSpecularTracingEnabled : 1;
+
+	/** Intensity multiplier for the specular component. */
+	UPROPERTY(interp, BlueprintReadWrite, Category = "VXGI Specular", meta = (editcondition = "bOverride_VxgiSpecularTracingIntensity"), DisplayName = "Indirect Lighting Intensity")
+	float VxgiSpecularTracingIntensity;
+
+	/** Tracing step for specular component. Reasonable values [0.5, 1]. Sampling with lower step produces more stable results at Performance cost. */
+	UPROPERTY(interp, BlueprintReadWrite, Category = "VXGI Specular", meta = (ClampMin = "0.01", ClampMax = "2.0", editcondition = "bOverride_VxgiSpecularTracingStep"), DisplayName = "Tracing Step")
+	float VxgiSpecularTracingStep;
+
+	/** Opacity correction factor for specular component. Reasonable values [0.1, 10]. Higher values prevent specular cones from tracing through solid objects. */
+	UPROPERTY(interp, BlueprintReadWrite, Category = "VXGI Specular", meta = (ClampMin = "0.01", ClampMax = "10.0", UIMax = "2.0", editcondition = "bOverride_VxgiSpecularTracingOpacityCorrectionFactor"), DisplayName = "Opacity Correction Factor")
+	float VxgiSpecularTracingOpacityCorrectionFactor;
+
+	/** Uniform bias to avoid false occlusion for specular tracing. Reasonable values in [1.0, 4.0]. */
+	UPROPERTY(interp, BlueprintReadWrite, Category = "VXGI Specular", meta = (ClampMin = "0.0", editcondition = "bOverride_VxgiSpecularTracingInitialOffsetBias"), DisplayName = "Initial Offset Bias")
+	float VxgiSpecularTracingInitialOffsetBias;
+
+	/** Bias factor to reduce false occlusion for specular tracing linearly with distance. Reasonable values in [1.0, 4.0]. */
+	UPROPERTY(interp, BlueprintReadWrite, Category = "VXGI Specular", meta = (ClampMin = "0.0", editcondition = "bOverride_VxgiSpecularTracingInitialOffsetDistanceFactor"), DisplayName = "Initial Offset Distance Factor")
+	float VxgiSpecularTracingInitialOffsetDistanceFactor;
+
+	/** Enable temporal filtering on the specular surface after tracing in order to reduce noise introduced by cone jitter. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "VXGI Specular", meta = (editcondition = "bOverride_bVxgiSpecularTracingTemporalFilterEnabled"), DisplayName = "Temporal Filtering")
+	uint32 bVxgiSpecularTracingTemporalFilterEnabled : 1;
+
+	/** Enable jittering the sample positions along narrow cones to reduce reflection blockiness. Adds noise. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "VXGI Specular", meta = (editcondition = "bOverride_bVxgiSpecularTracingConeJitterEnabled"), DisplayName = "Cone Jitter")
+	uint32 bVxgiSpecularTracingConeJitterEnabled : 1;
+
+	/**
+	* Weight of the reprojected irradiance data relative to newly computed data, Reasonable values in [0.5, 0.9].
+	* where 0 means do not use reprojection, and values closer to 1 mean accumulate data over more previous frames.
+	*/
+	UPROPERTY(interp, BlueprintReadWrite, Category = "VXGI Specular", AdvancedDisplay, meta = (ClampMin = "0.0", ClampMax = "1.0", editcondition = "bOverride_VxgiSpecularTracingTemporalReprojectionPreviousFrameWeight"), DisplayName = "Temporal Filter Previous Frame Weight")
+	float VxgiSpecularTracingTemporalReprojectionPreviousFrameWeight;
+
+	/** Intensity multiplier for multi-bounce tracing. */
+	UPROPERTY(interp, BlueprintReadWrite, Category = "VXGI Multi-Bounce", meta = (editcondition = "bOverride_VxgiMultiBounceEnabled"), DisplayName = "Enable Multi-Bounce")
+	uint32 VxgiMultiBounceEnabled : 1;
+
+	/** Intensity multiplier for multi-bounce lighting positive feedback loop. Too high values cause multi-bounce lighting to explode. */
+	UPROPERTY(interp, BlueprintReadWrite, Category = "VXGI Multi-Bounce", meta = (ClampMin = "0.0", ClampMax = "2.0", editcondition = "bOverride_VxgiMultiBounceFeedbackGain"), DisplayName = "Feedback Gain")
+	float VxgiMultiBounceFeedbackGain;
+	
+	/** Amount of light leaking. Set to Heavy to match the behavior of VXGI 1. */
+	UPROPERTY(interp, BlueprintReadWrite, Category = "VXGI Multi-Bounce", meta = (editcondition = "bOverride_VxgiMultiBounceLightLeaking"), DisplayName = "Light Leaking")
+	TEnumAsByte<EVxgiLightLeakingMode> VxgiMultiBounceLightLeaking;
+
+	/** Enables VXGI area lighting effects. */
+	UPROPERTY(interp, BlueprintReadWrite, Category = "VXGI Area Lights", meta = (editcondition = "bOverride_VxgiAreaLightsEnabled"), DisplayName = "Enable Area Lights")
+	uint32 VxgiAreaLightsEnabled : 1;
+	
+	/** Resolution at which area light tracing is performed. Lower resolution means better performance but less accurate results. */
+	UPROPERTY(interp, BlueprintReadWrite, Category = "VXGI Area Lights", meta = (editcondition = "bOverride_VxgiAreaLightTracingResolution"), DisplayName = "Tracing Resolution")
+	TEnumAsByte<EVxgiDiffuseTracingResolution> VxgiAreaLightTracingResolution;
+	
+	/** Enables reuse of area light occlusion tracing results from the previous frame, to reduce any flickering artifacts. */
+	UPROPERTY(interp, BlueprintReadWrite, Category = "VXGI Area Lights", meta = (editcondition = "bOverride_bVxgiAreaLightTemporalReprojectionEnabled"), DisplayName = "Use Temporal Filtering")
+	uint32 bVxgiAreaLightTemporalReprojectionEnabled : 1;
+	
+	/** Distance between samples along a cone. Sampling with lower step produces more stable results with less banding, but is significantly slower. */
+	UPROPERTY(interp, BlueprintReadWrite, Category = "VXGI Area Lights", meta = (ClampMin = "0.01", ClampMax = "2.0", UIMin = "0.1", UIMax = "1.0", editcondition = "bOverride_VxgiAreaLightTracingStep"), DisplayName = "Tracing Step")
+	float VxgiAreaLightTracingStep;
+
+	/** Opacity correction factor for area light occlusion. */
+	UPROPERTY(interp, BlueprintReadWrite, Category = "VXGI Area Lights", meta = (ClampMin = "0.01", ClampMax = "10.0", UIMax = "2.0", editcondition = "bOverride_VxgiAreaLightOpacityCorrectionFactor"), DisplayName = "Opacity Correction Factor")
+	float VxgiAreaLightOpacityCorrectionFactor;
+
+	/** Uniform bias to reduce false occlusion for area light tracing. */
+	UPROPERTY(interp, BlueprintReadWrite, Category = "VXGI Area Lights", meta = (ClampMin = "0.0", UIMin = "1.0", UIMax = "4.0", editcondition = "bOverride_VxgiAreaLightInitialOffsetBias"), DisplayName = "Initial Offset Bias")
+	float VxgiAreaLightInitialOffsetBias;
+
+	/** Bias factor to reduce false occlusion for area light tracing linearly with distance. */
+	UPROPERTY(interp, BlueprintReadWrite, Category = "VXGI Area Lights", meta = (ClampMin = "0.0", UIMin = "1.0", UIMax = "4.0", editcondition = "bOverride_VxgiAreaLightInitialOffsetDistanceFactor"), DisplayName = "Initial Offset Distance Factor")
+	float VxgiAreaLightInitialOffsetDistanceFactor;
+	
+	/** Maximum distance between two samples for which they're still considered to be the same surface, expressed in voxels. */
+	UPROPERTY(interp, BlueprintReadWrite, Category = "VXGI Area Lights", AdvancedDisplay, meta = (ClampMin = "0.0", editcondition = "bOverride_VxgiAreaLightTemporalReprojectionMaxDistanceInVoxels"), DisplayName = "Temporal Filter Max Surface Distance")
+	float VxgiAreaLightTemporalReprojectionMaxDistanceInVoxels;
+
+	/** The exponent used for the dot product of old and new normals in the temporal reprojection filter. Set to 0.0 to disable this weight factor. */
+	UPROPERTY(interp, BlueprintReadWrite, Category = "VXGI Area Lights", AdvancedDisplay, meta = (ClampMin = "0.0", editcondition = "bOverride_VxgiAreaLightTemporalReprojectionNormalWeightExponent"), DisplayName = "Temporal Filter Normal Difference Exponent")
+	float VxgiAreaLightTemporalReprojectionNormalWeightExponent;
+	// NVCHANGE_END: Add VXGI
 
 	// Note: Adding properties before this line require also changes to the OverridePostProcessSettings() function and 
 	// FPostProcessSettings constructor and possibly the SetBaseValues() method.

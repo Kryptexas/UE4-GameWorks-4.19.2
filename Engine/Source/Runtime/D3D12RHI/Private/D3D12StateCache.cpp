@@ -132,7 +132,9 @@ void FD3D12StateCacheBase::FlushComputeShaderCache(bool bForce)
 	if (bAutoFlushComputeShaderCache || bForce)
 	{
 		FD3D12CommandListHandle& CommandList = CmdContext->CommandListHandle;
-		CommandList.AddUAVBarrier();
+		// NVCHANGE_BEGIN: Add VXGI
+		CommandList.AddUAVBarrier(nullptr);
+		// NVCHANGE_ADD: Add VXGI
 	}
 }
 

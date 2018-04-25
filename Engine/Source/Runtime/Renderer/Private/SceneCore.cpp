@@ -389,6 +389,15 @@ void FStaticMesh::AddToDrawLists(FRHICommandListImmediate& RHICmdList, FScene* S
 	}
 }
 
+// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+void FStaticMesh::AddToVXGIDrawLists(FRHICommandListImmediate& RHICmdList, FScene* Scene)
+{
+	TVXGIVoxelizationDrawingPolicyFactory::AddStaticMesh(RHICmdList, Scene, this);
+}
+#endif
+// NVCHANGE_END: Add VXGI
+
 void FStaticMesh::RemoveFromDrawLists()
 {
 	// Remove the mesh from all draw lists.

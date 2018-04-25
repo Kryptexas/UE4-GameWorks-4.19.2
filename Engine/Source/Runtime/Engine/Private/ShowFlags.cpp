@@ -320,6 +320,13 @@ void ApplyViewMode(EViewModeIndex ViewModeIndex, bool bPerspective, FEngineShowF
 	EngineShowFlags.SetCollisionVisibility(ViewModeIndex == VMI_CollisionVisibility);
 	EngineShowFlags.SetLODColoration(ViewModeIndex == VMI_LODColoration);
 	EngineShowFlags.SetHLODColoration(ViewModeIndex == VMI_HLODColoration);
+	// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+	EngineShowFlags.SetVxgiOpacityVoxels(ViewModeIndex == VMI_VxgiOpacityVoxels);
+	EngineShowFlags.SetVxgiEmittanceVoxels(ViewModeIndex == VMI_VxgiEmittanceVoxels);
+	EngineShowFlags.SetVxgiIrradianceVoxels(ViewModeIndex == VMI_VxgiIrradianceVoxels);
+#endif
+	// NVCHANGE_END: Add VXGI
 }
 
 void EngineShowFlagOverride(EShowFlagInitMode ShowFlagInitMode, EViewModeIndex ViewModeIndex, FEngineShowFlags& EngineShowFlags, FName CurrentBufferVisualizationMode, bool bIsSplitScreen)

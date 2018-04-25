@@ -294,6 +294,30 @@ public:
 	virtual void RHIUpdateTextureReference(FTextureReferenceRHIParamRef TextureRef, FTextureRHIParamRef NewTexture) final override;
 
 	virtual void RHIClearMRTImpl(bool bClearColor, int32 NumClearColors, const FLinearColor* ColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil);
+	// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+	virtual void RHIVXGICleanupAfterVoxelization() final override;
+	virtual void RHISetViewportsAndScissorRects(uint32 Count, const FViewportBounds* Viewports, const FScissorRect* ScissorRects) final override;
+	virtual void RHIDispatchIndirectComputeShaderStructured(FStructuredBufferRHIParamRef ArgumentBuffer, uint32 ArgumentOffset) final override;
+	virtual void RHIDrawIndirect(uint32 PrimitiveType, FStructuredBufferRHIParamRef ArgumentBuffer, uint32 ArgumentOffset) final override;
+	virtual void RHICopyStructuredBufferData(FStructuredBufferRHIParamRef DestBuffer, uint32 DestOffset, FStructuredBufferRHIParamRef SrcBuffer, uint32 SrcOffset, uint32 DataSize) final override;
+	virtual void RHISetEnableUAVBarriers(bool bEnable, const FTextureRHIParamRef* Textures, uint32 NumTextures, const FStructuredBufferRHIParamRef* Buffers, uint32 NumBuffers) final override;
+#endif
+	// NVCHANGE_END: Add VXGI
+
+	// NVCHANGE_BEGIN: Add HBAO+
+#if WITH_GFSDK_SSAO
+	virtual void RHIRenderHBAO(
+		const FTextureRHIParamRef SceneDepthTextureRHI,
+		const FTextureRHIParamRef SceneDepthTextureRHI2ndLayer,
+		const FMatrix& ProjectionMatrix,
+		const FTextureRHIParamRef SceneNormalTextureRHI,
+		const FMatrix& ViewMatrix,
+		const FTextureRHIParamRef SceneColorTextureRHI,
+		const GFSDK_SSAO_Parameters& AOParams) final override;
+#endif
+	// NVCHANGE_END: Add HBAO+
+
 	virtual void UpdateMemoryStats();
 
 	// When using Alternate Frame Rendering some temporal effects i.e. effects which consume GPU work from previous frames must sychronize their resources

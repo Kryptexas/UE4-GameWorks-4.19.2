@@ -179,3 +179,9 @@ Engine/Binaries/DotNET/SwarmAgent.Options.xml
 # Ignore VS / VS Code settings directory
 .vs
 .vscode
+
+# NVCHANGE_BEGIN: Add VXGI
+BuildScripts/
+!/*.pdf
+# NVCHANGE_END: Add VXGI
+

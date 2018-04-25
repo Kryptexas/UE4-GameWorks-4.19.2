@@ -364,6 +364,38 @@ RHI_API EShaderPlatform GMaxRHIShaderPlatform = SP_PCD3D_SM5;
 /** The maximum feature level supported on this machine */
 RHI_API ERHIFeatureLevel::Type GMaxRHIFeatureLevel = ERHIFeatureLevel::SM5;
 
+// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+static bool bTessOn = true;
+
+RHI_API void RHIAllowTessellation(bool bAllowTessellation)
+{
+	bTessOn = bAllowTessellation;
+}
+
+RHI_API bool RHITessellationAllowed()
+{
+	return bTessOn;
+}
+
+static int IsVoxelizing = 0;
+RHI_API void RHIPushVoxelizationFlag()
+{
+	IsVoxelizing++;
+}
+RHI_API void RHIPopVoxelizationFlag()
+{
+	check(IsVoxelizing > 0);
+	IsVoxelizing--;
+}
+RHI_API bool RHIIsVoxelizing()
+{
+	return IsVoxelizing > 0;
+}
+
+#endif
+// NVCHANGE_END: Add VXGI
+
 FName FeatureLevelNames[] = 
 {
 	FName(TEXT("ES2")),
@@ -613,6 +645,15 @@ RHI_API uint32 RHIGetShaderLanguageVersion(const EShaderPlatform Platform)
 
 RHI_API bool RHISupportsTessellation(const EShaderPlatform Platform)
 {
+	// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+	if (RHITessellationAllowed() == false)
+	{
+		return false;
+	}
+#endif
+	// NVCHANGE_END: Add VXGI
+
 	if (IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && !IsMetalPlatform(Platform))
 	{
 		return (Platform == SP_PCD3D_SM5) || (Platform == SP_XBOXONE_D3D12) || (Platform == SP_OPENGL_SM5) || (Platform == SP_OPENGL_ES31_EXT)/* || (Platform == SP_VULKAN_SM5)*/;

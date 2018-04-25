@@ -389,6 +389,13 @@ void SEditorViewport::BindCommands()
 		MAP_VIEWMODEPARAM_ACTION( Commands.TexStreamAccMaterialTextureScaleSingle[TextureIndex], TextureIndex );
 		MAP_VIEWMODEPARAM_ACTION( Commands.RequiredTextureResolutionSingle[TextureIndex], TextureIndex );
 	}
+	// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+	MAP_VIEWMODE_ACTION(Commands.VxgiOpacityVoxelsMode, VMI_VxgiOpacityVoxels);
+	MAP_VIEWMODE_ACTION(Commands.VxgiEmittanceVoxelsMode, VMI_VxgiEmittanceVoxels);
+	MAP_VIEWMODE_ACTION(Commands.VxgiIrradianceVoxelsMode, VMI_VxgiIrradianceVoxels);
+#endif
+	// NVCHANGE_END: Add VXGI
 }
 
 EVisibility SEditorViewport::OnGetViewportContentVisibility() const

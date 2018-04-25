@@ -79,6 +79,10 @@ void USceneCapturer::InitCaptureComponent( USceneCaptureComponent2D* CaptureComp
     CaptureComponent->bCaptureEveryFrame = false;
     CaptureComponent->CaptureSource = ESceneCaptureSource::SCS_FinalColorLDR;
 
+	// NVCHANGE_BEGIN: Add VXGI
+	CaptureComponent->bEnableVxgi = true;
+	// NVCHANGE_END: Add VXGI
+
 	const FName TargetName = MakeUniqueObjectName(this, UTextureRenderTarget2D::StaticClass(), TEXT("SceneCaptureTextureTarget"));
     CaptureComponent->TextureTarget = NewObject<UTextureRenderTarget2D>(this, TargetName);
     //TODO: ikrimae: Not sure why the render target needs to be float to avoid banding. Seems like captures to this RT and then applies PP

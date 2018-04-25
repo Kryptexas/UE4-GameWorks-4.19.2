@@ -306,6 +306,12 @@ class UMaterialInstance : public UMaterialInterface
 	uint32 DitheredLODTransition : 1;
 	uint32 bCastDynamicShadowAsMasked : 1;
 
+	// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+	FVxgiMaterialProperties VxgiMaterialProperties;
+#endif
+	// NVCHANGE_END: Add VXGI
+
 	/** 
 	 * FMaterialRenderProxy derivatives that represent this material instance to the renderer, when the renderer needs to fetch parameter values. 
 	 * Second instance is used when selected, third when hovered.
@@ -406,6 +412,12 @@ public:
 	ENGINE_API virtual bool IsMasked() const override;;
 	
 	ENGINE_API virtual USubsurfaceProfile* GetSubsurfaceProfile_Internal() const override;
+
+	// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+	ENGINE_API virtual FVxgiMaterialProperties GetVxgiMaterialProperties() const override { return VxgiMaterialProperties; }
+#endif
+	// NVCHANGE_END: Add VXGI
 
 	/** Checks to see if an input property should be active, based on the state of the material */
 	ENGINE_API virtual bool IsPropertyActive(EMaterialProperty InProperty) const override;

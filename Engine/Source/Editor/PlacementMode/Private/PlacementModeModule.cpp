@@ -27,6 +27,9 @@
 #include "ActorFactories/ActorFactorySphereReflectionCapture.h"
 #include "ActorFactories/ActorFactorySpotLight.h"
 #include "ActorFactories/ActorFactoryBasicShape.h"
+// NVCHANGE_BEGIN: Add VXGI
+#include "ActorFactories/ActorFactoryAreaLight.h"
+// NVCHANGE_END: Add VXGI
 #include "ActorFactories/ActorFactoryTriggerBox.h"
 #include "ActorFactories/ActorFactoryTriggerSphere.h"
 #include "Engine/BrushBuilder.h"
@@ -154,6 +157,10 @@ void FPlacementModeModule::StartupModule()
 		Category->Items.Add(CreateID(), MakeShareable(new FPlaceableItem(*UActorFactoryPointLight::StaticClass(), SortOrder += 10)));
 		Category->Items.Add(CreateID(), MakeShareable(new FPlaceableItem(*UActorFactorySpotLight::StaticClass(), SortOrder += 10)));
 		Category->Items.Add(CreateID(), MakeShareable(new FPlaceableItem(*UActorFactorySkyLight::StaticClass(), SortOrder += 10)));
+
+		// NVCHANGE_BEGIN: Add VXGI
+		Category->Items.Add(CreateID(), MakeShareable(new FPlaceableItem(*UActorFactoryAreaLight::StaticClass(), FAssetData(LoadObject<UStaticMesh>(nullptr, *UActorFactoryBasicShape::BasicPlane.ToString())), FName("ClassThumbnail.Plane"), BasicShapeColorOverride, SortOrder += 10, NSLOCTEXT("PlacementMode", "Area Light", "Area Light"))));
+		// NVCHANGE_END: Add VXGI
 	}
 
 	{
@@ -492,6 +499,9 @@ void FPlacementModeModule::RefreshAllPlaceableClasses()
 	Category->Items.Add(CreateID(), MakeShareable(new FPlaceableItem(*UActorFactoryBasicShape::StaticClass(), FAssetData(LoadObject<UStaticMesh>(nullptr, *UActorFactoryBasicShape::BasicCylinder.ToString())), FName("ClassThumbnail.Cylinder"), GetBasicShapeColorOverride())));
 	Category->Items.Add(CreateID(), MakeShareable(new FPlaceableItem(*UActorFactoryBasicShape::StaticClass(), FAssetData(LoadObject<UStaticMesh>(nullptr, *UActorFactoryBasicShape::BasicCone.ToString())), FName("ClassThumbnail.Cone"), GetBasicShapeColorOverride())));
 	Category->Items.Add(CreateID(), MakeShareable(new FPlaceableItem(*UActorFactoryBasicShape::StaticClass(), FAssetData(LoadObject<UStaticMesh>(nullptr, *UActorFactoryBasicShape::BasicPlane.ToString())), FName("ClassThumbnail.Plane"), GetBasicShapeColorOverride())));
+	// NVCHANGE_BEGIN: Add VXGI
+	Category->Items.Add(CreateID(), MakeShareable(new FPlaceableItem(*UActorFactoryAreaLight::StaticClass(), FAssetData(LoadObject<UStaticMesh>(nullptr, *UActorFactoryBasicShape::BasicPlane.ToString())), FName("ClassThumbnail.Plane"), GetBasicShapeColorOverride())));
+	// NVCHANGE_END: Add VXGI
 
 	// Make a map of UClasses to ActorFactories that support them
 	const TArray< UActorFactory *>& ActorFactories = GEditor->ActorFactories;

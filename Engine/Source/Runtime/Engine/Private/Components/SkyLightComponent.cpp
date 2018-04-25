@@ -143,6 +143,11 @@ FSkyLightSceneProxy::FSkyLightSceneProxy(const USkyLightComponent* InLightCompon
 	, MinOcclusion(FMath::Clamp(InLightComponent->MinOcclusion, 0.0f, 1.0f))
 	, OcclusionTint(InLightComponent->OcclusionTint)
 	, OcclusionCombineMode(InLightComponent->OcclusionCombineMode)
+	// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+	, bCastVxgiIndirectLighting(InLightComponent->bCastVxgiIndirectLighting)
+#endif
+	// NVCHANGE_END: Add VXGI
 {
 	ENQUEUE_UNIQUE_RENDER_COMMAND_SIXPARAMETER(
 		FInitSkyProxy,
@@ -190,6 +195,9 @@ USkyLightComponent::USkyLightComponent(const FObjectInitializer& ObjectInitializ
 	AverageBrightness = 1.0f;
 	BlendDestinationAverageBrightness = 1.0f;
 	bCastVolumetricShadow = true;
+	// NVCHANGE_BEGIN: Add VXGI
+	bCastVxgiIndirectLighting = true;
+	// NVCHANGE_END: Add VXGI
 }
 
 FSkyLightSceneProxy* USkyLightComponent::CreateSceneProxy() const

@@ -278,6 +278,13 @@ TSharedRef<SWidget> SEditorViewportViewMenu::GenerateViewMenuContent() const
 				ViewMenuBuilder.AddMenuEntry(BaseViewportActions.ReflectionOverrideMode, NAME_None, LOCTEXT("ReflectionOverrideViewModeDisplayName", "Reflections"));
 				ViewMenuBuilder.AddMenuEntry(BaseViewportActions.CollisionPawn, NAME_None, LOCTEXT("CollisionPawnViewModeDisplayName", "Player Collision"));
 				ViewMenuBuilder.AddMenuEntry(BaseViewportActions.CollisionVisibility, NAME_None, LOCTEXT("CollisionVisibilityViewModeDisplayName", "Visibility Collision"));
+				// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+				ViewMenuBuilder.AddMenuEntry(BaseViewportActions.VxgiOpacityVoxelsMode, NAME_None, LOCTEXT("VxgiOpacityVoxelsModeDisplayName", "VXGI Opacity Voxels"));
+				ViewMenuBuilder.AddMenuEntry(BaseViewportActions.VxgiEmittanceVoxelsMode, NAME_None, LOCTEXT("VxgiEmittanceVoxelsModeDisplayName", "VXGI Emittance Voxels"));
+				ViewMenuBuilder.AddMenuEntry(BaseViewportActions.VxgiIrradianceVoxelsMode, NAME_None, LOCTEXT("VxgiIrradianceVoxelsModeDisplayName", "VXGI Irradiance Voxels"));
+#endif
+				// NVCHANGE_END: Add VXGI
 			}
 
 			// Optimization
@@ -298,11 +305,11 @@ TSharedRef<SWidget> SEditorViewportViewMenu::GenerateViewMenuContent() const
 							if (AllowDebugViewShaderMode(DVSM_ShaderComplexityContainedQuadOverhead))
 							{
 								Menu.AddMenuEntry(BaseViewportCommands.ShaderComplexityWithQuadOverdrawMode, NAME_None, LOCTEXT("ShaderComplexityWithQuadOverdrawViewModeDisplayName", "Shader Complexity & Quads"));
-							}
+						}
 							if (AllowDebugViewShaderMode(DVSM_QuadComplexity))
-							{
+						{
 								Menu.AddMenuEntry(BaseViewportCommands.QuadOverdrawMode, NAME_None, LOCTEXT("QuadOverdrawViewModeDisplayName", "Quad Overdraw"));
-							}
+						}
 						}
 						Menu.EndSection();
 
@@ -353,7 +360,7 @@ TSharedRef<SWidget> SEditorViewportViewMenu::GenerateViewMenuContent() const
 
 		// Auto Exposure
 		{
-			const FEditorViewportCommands& BaseViewportCommands = FEditorViewportCommands::Get();
+					const FEditorViewportCommands& BaseViewportCommands = FEditorViewportCommands::Get();
 
 			TSharedRef<SWidget> FixedEV100Menu = Viewport.Pin()->BuildFixedEV100Menu();
 			TSharedPtr<FEditorViewportClient> EditorViewPostClient = Viewport.Pin()->GetViewportClient();

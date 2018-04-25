@@ -54,8 +54,14 @@ public:
 	bool SetPointerAndAdvanceFilePosition(void** pDest, size_t size, bool backWithSystemMemory = false);
 	void Reset(RESET_TYPE type);
 	void Init(FString &filename);
-	void Close(uint32 numberOfPSOs);
-	void Flush(uint32 numberOfPSOs);
+	// NVCHANGE_BEGIN: Add VXGI
+	// Number of PSOs should be tracked inside the cache handler.
+	// With NV pipeline state extensions, not every PSO is written to the disk cache,
+	// so using LowLevelGraphicsPipelineStateCache.Count() for the disk cache is no longer correct.
+	void BeginAppendPSO();
+	void Close();
+	void Flush();
+	// NVCHANGE_END: Add VXGI
 	void ClearDiskCache();
 	uint32 GetNumPSOs() const
 	{

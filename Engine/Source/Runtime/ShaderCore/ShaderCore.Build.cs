@@ -8,10 +8,17 @@ public class ShaderCore : ModuleRules
 	{
         PrivateIncludePaths.AddRange( new string[] { "Developer/DerivedDataCache/Public" });
 
-        PublicDependencyModuleNames.AddRange(new string[] { "RHI", "RenderCore" });
+		PublicDependencyModuleNames.AddRange(new string[] { "RHI", "RenderCore" });
 
 		PrivateDependencyModuleNames.AddRange(new string[] { "Core" });
 
 		PrivateIncludePathModuleNames.AddRange(new string[] { "DerivedDataCache", "TargetPlatform" });
-	}
+
+        // NVCHANGE_BEGIN: Add VXGI
+        if ((Target.Platform == UnrealTargetPlatform.Win64) || (Target.Platform == UnrealTargetPlatform.Win32))
+        {
+            PublicDependencyModuleNames.Add("VXGI");
+        }
+        // NVCHANGE_END: Add VXGI
+    }
 }

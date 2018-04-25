@@ -168,6 +168,10 @@ FD3D12Resource::FD3D12Resource(FD3D12Device* ParentDevice,
 	, ResidencyHandle()
 	, FD3D12DeviceChild(ParentDevice)
 	, FD3D12MultiNodeGPUObject(ParentDevice->GetNodeMask(), VisibleNodes)
+	// NVCHANGE_BEGIN: Add VXGI
+	, bEnableUAVBarriers(true)
+	, bFirstUAVBarrierPlaced(false)
+	// NVCHANGE_END: Add VXGI
 {
 #if UE_BUILD_DEBUG
 	FPlatformAtomics::InterlockedIncrement(&TotalResourceCount);

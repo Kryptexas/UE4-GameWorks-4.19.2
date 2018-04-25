@@ -130,6 +130,13 @@ ActorFactory.cpp:
 #include "Editor.h"
 #endif
 
+// NVCHANGE_BEGIN: Add VXGI
+#include "ActorFactories/ActorFactoryVxgiAnchor.h"
+#include "ActorFactories/ActorFactoryAreaLight.h"
+#include "Engine/VxgiAnchor.h"
+#include "Engine/AreaLightActor.h"
+// NVCHANGE_END: Add VXGI
+
 DEFINE_LOG_CATEGORY(LogActorFactory);
 
 #define LOCTEXT_NAMESPACE "ActorFactory"
@@ -253,6 +260,7 @@ FQuat UActorFactory::AlignObjectToSurfaceNormal(const FVector& InSurfaceNormal, 
 	}
 }
 
+// NVCHANGE_BEGIN: Add VXGI
 AActor* UActorFactory::CreateActor( UObject* Asset, ULevel* InLevel, FTransform SpawnTransform, EObjectFlags InObjectFlags, const FName Name )
 {
 	AActor* NewActor = NULL;
@@ -268,13 +276,19 @@ AActor* UActorFactory::CreateActor( UObject* Asset, ULevel* InLevel, FTransform 
 			// Only do this if the actor wasn't already given a name
 			if (Name == NAME_None && Asset)
 			{
-				FActorLabelUtilities::SetActorLabelUnique(NewActor, Asset->GetName());
+				FActorLabelUtilities::SetActorLabelUnique(NewActor, GetDefaultLabel(Asset));
 			}
 		}
 	}
 
 	return NewActor;
 }
+
+FString UActorFactory::GetDefaultLabel(UObject* Asset)
+{
+	return Asset->GetName();
+}
+// NVCHANGE_END: Add VXGI
 
 UBlueprint* UActorFactory::CreateBlueprint( UObject* Asset, UObject* Outer, const FName Name, const FName CallingContext )
 {
@@ -443,6 +457,34 @@ void UActorFactoryBasicShape::PostSpawnActor(UObject* Asset, AActor* NewActor)
 	}
 }
 
+// NVCHANGE_BEGIN: Add VXGI
+/*-----------------------------------------------------------------------------
+UActorFactoryAreaLight
+-----------------------------------------------------------------------------*/
+
+UActorFactoryAreaLight::UActorFactoryAreaLight(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	DisplayName = LOCTEXT("UActorFactoryAreaLightDisplayName", "VXGI Area Light");
+	NewActorClass = AAreaLightActor::StaticClass();
+	bUseSurfaceOrientation = true;
+}
+
+bool UActorFactoryAreaLight::CanCreateActorFrom(const FAssetData& AssetData, FText& OutErrorMsg)
+{
+	if (AssetData.IsValid() && AssetData.ObjectPath == BasicPlane)
+	{
+		return true;
+	}
+
+	return false;
+}
+
+FString UActorFactoryAreaLight::GetDefaultLabel(UObject* Asset)
+{
+	return TEXT("AreaLight");
+}
+// NVCHANGE_END: Add VXGI
 
 /*-----------------------------------------------------------------------------
 UActorFactoryDeferredDecal
@@ -1031,8 +1073,8 @@ bool UActorFactorySkeletalMesh::CanCreateActorFrom( const FAssetData& AssetData,
 	{
 		if(SkeletalMeshCDO->HasCustomActorFactory())
 		{
-			return false;
-		}
+		return false;
+	}
 	}
 
 	return true;
@@ -1530,6 +1572,18 @@ UActorFactorySkyLight::UActorFactorySkyLight( const FObjectInitializer& ObjectIn
 	DisplayName = LOCTEXT( "SkyLightDisplayName", "Sky Light" );
 	NewActorClass = ASkyLight::StaticClass();
 }
+
+// NVCHANGE_BEGIN: Add VXGI
+/*-----------------------------------------------------------------------------
+UActorFactoryVxgiAnchor
+-----------------------------------------------------------------------------*/
+UActorFactoryVxgiAnchor::UActorFactoryVxgiAnchor(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	DisplayName = FText::FromString("VXGI Anchor");
+	NewActorClass = AVxgiAnchor::StaticClass();
+}
+// NVCHANGE_END: Add VXGI
 
 /*-----------------------------------------------------------------------------
 UActorFactorySphereReflectionCapture

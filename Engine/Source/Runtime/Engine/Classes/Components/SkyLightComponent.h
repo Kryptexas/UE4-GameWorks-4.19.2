@@ -171,6 +171,16 @@ class ENGINE_API USkyLightComponent : public ULightComponentBase
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=DistanceFieldAmbientOcclusion)
 	TEnumAsByte<enum EOcclusionCombineMode> OcclusionCombineMode;
 		
+	// NVCHANGE_BEGIN: Add VXGI
+
+	/**
+	* Whether to let this light cast VXGI indirect lighting and reflections.
+	*/
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = VXGI, meta = (DisplayName = "VXGI Indirect Lighting"))
+	bool bCastVxgiIndirectLighting;
+
+	// NVCHANGE_END: Add VXGI
+
 	class FSkyLightSceneProxy* CreateSceneProxy() const;
 
 	//~ Begin UObject Interface

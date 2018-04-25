@@ -12,12 +12,14 @@ void FD3D12CommandListHandle::AddTransitionBarrier(FD3D12Resource* pResource, D3
 	pResource->UpdateResidency(*this);
 }
 
-void FD3D12CommandListHandle::AddUAVBarrier()
+// NVCHANGE_BEGIN: Add VXGI
+void FD3D12CommandListHandle::AddUAVBarrier(FD3D12Resource* pResource)
 {
 	check(CommandListData);
-	CommandListData->ResourceBarrierBatcher.AddUAV();
+	CommandListData->ResourceBarrierBatcher.AddUAV(pResource ? pResource->GetResource() : nullptr);
 	CommandListData->CurrentOwningContext->numBarriers++;
 }
+// NVCHANGE_END: Add VXGI
 
 void FD3D12CommandListHandle::AddAliasingBarrier(FD3D12Resource* pResource)
 {

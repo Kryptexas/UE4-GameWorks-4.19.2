@@ -755,6 +755,9 @@ public:
 	}
 	TBasePassPixelShaderPolicyParamType() {}
 
+	// NVCHANGE_BEGIN: Add VXGI
+	virtual // We need to override this method in TVXGIConeTracingPS
+	// NVCHANGE_END: Add VXGI
 	void SetParameters(
 		FRHICommandList& RHICmdList, 
 		const FMaterialRenderProxy* MaterialRenderProxy, 
@@ -788,6 +791,9 @@ public:
 		ForwardLightingParameters.Set(RHICmdList, ShaderRHI, *View, bIsInstancedStereo);
 	}
 
+	// NVCHANGE_BEGIN: Add VXGI
+	virtual // We need to override this method in TVXGIConeTracingPS
+	// NVCHANGE_END: Add VXGI
 	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement, const FDrawingPolicyRenderState& DrawRenderState, EBlendMode BlendMode);
 
 	virtual bool Serialize(FArchive& Ar) override

@@ -6,6 +6,13 @@
 #include "Runtime/Launch/Resources/Version.h"
 #include "UObject/ReleaseObjectVersion.h"
 
+// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+#include "GFSDK_VXGI.h"
+#define VXGI_BRANCH_NAME BRANCH_NAME "+VXGI-" VXGI_VERSION_STRING
+#endif
+// NVCHANGE_END: Add VXGI
+
 /** Version numbers for networking - DEPRECATED!!!! Use FNetworkVersion::GetNetworkCompatibleChangelist instead!!! */
 int32 GEngineNetVersion = ENGINE_NET_VERSION;
 
@@ -13,7 +20,18 @@ const int32 GEngineMinNetVersion		= 7038;
 const int32 GEngineNegotiationVersion	= 3077;
 
 // Global instance of the current engine version
+// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+FEngineVersion FEngineVersion::CurrentVersion(ENGINE_MAJOR_VERSION, ENGINE_MINOR_VERSION, ENGINE_PATCH_VERSION, (ENGINE_CURRENT_CL_VERSION | (ENGINE_IS_LICENSEE_VERSION << 31)), VXGI_BRANCH_NAME);
+#else
+// NVCHANGE_END: Add VXGI
 FEngineVersion FEngineVersion::CurrentVersion(ENGINE_MAJOR_VERSION, ENGINE_MINOR_VERSION, ENGINE_PATCH_VERSION, (ENGINE_CURRENT_CL_VERSION | (ENGINE_IS_LICENSEE_VERSION << 31)), BRANCH_NAME);
+// NVCHANGE_BEGIN: Add VXGI
+#endif
+// NVCHANGE_END: Add VXGI
+
+
+// Global instance of the current engine version
 
 // Version which this engine maintains strict API and package compatibility with. By default, we always maintain compatibility with the current major/minor version, unless we're built at a different changelist.
 FEngineVersion FEngineVersion::CompatibleWithVersion(ENGINE_MAJOR_VERSION, ENGINE_MINOR_VERSION, 0, (ENGINE_COMPATIBLE_CL_VERSION | (ENGINE_IS_LICENSEE_VERSION << 31)), BRANCH_NAME);
@@ -154,6 +172,14 @@ FString FEngineVersion::ToString(EVersionComponent LastComponent) const
 					Result += FString::Printf(TEXT("+%s"), *Branch);
 				}
 			}
+			// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+			else
+			{
+				Result += FString(TEXT("+VXGI-") TEXT(VXGI_VERSION_STRING));
+			}
+#endif
+			// NVCHANGE_END: Add VXGI
 		}
 	}
 	return Result;
@@ -231,7 +257,6 @@ void operator<<(FArchive &Ar, FEngineVersion &Version)
 	Ar << Version.Changelist;
 	Ar << Version.Branch;
 }
-
 
 // Unique Release Object version id
 const FGuid FReleaseObjectVersion::GUID(0x9C54D522, 0xA8264FBE, 0x94210746, 0x61B482D0);

@@ -2291,6 +2291,11 @@ void UMaterialInstance::UpdateOverridableBaseProperties()
 		ShadingModel = MSM_DefaultLit;
 		TwoSided = 0;
 		DitheredLODTransition = 0;
+		// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+		VxgiMaterialProperties = FVxgiMaterialProperties();
+#endif
+		// NVCHANGE_END: Add VXGI
 		return;
 	}
 
@@ -2347,6 +2352,36 @@ void UMaterialInstance::UpdateOverridableBaseProperties()
 	{
 		DitheredLODTransition = Parent->IsDitheredLODTransition();
 	}
+	// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+	VxgiMaterialProperties = Parent->GetVxgiMaterialProperties();
+
+	if (BasePropertyOverrides.bOverride_VxgiConeTracingEnabled)
+	{
+		VxgiMaterialProperties.bVxgiConeTracingEnabled = BasePropertyOverrides.bVxgiConeTracingEnabled;
+	}
+
+	if (BasePropertyOverrides.bOverride_UsedWithVxgiVoxelization)
+	{
+		VxgiMaterialProperties.bUsedWithVxgiVoxelization = BasePropertyOverrides.bUsedWithVxgiVoxelization;
+	}
+
+	if (BasePropertyOverrides.bOverride_VxgiAllowTesselationDuringVoxelization)
+	{
+		VxgiMaterialProperties.bVxgiAllowTesselationDuringVoxelization = BasePropertyOverrides.bVxgiAllowTesselationDuringVoxelization;
+	}
+
+	if (BasePropertyOverrides.bOverride_VxgiAdaptiveMaterialSamplingRate)
+	{
+		VxgiMaterialProperties.bVxgiAdaptiveMaterialSamplingRate = BasePropertyOverrides.bVxgiAdaptiveMaterialSamplingRate;
+	}
+
+	if (BasePropertyOverrides.bOverride_VxgiOpacityScale)
+	{
+		VxgiMaterialProperties.VxgiOpacityScale = BasePropertyOverrides.VxgiOpacityScale;
+	}
+#endif
+	// NVCHANGE_END: Add VXGI
 }
 
 void UMaterialInstance::GetAllShaderMaps(TArray<FMaterialShaderMap*>& OutShaderMaps)
@@ -2915,8 +2950,8 @@ void UMaterialInstance::PostLoad()
 
 	if (FApp::CanEverRender())
 	{
-		// Resources can be processed / registered now that we're back on the main thread
-		ProcessSerializedInlineShaderMaps(this, LoadedMaterialResources, StaticPermutationMaterialResources);
+	// Resources can be processed / registered now that we're back on the main thread
+	ProcessSerializedInlineShaderMaps(this, LoadedMaterialResources, StaticPermutationMaterialResources);
 	}
 	else
 	{
@@ -3269,10 +3304,10 @@ void UMaterialInstance::SetTextureParameterValueInternal(const FMaterialParamete
 		// set as an ensure, because it is somehow possible to accidentally pass non-textures into here via blueprints...
 		if (Value && ensureMsgf(Value->IsA(UTexture::StaticClass()), TEXT("Expecting a UTexture! Value='%s' class='%s'"), *Value->GetName(), *Value->GetClass()->GetName()))
 		{
-			ParameterValue->ParameterValue = Value;
-			// Update the material instance data in the rendering thread.
-			GameThread_UpdateMIParameter(this, *ParameterValue);
-			CacheMaterialInstanceUniformExpressions(this);
+		ParameterValue->ParameterValue = Value;
+		// Update the material instance data in the rendering thread.
+		GameThread_UpdateMIParameter(this, *ParameterValue);
+		CacheMaterialInstanceUniformExpressions(this);
 		}		
 	}
 }
@@ -3706,20 +3741,20 @@ void UMaterialInstance::GetBasePropertyOverridesHash(FSHAHash& OutHash)const
 		Hash.UpdateWithString(*HashString, HashString.Len());
 		Hash.Update((const uint8*)&UsedBlendMode, sizeof(UsedBlendMode));
 		bHasOverrides = true;
-	}
+ 	}
 	
 	EMaterialShadingModel UsedShadingModel = GetShadingModel();
-	if (UsedShadingModel != Mat->GetShadingModel())
-	{
+ 	if (UsedShadingModel != Mat->GetShadingModel())
+ 	{
 		const FString HashString = TEXT("bOverride_ShadingModel");
 		Hash.UpdateWithString(*HashString, HashString.Len());
 		Hash.Update((const uint8*)&UsedShadingModel, sizeof(UsedShadingModel));
 		bHasOverrides = true;
 	}
 
-	bool bUsedIsTwoSided = IsTwoSided();
-	if (bUsedIsTwoSided != Mat->IsTwoSided())
-	{
+ 	bool bUsedIsTwoSided = IsTwoSided();
+ 	if (bUsedIsTwoSided != Mat->IsTwoSided())
+ 	{
 		const FString HashString = TEXT("bOverride_TwoSided");
 		Hash.UpdateWithString(*HashString, HashString.Len());
 		Hash.Update((uint8*)&bUsedIsTwoSided, sizeof(bUsedIsTwoSided));
@@ -3734,8 +3769,34 @@ void UMaterialInstance::GetBasePropertyOverridesHash(FSHAHash& OutHash)const
 		bHasOverrides = true;
 	}
 
-	if (bHasOverrides)
-	{
+	// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+	FVxgiMaterialProperties BaseVxgiMaterialProperties = Mat->GetVxgiMaterialProperties();
+
+	auto UpdateHashWithBool = [&Hash](bool b) { Hash.Update((uint8*)&b, sizeof(uint8)); };
+
+
+#define TEST_PROPERTY(NAME) \
+	if (VxgiMaterialProperties.NAME != BaseVxgiMaterialProperties.NAME) \
+	{ \
+		const FString HashString = TEXT("bOverride_" # NAME); \
+		Hash.UpdateWithString(*HashString, HashString.Len()); \
+		UpdateHashWithBool(VxgiMaterialProperties.NAME); \
+		bHasOverrides = true; \
+	}
+
+	// Only the properties that affect shader compilation
+
+	TEST_PROPERTY(bVxgiConeTracingEnabled);
+	TEST_PROPERTY(bUsedWithVxgiVoxelization);
+	TEST_PROPERTY(bVxgiAllowTesselationDuringVoxelization);
+
+#undef TEST_PROPERTY
+#endif
+	// NVCHANGE_END: Add VXGI
+
+ 	if (bHasOverrides)
+ 	{
 		Hash.Final();
 		Hash.GetHash(&OutHash.Hash[0]);
 	}
@@ -3744,6 +3805,30 @@ void UMaterialInstance::GetBasePropertyOverridesHash(FSHAHash& OutHash)const
 bool UMaterialInstance::HasOverridenBaseProperties()const
 {
 	check(IsInGameThread());
+
+	// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+	if (Parent)
+	{
+		FVxgiMaterialProperties BaseVxgiMaterialProperties = Parent->GetVxgiMaterialProperties();
+
+#define TEST_PROPERTY(NAME) if (VxgiMaterialProperties.NAME != BaseVxgiMaterialProperties.NAME) return true;
+
+		// Properties that affect shader compilation...
+
+		TEST_PROPERTY(bVxgiConeTracingEnabled);
+		TEST_PROPERTY(bUsedWithVxgiVoxelization);
+		TEST_PROPERTY(bVxgiAllowTesselationDuringVoxelization);
+
+		// ... and those which do not.
+
+		TEST_PROPERTY(VxgiOpacityScale);
+		TEST_PROPERTY(bVxgiAdaptiveMaterialSamplingRate);
+
+#undef TEST_PROPERTY
+	}
+#endif
+	// NVCHANGE_END: Add VXGI
 
 	const UMaterial* Material = GetMaterial();
 	if (Parent && Material && Material->bUsedAsSpecialEngineMaterial == false &&

@@ -235,6 +235,12 @@ FLightSceneProxy::FLightSceneProxy(const ULightComponent* InLightComponent)
 	, bCastModulatedShadows(false)
 	, bUseWholeSceneCSMForMovableObjects(false)
 	, RayStartOffsetDepthScale(InLightComponent->RayStartOffsetDepthScale)
+	// NVCHANGE_BEGIN: Add VXGI
+	// Disable VXGI for Static and Stationary lights because Lightmass is already baking their indirect lighting
+#if WITH_GFSDK_VXGI
+	, bCastVxgiIndirectLighting(InLightComponent->bCastVxgiIndirectLighting && !InLightComponent->HasStaticShadowing())
+#endif
+	// NVCHANGE_END: Add VXGI
 	, LightType(InLightComponent->GetLightType())	
 	, LightingChannelMask(GetLightingChannelMaskForStruct(InLightComponent->LightingChannels))
 	, ComponentName(InLightComponent->GetOwner() ? InLightComponent->GetOwner()->GetFName() : InLightComponent->GetFName())
@@ -373,6 +379,10 @@ ULightComponent::ULightComponent(const FObjectInitializer& ObjectInitializer)
 	MaxDistanceFadeRange = 0.0f;
 	bAddedToSceneVisible = false;
 	bForceCachedShadowsForMovablePrimitives = false;
+
+	// NVCHANGE_BEGIN: Add VXGI
+	bCastVxgiIndirectLighting = false;
+	// NVCHANGE_END: Add VXGI
 }
 
 bool ULightComponent::AffectsPrimitive(const UPrimitiveComponent* Primitive) const
@@ -575,6 +585,9 @@ void ULightComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChan
 		PropertyName != GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, LightingChannels) &&
 		PropertyName != GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, VolumetricScatteringIntensity) &&
 		PropertyName != GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, bCastVolumetricShadow) &&
+		// NVCHANGE_BEGIN: Add VXGI
+		PropertyName != GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, bCastVxgiIndirectLighting) &&
+		// NVCHANGE_END: Add VXGI
 		// Point light properties that shouldn't unbuild lighting
 		PropertyName != GET_MEMBER_NAME_STRING_CHECKED(UPointLightComponent, SourceRadius) &&
 		PropertyName != GET_MEMBER_NAME_STRING_CHECKED(UPointLightComponent, SoftSourceRadius) &&

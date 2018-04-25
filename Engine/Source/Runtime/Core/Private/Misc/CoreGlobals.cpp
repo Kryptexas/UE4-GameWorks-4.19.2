@@ -265,7 +265,7 @@ bool					GIsGameThreadIdInitialized		= false;
 /** Helper function to flush resource streaming.															*/
 void					(*GFlushStreamingFunc)(void)	  = &appNoop;
 /** Whether to emit begin/ end draw events.																	*/
-bool					GEmitDrawEvents					= false;
+bool					GEmitDrawEvents					= true;
 /** Whether forward DrawEvents to the RHI or keep them only on the Commandlist. */
 bool					GCommandListOnlyDrawEvents		= false;
 /** Whether we want the rendering thread to be suspended, used e.g. for tracing.							*/

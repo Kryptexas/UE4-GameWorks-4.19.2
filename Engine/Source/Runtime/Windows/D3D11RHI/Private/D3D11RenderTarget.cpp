@@ -480,6 +480,9 @@ static uint32 ComputeBytesPerPixel(DXGI_FORMAT Format)
 		case DXGI_FORMAT_B8G8R8A8_UNORM:
 		case DXGI_FORMAT_B8G8R8A8_UNORM_SRGB:
 		case DXGI_FORMAT_R24G8_TYPELESS:
+		// NVCHANGE_BEGIN: Add VXGI
+		case DXGI_FORMAT_R10G10B10A2_TYPELESS:
+		// NVCHANGE_END: Add VXGI
 		case DXGI_FORMAT_R10G10B10A2_UNORM:
 		case DXGI_FORMAT_R11G11B10_FLOAT:
 		case DXGI_FORMAT_R16G16_UNORM:
@@ -714,7 +717,9 @@ static void ConvertRAWSurfaceDataToFColor(DXGI_FORMAT Format, uint32 Width, uint
 			FMemory::Memcpy(DestPtr, SrcPtr, sizeof(FColor) * Width);
 		}
 	}
-	else if(Format == DXGI_FORMAT_R10G10B10A2_UNORM)
+	// NVCHANGE_BEGIN: Add VXGI
+	else if(Format == DXGI_FORMAT_R10G10B10A2_TYPELESS || Format == DXGI_FORMAT_R10G10B10A2_UNORM)
+	// NVCHANGE_ADD: Add VXGI
 	{
 		// Read the data out of the buffer, converting it from R10G10B10A2 to FColor.
 		for(uint32 Y = 0; Y < Height; Y++)

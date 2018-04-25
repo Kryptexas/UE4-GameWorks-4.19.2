@@ -417,6 +417,11 @@ void SetupViewVamilyForSceneCapture(
 		View->bIsSceneCapture = true;
 		// Note: this has to be set before EndFinalPostprocessSettings
 		View->bIsPlanarReflection = bIsPlanarReflection;
+		// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+		View->bEnableVxgiForSceneCapture = SceneCaptureComponent->bEnableVxgi;
+#endif
+		// NVCHANGE_END: Add VXGI
 
 		check(SceneCaptureComponent);
 		for (auto It = SceneCaptureComponent->HiddenComponents.CreateConstIterator(); It; ++It)

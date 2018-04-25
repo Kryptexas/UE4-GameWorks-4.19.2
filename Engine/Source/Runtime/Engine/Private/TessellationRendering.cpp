@@ -27,7 +27,9 @@ bool MaterialSettingsRequireAdjacencyInformation_GameThread(UMaterialInterface* 
 
 /** Returns true if the Material and Vertex Factory combination require adjacency information.
   * Rendering thread version that looks at the current shader that will be used. **Will change answer during a shader compile** */
-bool MaterialRenderingRequiresAdjacencyInformation_RenderingThread(UMaterialInterface* Material, const FVertexFactoryType* VertexFactoryType, ERHIFeatureLevel::Type InFeatureLevel)
+// NVCHANGE_BEGIN: Add VXGI
+bool MaterialRenderingRequiresAdjacencyInformation_RenderingThread(UMaterialInterface* Material, const FVertexFactoryType* VertexFactoryType, ERHIFeatureLevel::Type InFeatureLevel, bool bIsVxgiVoxelization)
+// NVCHANGE_END: Add VXGI
 {
 	check(IsInRenderingThread());
 
@@ -44,6 +46,16 @@ bool MaterialRenderingRequiresAdjacencyInformation_RenderingThread(UMaterialInte
 			{
 				EMaterialTessellationMode TessellationMode = MaterialResource->GetTessellationMode();
 				bool bEnableCrackFreeDisplacement = MaterialResource->IsCrackFreeDisplacementEnabled();
+
+				// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+				if ((RHIIsVoxelizing() || bIsVxgiVoxelization) && !MaterialRenderProxy->GetVxgiMaterialProperties().bVxgiAllowTesselationDuringVoxelization)
+				{
+					return false;
+				}
+#endif
+				// NVCHANGE_END: Add VXGI
+
 				return TessellationMode == MTM_PNTriangles || (TessellationMode == MTM_FlatTessellation && bEnableCrackFreeDisplacement);
 			}
 		}

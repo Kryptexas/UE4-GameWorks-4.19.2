@@ -507,6 +507,15 @@ private:
 			}
 		}
 		ConvexVolumeOut = FConvexVolume(Planes);
+
+		// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+		if (bCastVxgiIndirectLighting)
+		{
+			ConvexVolumeOut = FConvexVolume();
+		}
+#endif
+		// NVCHANGE_END: Add VXGI
 	}
 
 	// Useful helper function to compute shadow map cascade distribution
@@ -585,6 +594,16 @@ private:
 		// Get FOV and AspectRatio from the view's projection matrix.
 		float AspectRatio = ProjectionMatrix.M[1][1] / ProjectionMatrix.M[0][0];
 		float HalfFOV = View.ShadowViewMatrices.IsPerspectiveProjection() ? FMath::Atan(1.0f / ProjectionMatrix.M[0][0]) : PI/4.0f;
+
+		// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+		if (bCastVxgiIndirectLighting)
+		{
+			// Force this hard-coded FOV to avoid numerical instability when ViewOrigin.W is close to 0.0f
+			HalfFOV = PI / 4.0f;
+		}
+#endif
+		// NVCHANGE_END: Add VXGI
 
 		// Build the camera frustum for this cascade
 		const float StartHorizontalLength = SplitNear * FMath::Tan(HalfFOV);

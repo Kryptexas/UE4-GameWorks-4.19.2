@@ -67,6 +67,17 @@ enum ESceneTextureId
 	PPI_StoredBaseColor UMETA(DisplayName="BaseColor (as stored in GBuffer)"),
 	/** Material specular, single channel (GBuffer) */
 	PPI_StoredSpecular UMETA(DisplayName="Specular (as stored in GBuffer)"),
+
+	// NVCHANGE_BEGIN: Add VXGI
+	/** VXGI Diffuse Tracing Output */
+	PPI_VxgiDiffuse UMETA(DisplayName = "VXGI Diffuse"),
+	/** VXGI Specular Tracing Output */
+	PPI_VxgiSpecular UMETA(DisplayName = "VXGI Specular"),
+	/** VXGI Area Light Diffuse Output */
+	PPI_VxgiAreaLightDiffuse UMETA(DisplayName = "VXGI Area Light Diffuse"),
+	/** VXGI Area Light Specular Output */
+	PPI_VxgiAreaLightSpecular UMETA(DisplayName = "VXGI Area Light Specular"),
+	// NVCHANGE_END: Add VXGI
 };
 
 UCLASS(collapsecategories, hidecategories=Object)

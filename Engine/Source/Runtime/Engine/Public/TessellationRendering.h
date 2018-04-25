@@ -18,7 +18,9 @@ ENGINE_API bool MaterialSettingsRequireAdjacencyInformation_GameThread(UMaterial
 
 /** Returns true if the Material and Vertex Factory combination require adjacency information.
   * Rendering thread version that looks at the current shader that will be used. **Will change answer during a shader compile** */
-ENGINE_API bool MaterialRenderingRequiresAdjacencyInformation_RenderingThread(UMaterialInterface* Material, const FVertexFactoryType* VertexFactoryType, ERHIFeatureLevel::Type InFeatureLevel);
+// NVCHANGE_BEGIN: Add VXGI
+ENGINE_API bool MaterialRenderingRequiresAdjacencyInformation_RenderingThread(UMaterialInterface* Material, const FVertexFactoryType* VertexFactoryType, ERHIFeatureLevel::Type InFeatureLevel, bool bIsVxgiVoxelization = false);
+// NVCHANGE_END: Add VXGI
 
 /** Returns true if the Material and Vertex Factory combination require adjacency information.
   * Returns different information depending on whether it is called on the rendering thread or game thread -

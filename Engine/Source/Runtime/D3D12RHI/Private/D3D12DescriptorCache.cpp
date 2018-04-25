@@ -736,18 +736,23 @@ void FD3D12DescriptorCache::SetConstantBuffers(FD3D12ConstantBufferCache& Cache,
 			if (FD3D12ConstantBufferCache::IsSlotDirty(RDCBVSlotsNeededMask, SlotIndex))
 			{
 				const D3D12_GPU_VIRTUAL_ADDRESS& CurrentGPUVirtualAddress = Cache.CurrentGPUVirtualAddress[ShaderStage][SlotIndex];
-				check(CurrentGPUVirtualAddress != 0);
-				if (ShaderStage == SF_Compute)
+				// NVCHANGE_BEGIN: Add VXGI
+				// In some cases, VXGI binds constant buffers to discontinuous slots. Need UE not to crash there.
+				if (CurrentGPUVirtualAddress != 0)
 				{
-					CommandList->SetComputeRootConstantBufferView(BaseIndex + SlotIndex, CurrentGPUVirtualAddress);
-				}
-				else
-				{
-					CommandList->SetGraphicsRootConstantBufferView(BaseIndex + SlotIndex, CurrentGPUVirtualAddress);
-				}
+					if (ShaderStage == SF_Compute)
+					{
+						CommandList->SetComputeRootConstantBufferView(BaseIndex + SlotIndex, CurrentGPUVirtualAddress);
+					}
+					else
+					{
+						CommandList->SetGraphicsRootConstantBufferView(BaseIndex + SlotIndex, CurrentGPUVirtualAddress);
+					}
 
-				// Update residency.
-				CommandList.UpdateResidency(Cache.ResidencyHandles[ShaderStage][SlotIndex]);
+					// Update residency.
+					CommandList.UpdateResidency(Cache.ResidencyHandles[ShaderStage][SlotIndex]);
+				}
+				// NVCHANGE_END: Add VXGI
 
 				// Clear the dirty bit.
 				FD3D12ConstantBufferCache::CleanSlot(CurrentDirtySlotMask, SlotIndex);

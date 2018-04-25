@@ -42,6 +42,12 @@ FD3D12DynamicRHI::FD3D12DynamicRHI(TArray<FD3D12Adapter*>& ChosenAdaptersIn) :
 	ChosenAdapters(ChosenAdaptersIn),
 	AmdAgsContext(nullptr),
 	FlipEvent(INVALID_HANDLE_VALUE)
+	// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+	, VxgiInterface(NULL)
+	, VxgiRendererD3D12(NULL)
+#endif
+	// NVCHANGE_END: Add VXGI
 {
 	// The FD3D12DynamicRHI must be a singleton
 	check(SingleD3DRHI == nullptr);
@@ -182,6 +188,11 @@ FD3D12DynamicRHI::FD3D12DynamicRHI(TArray<FD3D12Adapter*>& ChosenAdaptersIn) :
 	GPixelFormats[PF_R16G16B16A16_UNORM].PlatformFormat = DXGI_FORMAT_R16G16B16A16_UNORM;
 	GPixelFormats[PF_R16G16B16A16_SNORM].PlatformFormat = DXGI_FORMAT_R16G16B16A16_SNORM;
 
+	// NVCHANGE_BEGIN: Add VXGI
+	GPixelFormats[PF_L8				].PlatformFormat = DXGI_FORMAT_R8_TYPELESS;
+	GPixelFormats[PF_L8				].Supported = true;
+	// NVCHANGE_END: Add VXGI
+
 	// MS - Not doing any feature level checks. D3D12 currently supports these limits.
 	// However this may need to be revisited if new feature levels are introduced with different HW requirement
 	GSupportsSeparateRenderTargetBlendState = true;
@@ -244,6 +255,13 @@ void FD3D12DynamicRHI::Shutdown()
 #endif
 
 	RHIShutdownFlipTracking();
+
+	// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+	ReleaseVxgiInterface();
+	FWindowsPlatformMisc::UnloadVxgiModule();
+#endif
+	// NVCHANGE_END: Add VXGI
 
 	// Cleanup All of the Adapters
 	for (FD3D12Adapter*& Adapter : ChosenAdapters)

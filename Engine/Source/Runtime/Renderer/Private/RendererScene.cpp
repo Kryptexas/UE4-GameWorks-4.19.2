@@ -160,6 +160,16 @@ FSceneViewState::FSceneViewState()
 
 	PreExposure = 1.f;
 	bUpdateLastExposure = false;
+
+	// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+	VxgiViewTracer = NULL;
+	PrevGBufferA.SetNum(GNumActiveGPUsForRendering);
+	PrevGBufferB.SetNum(GNumActiveGPUsForRendering);
+	PrevViewMatricesPerGPU.SetNum(GNumActiveGPUsForRendering);
+	PrevViewRectPerGPU.SetNum(GNumActiveGPUsForRendering);
+#endif
+	// NVCHANGE_END: Add VXGI
 }
 
 void DestroyRenderResource(FRenderResource* RenderResource)
@@ -451,16 +461,16 @@ void FScene::UpdateParameterCollections(const TArray<FMaterialParameterCollectio
 	ENQUEUE_RENDER_COMMAND(UpdateParameterCollectionsCommand)(
 		[this, InParameterCollections](FRHICommandList&)
 	{
-		// Empy the scene's map so any unused uniform buffers will be released
+	// Empy the scene's map so any unused uniform buffers will be released
 		ParameterCollections.Empty();
 
-		// Add each existing parameter collection id and its uniform buffer
-		for (int32 CollectionIndex = 0; CollectionIndex < InParameterCollections.Num(); CollectionIndex++)
-		{
+	// Add each existing parameter collection id and its uniform buffer
+	for (int32 CollectionIndex = 0; CollectionIndex < InParameterCollections.Num(); CollectionIndex++)
+	{
 			FMaterialParameterCollectionInstanceResource* InstanceReousrce = InParameterCollections[CollectionIndex];
 			ParameterCollections.Add(InstanceReousrce->GetId(), InstanceReousrce->GetUniformBuffer());
 		}
-	});
+		});
 }
 
 SIZE_T FScene::GetSizeBytes() const
@@ -635,7 +645,7 @@ void FScene::AddPrimitiveSceneInfo_RenderThread(FRHICommandListImmediate& RHICmd
 	const bool bAddToDrawLists = !(CVarDoLazyStaticMeshUpdate.GetValueOnRenderThread() && !WITH_EDITOR);
 	if (bAddToDrawLists)
 	{
-		PrimitiveSceneInfo->AddToScene(RHICmdList, true);
+	PrimitiveSceneInfo->AddToScene(RHICmdList, true);
 	}
 	else
 	{
@@ -1207,7 +1217,7 @@ void FScene::RemovePrimitiveSceneInfo_RenderThread(FPrimitiveSceneInfo* Primitiv
 		PrimitiveOcclusionBounds.Pop();
 	}
 
-	PrimitiveSceneInfo->PackedIndex = MAX_int32;
+		PrimitiveSceneInfo->PackedIndex = MAX_int32;
 	
 	CheckPrimitiveArrays();
 
@@ -1729,8 +1739,8 @@ void FScene::ReleaseReflectionCubemap(UReflectionCaptureComponent* CaptureCompon
 
 	if (bRemoved)
 	{
-	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-		RemoveCaptureCommand,
+		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
+			RemoveCaptureCommand,
 			UReflectionCaptureComponent*, Component, CaptureComponent,
 			FScene*, Scene, this,
 		{
@@ -1740,9 +1750,9 @@ void FScene::ReleaseReflectionCubemap(UReflectionCaptureComponent* CaptureCompon
 				// We track removed captures so we can remap them when reallocating the cubemap array
 				check(ComponentStatePtr->CaptureIndex != -1);
 				Scene->ReflectionSceneData.CubemapArraySlotsUsed[ComponentStatePtr->CaptureIndex] = false;
-		}
-		Scene->ReflectionSceneData.AllocatedReflectionCaptureState.Remove(Component);
-	});
+			}
+			Scene->ReflectionSceneData.AllocatedReflectionCaptureState.Remove(Component);
+		});
 	}
 }
 
@@ -2118,12 +2128,12 @@ void FScene::RemoveLightSceneInfo_RenderThread(FLightSceneInfo* LightSceneInfo)
 			}
 #endif
 
-		    // check MobileDirectionalLights
+			// check MobileDirectionalLights
 		    for (int32 LightChannelIdx = 0; LightChannelIdx < ARRAY_COUNT(MobileDirectionalLights); LightChannelIdx++)
 		    {
 			    if (LightSceneInfo == MobileDirectionalLights[LightChannelIdx])
 			    {
-				    MobileDirectionalLights[LightChannelIdx] = nullptr;
+					MobileDirectionalLights[LightChannelIdx] = nullptr;
 
 					// find another light that could be the new MobileDirectionalLight for this channel
 					for (const FLightSceneInfoCompact& OtherLight : Lights)
@@ -2138,7 +2148,7 @@ void FScene::RemoveLightSceneInfo_RenderThread(FLightSceneInfo* LightSceneInfo)
 						}
 					}
 
-				    // if this light is a dynamic shadowcast then we need to update the static draw lists to pick a new lightingpolicy
+					// if this light is a dynamic shadowcast then we need to update the static draw lists to pick a new lightingpolicy
 					if (!LightSceneInfo->Proxy->HasStaticShadowing() || bUseCSMForDynamicObjects)
 					{
 						bScenesPrimitivesNeedStaticMeshElementUpdate = true;
@@ -2495,7 +2505,7 @@ void FScene::UpdateSpeedTreeWind(double CurrentTime)
 					// reload the wind since it may have changed or been scaled differently during reimport
 					StaticMesh->SpeedTreeWind->SetNeedsReload(false);
 					WindComputation->Wind = *(StaticMesh->SpeedTreeWind.Get( ));
-				}
+					}
 
 				// advance the wind object
 				WindComputation->Wind.SetDirection(WindDirection);
@@ -2697,6 +2707,12 @@ void FScene::UpdateStaticDrawListsForMaterials_RenderThread(FRHICommandListImmed
 			MobileBasePassUniformLightMapPolicyDrawListWithCSM[DrawType].GetUsedPrimitivesBasedOnMaterials(SceneFeatureLevel, Materials, PrimitivesToUpdate);
 		}
 	}
+
+	// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+	VxgiVoxelizationDrawList.GetUsedPrimitivesBasedOnMaterials(SceneFeatureLevel, Materials, PrimitivesToUpdate);
+#endif
+	// NVCHANGE_END: Add VXGI
 
 	PositionOnlyDepthDrawList.GetUsedPrimitivesBasedOnMaterials(SceneFeatureLevel, Materials, PrimitivesToUpdate);
 	DepthDrawList.GetUsedPrimitivesBasedOnMaterials(SceneFeatureLevel, Materials, PrimitivesToUpdate);
@@ -2934,6 +2950,11 @@ void FScene::DumpStaticMeshDrawListStats() const
 	DUMP_DRAW_LIST(MobileBasePassUniformLightMapPolicyDrawList[EBasePass_Masked]);
 	DUMP_DRAW_LIST(MobileBasePassUniformLightMapPolicyDrawListWithCSM[EBasePass_Default]);
 	DUMP_DRAW_LIST(MobileBasePassUniformLightMapPolicyDrawListWithCSM[EBasePass_Masked]);
+	// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+	DUMP_DRAW_LIST(VxgiVoxelizationDrawList);
+#endif
+	// NVCHANGE_END: Add VXGI
 	DUMP_DRAW_LIST(HitProxyDrawList);
 	DUMP_DRAW_LIST(HitProxyDrawList_OpaqueOnly);
 #if WITH_EDITOR
@@ -3107,6 +3128,12 @@ void FScene::ApplyWorldOffset_RenderThread(FVector InOffset)
 	StaticMeshDrawListApplyWorldOffset(WholeSceneShadowDepthDrawList, InOffset);
 	StaticMeshDrawListApplyWorldOffset(MobileBasePassUniformLightMapPolicyDrawList, InOffset);
 	StaticMeshDrawListApplyWorldOffset(MobileBasePassUniformLightMapPolicyDrawListWithCSM, InOffset);
+
+	// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+	StaticMeshDrawListApplyWorldOffset(VxgiVoxelizationDrawList, InOffset);
+#endif
+	// NVCHANGE_END: Add VXGI
 
 	// Motion blur 
 	MotionBlurInfoData.ApplyOffset(InOffset);

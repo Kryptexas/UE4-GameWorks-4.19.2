@@ -109,6 +109,14 @@ static bool IsSkylightActive(const FViewInfo& View)
 
 bool ShouldRenderScreenSpaceAmbientOcclusion(const FViewInfo& View)
 {
+	// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+	if (View.VxgiAmbientOcclusionMode != EVxgiAmbientOcclusionMode::None)
+		return true;
+#endif
+	// NVCHANGE_END: Add VXGI
+
+
 	bool bEnabled = true;
 
 	if (!IsLpvIndirectPassRequired(View))
@@ -345,7 +353,7 @@ void FCompositionLighting::ProcessAfterBasePass(FRHICommandListImmediate& RHICmd
 		uint32 SSAOLevels = ComputeAmbientOcclusionPassCount(Context.View);
 		if (SSAOLevels)
 		{
-			if(!FSSAOHelper::IsAmbientOcclusionAsyncCompute(Context.View, SSAOLevels))
+			if (!FSSAOHelper::IsAmbientOcclusionAsyncCompute(Context.View, SSAOLevels))
 			{
 				AmbientOcclusion = AddPostProcessingAmbientOcclusion(RHICmdList, Context, SSAOLevels);
 			}

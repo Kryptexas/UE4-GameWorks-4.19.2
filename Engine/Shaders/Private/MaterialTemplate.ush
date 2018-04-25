@@ -68,6 +68,37 @@
 
 #define IS_MESHPARTICLE_FACTORY (PARTICLE_MESH_FACTORY || NIAGARA_MESH_FACTORY)
 
+// NVCHANGE_BEGIN: Add VXGI
+float GetVxgiVoxelizationActive()
+{
+#if VXGI_VOXELIZATION_SHADER
+	return 1.f;
+#else
+	return 0.f;
+#endif
+}
+
+float3 VxgiTraceConeWrapper(float3 StartPos, float3 Direction, float ConeFactor, float InitialOffset, float TracingStep, int MaxSamples)
+{
+#if ENABLE_VXGI_CONE_TRACING
+	VxgiConeTracingArguments Args = VxgiDefaultConeTracingArguments();
+
+	Args.direction = normalize(Direction);
+	Args.coneFactor = min(1.0, max(0.01, ConeFactor));
+	Args.firstSampleT = max(0, InitialOffset);
+	Args.firstSamplePosition = StartPos + Args.direction * Args.firstSampleT;
+	Args.tracingStep = min(1.0, max(0.01, TracingStep));
+	Args.maxSamples = max(1, MaxSamples);
+
+	VxgiConeTracingResults Results = VxgiTraceCone(Args);
+
+	return Results.irradiance;
+#else
+	return 0.f;
+#endif
+}
+// NVCHANGE_END: Add VXGI
+
 /**
  * Parameters used by vertex and pixel shaders to access particle properties.
  */
@@ -1386,6 +1417,16 @@ float4 SceneTextureLookup(float2 UV, int SceneTextureIndex, bool bFiltered)
 		case 25: return float4(ScreenSpaceData.GBuffer.StoredBaseColor, 0);
 		// PPI_StoredSpecular
 		case 26: return float4(ScreenSpaceData.GBuffer.StoredSpecular.rrr, 0);
+		// NVCHANGE_BEGIN: Add VXGI
+		// PPI_VxgiDiffuse
+		case 27: return ScreenSpaceData.VxgiDiffuse;
+		// PPI_VxgiSpecular
+		case 28: return ScreenSpaceData.VxgiSpecular;
+		// PPI_VxgiAreaLightDiffuse
+		case 29: return ScreenSpaceData.VxgiAreaLightDiffuse;
+		// PPI_VxgiAreaLightSpecular
+		case 30: return ScreenSpaceData.VxgiAreaLightSpecular;
+		// NVCHANGE_END: Add VXGI
 		default:
 			return float4(0, 0, 0, 0);
 	}

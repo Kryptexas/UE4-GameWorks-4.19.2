@@ -80,7 +80,13 @@ FString GetMaterialShaderMapDDCKey()
 // this is for the protocol, not the data, bump if FShaderCompilerInput or ProcessInputFromArchive changes (also search for the second one with the same name, todo: put into one header file)
 const int32 ShaderCompileWorkerInputVersion = 9;
 // this is for the protocol, not the data, bump if FShaderCompilerOutput or WriteToOutputArchive changes (also search for the second one with the same name, todo: put into one header file)
+// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+const int32 ShaderCompileWorkerOutputVersion = 1004;
+#else
 const int32 ShaderCompileWorkerOutputVersion = 4;
+#endif
+// NVCHANGE_END: Add VXGI
 // this is for the protocol, not the data, bump if FShaderCompilerOutput or WriteToOutputArchive changes (also search for the second one with the same name, todo: put into one header file)
 const int32 ShaderCompileWorkerSingleJobHeader = 'S';
 // this is for the protocol, not the data, bump if FShaderCompilerOutput or WriteToOutputArchive changes (also search for the second one with the same name, todo: put into one header file)
@@ -783,7 +789,7 @@ void FShaderCompileUtilities::DoReadTaskResults(const TArray<FShaderCommonCompil
 				{
 					FString Text = FString::Printf(TEXT("Worker returned %u stage pipeline jobs, %u expected"), NumStageJobs, CurrentJob->StageJobs.Num());
 					ModalErrorOrLog(Text, OutputFile.Tell(), FileSize);
-				}
+			}
 			}
 
 			CurrentJob->bSucceeded = true;
@@ -3541,12 +3547,12 @@ FShader* FGlobalShaderTypeCompiler::FinishCompileShader(FGlobalShaderType* Shade
 		}
 		else if (CVarShowShaderWarnings->GetInt())
 		{
-			UE_LOG(LogShaderCompilers, Warning, TEXT("Warnings compiling global shader %s %s %s:\n"), CurrentJob.ShaderType->GetName(), ShaderPipelineType ? TEXT("ShaderPipeline") : TEXT(""), ShaderPipelineType ? ShaderPipelineType->GetName() : TEXT(""));
-			for (int32 ErrorIndex = 0; ErrorIndex < CurrentJob.Output.Errors.Num(); ErrorIndex++)
-			{
-				UE_LOG(LogShaderCompilers, Warning, TEXT("	%s"), *CurrentJob.Output.Errors[ErrorIndex].GetErrorString());
-			}
+		UE_LOG(LogShaderCompilers, Warning, TEXT("Warnings compiling global shader %s %s %s:\n"), CurrentJob.ShaderType->GetName(), ShaderPipelineType ? TEXT("ShaderPipeline") : TEXT(""), ShaderPipelineType ? ShaderPipelineType->GetName() : TEXT(""));
+		for (int32 ErrorIndex = 0; ErrorIndex < CurrentJob.Output.Errors.Num(); ErrorIndex++)
+		{
+			UE_LOG(LogShaderCompilers, Warning, TEXT("	%s"), *CurrentJob.Output.Errors[ErrorIndex].GetErrorString());
 		}
+	}
 	}
 
 	return Shader;
@@ -3596,7 +3602,7 @@ void VerifyGlobalShaders(EShaderPlatform Platform, bool bLoadedFromCacheFile)
 		}
 
 		for (int32 PermutationId = 0; PermutationId < GlobalShaderType->GetPermutationCount(); PermutationId++)
-		{
+			{
 			if (GlobalShaderType->ShouldCompilePermutation(Platform, PermutationId) && !GlobalShaderMap->HasShader(GlobalShaderType, PermutationId))
 			{
 				if (bErrorOnMissing)
@@ -3816,10 +3822,10 @@ bool IsGlobalShaderMapComplete(const TCHAR* TypeNameSubstring)
 					{
 						if (!GlobalShaderMap->HasShader(GlobalShaderType, PermutationId))
 						{
-							return false;
-						}
+						return false;
 					}
 				}
+			}
 			}
 
 			// Then the pipelines as it may be sharing shaders
@@ -4172,8 +4178,8 @@ void BeginRecompileGlobalShaders(const TArray<FShaderType*>& OutdatedShaderTypes
 					for (int32 PermutationId = 0; PermutationId < CurrentGlobalShaderType->GetPermutationCount(); PermutationId++)
 					{
 						GlobalShaderMap->RemoveShaderTypePermutaion(CurrentGlobalShaderType, PermutationId);
-					}
 				}
+			}
 			}
 
 			for (int32 PipelineTypeIndex = 0; PipelineTypeIndex < OutdatedShaderPipelineTypes.Num(); ++PipelineTypeIndex)

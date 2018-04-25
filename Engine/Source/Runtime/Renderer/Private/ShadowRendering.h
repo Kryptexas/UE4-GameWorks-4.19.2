@@ -135,6 +135,11 @@ void SetDeferredLightParameters(
 
 
 	if ((LightType == LightType_Point || LightType == LightType_Spot) && View.IsPerspectiveProjection())
+		// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+		if (!View.bIsVxgiVoxelization)
+#endif
+			// NVCHANGE_END: Add VXGI
 	{
 		DeferredLightUniformsValue.LightColor *= GetLightFadeFactor(View, LightSceneInfo->Proxy);
 	}
@@ -1437,7 +1442,9 @@ public:
 		return Ar;
 	}
 
+#if !WITH_GFSDK_VXGI
 private:
+#endif
 
 	FDeferredPixelShaderParameters DeferredParameters;
 	FShaderParameter ScreenToShadowMatrix;
@@ -1795,7 +1802,9 @@ public:
 		return Ar;
 	}
 
+#if !WITH_GFSDK_VXGI
 private:
+#endif
 
 	FShaderResourceParameter ShadowDepthTexture;
 	FShaderResourceParameter ShadowDepthCubeComparisonSampler;

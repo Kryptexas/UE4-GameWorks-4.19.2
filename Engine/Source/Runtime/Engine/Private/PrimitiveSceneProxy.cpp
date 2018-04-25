@@ -570,7 +570,11 @@ bool FPrimitiveSceneProxy::IsShown(const FSceneView* View) const
 
 		if(!DrawInGame
 #if WITH_EDITOR
+#if WITH_GFSDK_VXGI
+			|| (!View->bIsGameView && View->Family->EngineShowFlags.Game && !DrawInEditor && !View->bIsVxgiVoxelization)
+#else
 			|| (!View->bIsGameView && View->Family->EngineShowFlags.Game && !DrawInEditor)	// ..."G" mode in editor viewport. covers the case when the primitive must be rendered for the voxelization pass, but the user has chosen to hide the primitive from view.
+#endif
 #endif
 			)
 		{

@@ -23,6 +23,16 @@ struct FRHIUniformBufferLayout;
 struct FSamplerStateInitializerRHI;
 struct FTextureMemoryStats;
 
+// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+#include "GFSDK_NVRHI.h"
+
+namespace VXGI
+{
+	struct VoxelizationParameters;
+}
+#endif
+// NVCHANGE_END: Add VXGI
 
 /** Struct to hold common data between begin/end updatetexture3d */
 struct FUpdateTexture3DData
@@ -37,7 +47,7 @@ struct FUpdateTexture3DData
 		, DataSizeBytes(InDataSizeBytes)
 		, FrameNumber(InFrameNumber)
 	{
-	}
+		}
 
 	FTexture3DRHIParamRef Texture;
 	uint32 MipIndex;
@@ -928,7 +938,50 @@ public:
 	/* Copy the source box pixels in the destination box texture, return true if implemented for the current platform*/
 	virtual void RHICopySubTextureRegion_RenderThread(class FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef SourceTexture, FTexture2DRHIParamRef DestinationTexture, FBox2D SourceBox, FBox2D DestinationBox);
 	virtual void RHICopySubTextureRegion(FTexture2DRHIParamRef SourceTexture, FTexture2DRHIParamRef DestinationTexture, FBox2D SourceBox, FBox2D DestinationBox) { }
+
+	// NVCHANGE_BEGIN: Add HBAO+
+#if WITH_GFSDK_SSAO
+	virtual void RHIRenderHBAO(
+		const FTextureRHIParamRef SceneDepthTextureRHI,
+		const FTextureRHIParamRef SceneDepthTextureRHI2ndLayer,
+		const FMatrix& ProjectionMatrix,
+		const FTextureRHIParamRef SceneNormalTextureRHI,
+		const FMatrix& ViewMatrix,
+		const FTextureRHIParamRef SceneColorTextureRHI,
+		const GFSDK_SSAO_Parameters& AOParams)
+	{
+		checkNoEntry();
+	}
+#endif
+	// NVCHANGE_END: Add HBAO+
+
+	// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+	virtual void RHIVXGICleanupAfterVoxelization() { checkNoEntry(); }
+
+	virtual void RHISetViewportsAndScissorRects(uint32 Count, const FViewportBounds* Viewports, const FScissorRect* ScissorRects) { checkNoEntry(); }
+	virtual void RHIDispatchIndirectComputeShaderStructured(FStructuredBufferRHIParamRef ArgumentBuffer, uint32 ArgumentOffset) { checkNoEntry(); }
+	virtual void RHIDrawIndirect(uint32 PrimitiveType, FStructuredBufferRHIParamRef ArgumentBuffer, uint32 ArgumentOffset) { checkNoEntry(); }
+	virtual void RHICopyStructuredBufferData(FStructuredBufferRHIParamRef DestBuffer, uint32 DestOffset, FStructuredBufferRHIParamRef SrcBuffer, uint32 SrcOffset, uint32 DataSize) { checkNoEntry(); }
+	virtual void RHISetEnableUAVBarriers(bool bEnable, const FTextureRHIParamRef* Textures, uint32 NumTextures, const FStructuredBufferRHIParamRef* Buffers, uint32 NumBuffers) { checkNoEntry(); }
 	
+	virtual VXGI::IGlobalIllumination* RHIVXGIGetInterface() { return nullptr; }
+	virtual NVRHI::IRendererInterface* RHIVXGIGetRendererInterface() { return nullptr; }
+    virtual bool RHIVXGIIsInitialized() { return false; }
+	virtual void RHIVXGIGetGPUTime(float& OutWorldSpaceTime, float& OutScreenSpaceTime) { }
+	virtual void RHIVXGISetVoxelizationParameters(const VXGI::VoxelizationParameters& Parameters) { }
+	virtual void RHIVXGISetPixelShaderResourceAttributes(NVRHI::ShaderHandle PixelShader, const TArray<uint8>& ShaderResourceTable, bool bUsesGlobalCB) { }
+	virtual void RHIVXGIApplyDrawStateOverrideShaders(const NVRHI::DrawCallState& DrawCallState, const FBoundShaderStateInput* BoundShaderStateInput, EPrimitiveType PrimitiveTypeOverride) { }
+	virtual void RHIVXGIApplyShaderResources(const NVRHI::DrawCallState& DrawCallState) { }
+	virtual void RHIVXGISetCommandList(FRHICommandList* RHICommandList) { }
+	virtual FRHITexture* GetRHITextureFromVXGI(NVRHI::TextureHandle texture) { return nullptr; }
+	virtual NVRHI::TextureHandle GetVXGITextureFromRHI(FRHITexture* texture) { return nullptr; }
+	virtual void RHIVXGIReleaseUnmanagedTextures() { }
+	virtual FRHIShader* GetRHIShaderFromVXGI(NVRHI::ShaderHandle shader) { return nullptr; }
+	virtual bool RHISetExtensionsForNextShader(const void* const* Extensions, uint32 NumExtensions) { return false; }
+#endif
+	// NVCHANGE_END: Add VXGI	
+
 	virtual FRHIFlipDetails RHIWaitForFlip(double TimeoutInSeconds) { return FRHIFlipDetails(); }
 	virtual void RHISignalFlipEvent() { }
 

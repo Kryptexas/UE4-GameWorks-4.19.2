@@ -115,4 +115,17 @@ private:
 	FShaderResourceParameter CustomDepthTexture;
 	FShaderResourceParameter CustomDepthTextureSampler;
 	FShaderResourceParameter CustomStencilTexture;
+
+	// NVCHANGE_BEGIN: Add VXGI
+	FShaderResourceParameter VxgiDiffuseTexture;
+	FShaderResourceParameter VxgiDiffuseTextureSampler;
+	FShaderResourceParameter VxgiSpecularTexture;
+	FShaderResourceParameter VxgiSpecularTextureSampler;
+	FShaderResourceParameter VxgiConfidenceTexture;
+	FShaderResourceParameter VxgiConfidenceTextureSampler;
+	FShaderResourceParameter VxgiAreaLightDiffuseTexture;
+	FShaderResourceParameter VxgiAreaLightDiffuseTextureSampler;
+	FShaderResourceParameter VxgiAreaLightSpecularTexture;
+	FShaderResourceParameter VxgiAreaLightSpecularTextureSampler;
+	// NVCHANGE_END: Add VXGI
 };

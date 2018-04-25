@@ -297,7 +297,12 @@ void GetShadowTerms(FGBufferData GBuffer, FDeferredLightData LightData, float3 W
 		// Also fix up the fade between dynamic and static shadows
 		// to work with plane splits rather than spheres.
 
+		#if VXGI_EMITTANCE_VOXELIZATION
+		float DynamicShadowFraction = 0;
+		#else
 		float DynamicShadowFraction = DistanceFromCameraFade(GBuffer.Depth, LightData, WorldPosition, View.WorldCameraOrigin);
+		#endif
+
 		// For a directional light, fade between static shadowing and the whole scene dynamic shadowing based on distance + per object shadows
 		OpaqueShadowTerm = lerp(LightAttenuation.x, StaticShadowing, DynamicShadowFraction);
 		// Fade between SSS dynamic shadowing and static shadowing based on distance
@@ -546,6 +551,18 @@ float4 GetDynamicLighting(float3 WorldPosition, float3 CameraVector, FGBufferDat
 
 		#else
 		{
+// NVCHANGE_BEGIN: Add VXGI
+#if VXGI_EMITTANCE_VOXELIZATION
+
+			float3 SurfaceLightingDiff = Diffuse_Lambert(GBuffer.DiffuseColor);
+			LightAccumulator_Add(LightAccumulator, SurfaceLightingDiff, 0, LightColor * (NoL * SurfaceAttenuation), false);
+
+			// accumulate subsurface
+			float3 SubsurfaceLighting = SubsurfaceShading(GBuffer, L, V, N, SubsurfaceShadow, Random);
+			LightAccumulator_Add(LightAccumulator, SubsurfaceLighting, 0, LightColor * SubsurfaceAttenuation, false);
+#else
+// NVCHANGE_END: Add VXGI
+
 			const float ClearCoatRoughness	= GBuffer.CustomData.y;
 
 			float3 LobeRoughness = float3(ClearCoatRoughness, GBuffer.Roughness, 1);
@@ -571,6 +588,10 @@ float4 GetDynamicLighting(float3 WorldPosition, float3 CameraVector, FGBufferDat
 					LightAccumulator.EstimatedCost += 0.4f;		// add the cost of the lighting computations (should sum up to 1 form one light)
 				}
 			#endif
+
+// NVCHANGE_BEGIN: Add VXGI
+#endif // VXGI_EMITTANCE_VOXELIZATION
+// NVCHANGE_END: Add VXGI
 		}
 		#endif
 	}

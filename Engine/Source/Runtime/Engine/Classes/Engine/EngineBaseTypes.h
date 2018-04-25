@@ -948,6 +948,14 @@ enum EViewModeIndex
 	/** Compare the required texture resolution to the actual resolution. */
 	VMI_RequiredTextureResolution = 26,
 
+	// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+	VMI_VxgiOpacityVoxels = 27,
+	VMI_VxgiEmittanceVoxels = 28,
+	VMI_VxgiIrradianceVoxels = 29,
+#endif
+	// NVCHANGE_END: Add VXGI
+
 	VMI_Max UMETA(Hidden),
 
 	VMI_Unknown = 255 UMETA(Hidden),

@@ -445,7 +445,19 @@ struct FShaderCompilerEnvironment : public FRefCountedObject
 		CompilerFlags.Append(Other.CompilerFlags);
 		ResourceTableMap.Append(Other.ResourceTableMap);
 		ResourceTableLayoutHashes.Append(Other.ResourceTableLayoutHashes);
+		// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+		//merge them in reverse order so that Shader environment overrides Material environment. We need this to be able to turn of tessellation per-shader
+		FShaderCompilerDefinitions NewDefinitions;
+		NewDefinitions.Merge(Other.Definitions);
+		NewDefinitions.Merge(Definitions);
+		Definitions = NewDefinitions;
+#else
+		// NVCHANGE_END: Add VXGI
 		Definitions.Merge(Other.Definitions);
+		// NVCHANGE_BEGIN: Add VXGI
+#endif
+		// NVCHANGE_END: Add VXGI
 		RenderTargetOutputFormatsMap.Append(Other.RenderTargetOutputFormatsMap);
 		RemoteServerData.Append(Other.RemoteServerData);
 	}
@@ -917,6 +929,11 @@ struct FShaderCompilerOutput
 	,	bSucceeded(false)
 	,	bFailedRemovingUnused(false)
 	,	bSupportsQueryingUsedAttributes(false)
+		// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+		, bIsVxgiPS(false)
+#endif
+		// NVCHANGE_END: Add VXGI
 	{
 	}
 
@@ -932,12 +949,30 @@ struct FShaderCompilerOutput
 	bool bFailedRemovingUnused;
 	bool bSupportsQueryingUsedAttributes;
 	TArray<FString> UsedAttributes;
+	// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+	bool bIsVxgiPS;
+	TArray<FShaderParameterMap> ParameterMapForVxgiShaderPermutation;
+	TArray<TArray<uint8> > ShaderResouceTableVxgiShaderPermutation;
+	TArray<bool> UsesGlobalCBForVxgiShaderPermutation;
+	TArray<uint8> VxgiGSCode;
+#endif
+	// NVCHANGE_END: Add VXGI
 
 	/** Generates OutputHash from the compiler output. */
 	SHADERCORE_API void GenerateOutputHash();
 
 	friend FArchive& operator<<(FArchive& Ar, FShaderCompilerOutput& Output)
 	{
+		// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+		Ar << Output.bIsVxgiPS;
+		Ar << Output.ParameterMapForVxgiShaderPermutation;
+		Ar << Output.ShaderResouceTableVxgiShaderPermutation;
+		Ar << Output.UsesGlobalCBForVxgiShaderPermutation;
+		Ar << Output.VxgiGSCode;
+#endif
+		// NVCHANGE_END: Add VXGI
 		// Note: this serialize is used to pass between UE4 and the shader compile worker, recompile both when modifying
 		Ar << Output.ParameterMap << Output.Errors << Output.Target << Output.ShaderCode << Output.NumInstructions << Output.NumTextureSamplers << Output.bSucceeded;
 		Ar << Output.bFailedRemovingUnused << Output.bSupportsQueryingUsedAttributes << Output.UsedAttributes;

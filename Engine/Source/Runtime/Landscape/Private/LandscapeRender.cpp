@@ -1181,6 +1181,25 @@ void FLandscapeComponentSceneProxy::OnTransformChanged()
 
 float FLandscapeComponentSceneProxy::GetComponentScreenSize(const FSceneView* View, const FVector& Origin, float MaxExtend, float ElementRadius) const
 {
+	// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+	if (View->bIsVxgiVoxelization)
+	{
+		FVector BoxLower = (Origin - ElementRadius - View->VxgiClipmapBounds.Origin) / View->VxgiClipmapBounds.BoxExtent;
+		FVector BoxUpper = (Origin + ElementRadius - View->VxgiClipmapBounds.Origin) / View->VxgiClipmapBounds.BoxExtent;
+		float MaxLower = BoxLower.GetMax();
+		float MinUpper = BoxUpper.GetMin();
+		float MaxArg = FMath::Max(-MinUpper, MaxLower) * FMath::Pow(2.f, float(View->VxgiNumClipmapLevels - 1));
+		float MinLevel = log2f(FMath::Max(MaxArg, 1.f));
+		float Magnification = FMath::Pow(2.f, FMath::Max(0.f, View->VxgiNumClipmapLevels - MinLevel - 1));
+		
+		float ClipmapSizeMin = View->VxgiClipmapBounds.BoxExtent.GetMin() * 2.f;
+		float Percentage = ElementRadius * Magnification / ClipmapSizeMin;
+		return FMath::Square(FMath::Min(1.f, Percentage));
+	}
+#endif
+	// NVCHANGE_END: Add VXGI
+
 	FVector CameraOrigin = View->ViewMatrices.GetViewOrigin();
 	FMatrix ProjMatrix = View->ViewMatrices.GetProjectionMatrix();
 
@@ -1197,7 +1216,9 @@ float FLandscapeComponentSceneProxy::GetComponentScreenSize(const FSceneView* Vi
 	return FMath::Min(SquaredScreenRadius * 2.0f, 1.0f);
 }
 
-void FLandscapeComponentSceneProxy::BuildDynamicMeshElement(const FViewCustomDataLOD* InPrimitiveCustomData, bool InToolMesh, UMaterialInterface* InMaterialInterface, FMeshBatch& OutMeshBatch, TArray<FLandscapeBatchElementParams, SceneRenderingAllocator>& OutStaticBatchParamArray) const
+// NVCHANGE_BEGIN: Add VXGI
+void FLandscapeComponentSceneProxy::BuildDynamicMeshElement(const FViewCustomDataLOD* InPrimitiveCustomData, bool InToolMesh, UMaterialInterface* InMaterialInterface, FMeshBatch& OutMeshBatch, TArray<FLandscapeBatchElementParams, SceneRenderingAllocator>& OutStaticBatchParamArray, bool bIsVxgiVoxelization) const
+// NVCHANGE_END: Add VXGI
 {
 	if (InMaterialInterface == nullptr)
 	{
@@ -1205,7 +1226,7 @@ void FLandscapeComponentSceneProxy::BuildDynamicMeshElement(const FViewCustomDat
 	}
 
 	// Could be different from bRequiresAdjacencyInformation during shader compilation
-	bool bCurrentRequiresAdjacencyInformation = !InToolMesh && MaterialRenderingRequiresAdjacencyInformation_RenderingThread(InMaterialInterface, VertexFactory->GetType(), GetScene().GetFeatureLevel());
+	bool bCurrentRequiresAdjacencyInformation = !InToolMesh && MaterialRenderingRequiresAdjacencyInformation_RenderingThread(InMaterialInterface, VertexFactory->GetType(), GetScene().GetFeatureLevel(), bIsVxgiVoxelization);
 
 	if (bCurrentRequiresAdjacencyInformation)
 	{
@@ -2201,16 +2222,21 @@ void FLandscapeComponentSceneProxy::GetDynamicMeshElements(const TArray<const FS
 				INC_DWORD_STAT(STAT_LandscapeComponentUsingSubSectionDrawCalls);
 			}
 
+			// NVCHANGE_BEGIN: Add VXGI
 			FMeshBatch& Mesh = Collector.AllocateMesh();
-			BuildDynamicMeshElement(PrimitiveCustomData, false, DisableTessellation ? AvailableMaterials[1] : AvailableMaterials[0], Mesh, ParameterArray.ElementParams);
+			BuildDynamicMeshElement(PrimitiveCustomData, false, DisableTessellation ? AvailableMaterials[1] : AvailableMaterials[0], Mesh, ParameterArray.ElementParams, View->bIsVxgiVoxelization);
 
 #if WITH_EDITOR
+			if (View->bIsVxgiVoxelization)
+				continue;
+
 			FMeshBatch& MeshTools = Collector.AllocateMesh();
 
 			// No Tessellation on tool material
-			BuildDynamicMeshElement(PrimitiveCustomData, true, TessellationEnabledOnDefaultMaterial ? AvailableMaterials[1] : AvailableMaterials[0], MeshTools, ParameterArray.ElementParams);
+			BuildDynamicMeshElement(PrimitiveCustomData, true, TessellationEnabledOnDefaultMaterial ? AvailableMaterials[1] : AvailableMaterials[0], MeshTools, ParameterArray.ElementParams, View->bIsVxgiVoxelization);
 #endif
-			
+			// NVCHANGE_END: Add VXGI
+
 			// Render the landscape component
 #if WITH_EDITOR
 			switch (GLandscapeViewMode)

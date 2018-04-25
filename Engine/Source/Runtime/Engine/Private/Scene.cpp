@@ -496,6 +496,85 @@ FPostProcessSettings::FPostProcessSettings()
 	ScreenSpaceReflectionMaxRoughness = 0.6f;
 	bMobileHQGaussian = false;
 
+	// NVCHANGE_BEGIN: Add HBAO+
+#if WITH_GFSDK_SSAO
+	{
+		HBAOPowerExponent = 2.f;
+		HBAORadius = 2.f;
+		HBAOBias = 0.1f;
+		HBAOSmallScaleAO = 1.f;
+		HBAOBlurRadius = AOBR_BlurRadius2;
+		HBAOBlurSharpness = 16.f;
+		HBAOMaxViewDepth = 9500.f;
+		HBAODepthSharpness = 50.0f;
+		HBAOForegroundAOEnable = false;
+		HBAOForegroundAODistance = 100.f;
+		HBAOBackgroundAOEnable = false;
+		HBAOBackgroundAODistance = 1000.f;
+	}
+#endif
+	// NVCHANGE_END: Add HBAO+
+
+
+	// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+	{
+		VXGI::BasicDiffuseTracingParameters DefaultParams;
+		VxgiDiffuseTracingEnabled = false;
+		VxgiDiffuseTracingIntensity = DefaultParams.irradianceScale;
+		VxgiDiffuseTracingResolution = VXGIDTR_Quarter;
+		VxgiDiffuseLightLeaking = VXGILLM_Minimal;
+		VxgiDiffuseTracingQuality = 0.25f;
+		VxgiDiffuseTracingDirectionalSamplingRate = DefaultParams.directionalSamplingRate;
+		VxgiDiffuseTracingSoftness = DefaultParams.softness;
+		VxgiDiffuseTracingStep = DefaultParams.tracingStep;
+		VxgiDiffuseTracingOpacityCorrectionFactor = DefaultParams.opacityCorrectionFactor;
+		VxgiDiffuseTracingInitialOffsetBias = DefaultParams.initialOffsetBias;
+		VxgiDiffuseTracingInitialOffsetDistanceFactor = DefaultParams.initialOffsetDistanceFactor;
+		bVxgiDiffuseTracingTemporalReprojectionEnabled = DefaultParams.enableTemporalReprojection;
+		VxgiDiffuseTracingTemporalReprojectionPreviousFrameWeight = DefaultParams.temporalReprojectionWeight;
+		VxgiDiffuseTracingTemporalReprojectionMaxDistanceInVoxels = DefaultParams.temporalReprojectionMaxDistanceInVoxels;
+		VxgiDiffuseTracingTemporalReprojectionNormalWeightExponent = DefaultParams.temporalReprojectionNormalWeightExponent;
+		VxgiDiffuseTracingTemporalReprojectionDetailReconstruction = DefaultParams.temporalReprojectionDetailReconstruction;
+		
+		VxgiAmbientRange = DefaultParams.ambientRange;
+		VxgiAmbientScale = 2.0f;
+		VxgiAmbientBias = DefaultParams.ambientBias;
+		VxgiAmbientPowerExponent = DefaultParams.ambientPower;
+		VxgiAmbientMixIntensity = 1.0f;
+
+		VXGI::IndirectIrradianceMapTracingParameters DefaultMultiBounceParams;
+		VxgiMultiBounceEnabled = false;
+		VxgiMultiBounceFeedbackGain = DefaultMultiBounceParams.irradianceScale;
+		VxgiMultiBounceLightLeaking = VXGILLM_Moderate;
+	}
+	{
+		VXGI::BasicSpecularTracingParameters DefaultParams;
+		VxgiSpecularTracingEnabled = false;
+		VxgiSpecularTracingIntensity = DefaultParams.irradianceScale;
+		VxgiSpecularTracingStep = DefaultParams.tracingStep;
+		VxgiSpecularTracingOpacityCorrectionFactor = DefaultParams.opacityCorrectionFactor;
+		VxgiSpecularTracingInitialOffsetBias = DefaultParams.initialOffsetBias;
+		VxgiSpecularTracingInitialOffsetDistanceFactor = DefaultParams.initialOffsetDistanceFactor;
+		bVxgiSpecularTracingTemporalFilterEnabled = false;
+		bVxgiSpecularTracingConeJitterEnabled = false;
+		VxgiSpecularTracingTemporalReprojectionPreviousFrameWeight = DefaultParams.temporalReprojectionWeight;
+	}
+	{
+		VXGI::BasicAreaLightTracingParameters DefaultParams;
+		VxgiAreaLightsEnabled = false;
+		VxgiAreaLightTracingResolution = VXGIDTR_Quarter;
+		bVxgiAreaLightTemporalReprojectionEnabled = true;
+		VxgiAreaLightTracingStep = DefaultParams.tracingStep;
+		VxgiAreaLightOpacityCorrectionFactor = DefaultParams.opacityCorrectionFactor;
+		VxgiAreaLightInitialOffsetBias = DefaultParams.initialOffsetBias;
+		VxgiAreaLightInitialOffsetDistanceFactor = DefaultParams.initialOffsetBias;
+		VxgiAreaLightTemporalReprojectionMaxDistanceInVoxels = DefaultParams.temporalReprojectionMaxDistanceInVoxels;
+		VxgiAreaLightTemporalReprojectionNormalWeightExponent = DefaultParams.temporalReprojectionNormalWeightExponent;
+	}
+#endif
+	// NVCHANGE_END: Add VXGI
+
 #if DO_CHECK && WITH_EDITOR
 	static bool bCheckedMembers = false;
 	if (!bCheckedMembers)

@@ -55,6 +55,11 @@ FVertexShaderRHIRef FD3D12DynamicRHI::RHICreateVertexShader(const TArray<uint8>&
 	ShaderBytecode.BytecodeLength = CodeSize;
 	Shader->ShaderBytecode.SetShaderBytecode(ShaderBytecode);
 
+	// NVCHANGE_BEGIN: Add VXGI
+	Shader->NvidiaShaderExtensions = NvidiaShaderExtensions;
+	NvidiaShaderExtensions.Reset();
+	// NVCHANGE_END: Add VXGI
+
 	return Shader;
 }
 
@@ -78,6 +83,11 @@ FPixelShaderRHIRef FD3D12DynamicRHI::RHICreatePixelShader(const TArray<uint8>& C
 	ShaderBytecode.pShaderBytecode = Shader->Code.GetData() + Offset;
 	ShaderBytecode.BytecodeLength = CodeSize;
 	Shader->ShaderBytecode.SetShaderBytecode(ShaderBytecode);
+
+	// NVCHANGE_BEGIN: Add VXGI
+	Shader->NvidiaShaderExtensions = NvidiaShaderExtensions;
+	NvidiaShaderExtensions.Reset();
+	// NVCHANGE_END: Add VXGI
 
 	return Shader;
 }
@@ -103,6 +113,11 @@ FHullShaderRHIRef FD3D12DynamicRHI::RHICreateHullShader(const TArray<uint8>& Cod
 	ShaderBytecode.BytecodeLength = CodeSize;
 	Shader->ShaderBytecode.SetShaderBytecode(ShaderBytecode);
 
+	// NVCHANGE_BEGIN: Add VXGI
+	Shader->NvidiaShaderExtensions = NvidiaShaderExtensions;
+	NvidiaShaderExtensions.Reset();
+	// NVCHANGE_END: Add VXGI
+
 	return Shader;
 }
 
@@ -127,6 +142,11 @@ FDomainShaderRHIRef FD3D12DynamicRHI::RHICreateDomainShader(const TArray<uint8>&
 	ShaderBytecode.BytecodeLength = CodeSize;
 	Shader->ShaderBytecode.SetShaderBytecode(ShaderBytecode);
 
+	// NVCHANGE_BEGIN: Add VXGI
+	Shader->NvidiaShaderExtensions = NvidiaShaderExtensions;
+	NvidiaShaderExtensions.Reset();
+	// NVCHANGE_END: Add VXGI
+
 	return Shader;
 }
 
@@ -150,6 +170,11 @@ FGeometryShaderRHIRef FD3D12DynamicRHI::RHICreateGeometryShader(const TArray<uin
 	ShaderBytecode.pShaderBytecode = Shader->Code.GetData() + Offset;
 	ShaderBytecode.BytecodeLength = CodeSize;
 	Shader->ShaderBytecode.SetShaderBytecode(ShaderBytecode);
+
+	// NVCHANGE_BEGIN: Add VXGI
+	Shader->NvidiaShaderExtensions = NvidiaShaderExtensions;
+	NvidiaShaderExtensions.Reset();
+	// NVCHANGE_END: Add VXGI
 
 	return Shader;
 }
@@ -212,6 +237,11 @@ FGeometryShaderRHIRef FD3D12DynamicRHI::RHICreateGeometryShaderWithStreamOutput(
 	ShaderBytecode.BytecodeLength = CodeSize;
 	Shader->ShaderBytecode.SetShaderBytecode(ShaderBytecode);
 
+	// NVCHANGE_BEGIN: Add VXGI
+	Shader->NvidiaShaderExtensions = NvidiaShaderExtensions;
+	NvidiaShaderExtensions.Reset();
+	// NVCHANGE_END: Add VXGI
+
 	return Shader;
 }
 
@@ -246,6 +276,10 @@ FComputeShaderRHIRef FD3D12DynamicRHI::RHICreateComputeShader(const TArray<uint8
 	QuantizeBoundShaderState(Tier, Shader, QBSS);
 	Shader->pRootSignature = Adapter.GetRootSignature(QBSS);
 #endif
+
+	// NVCHANGE_BEGIN: Add VXGI
+	check(NvidiaShaderExtensions.Num() == 0);
+	// NVCHANGE_END: Add VXGI
 
 	return Shader;
 }

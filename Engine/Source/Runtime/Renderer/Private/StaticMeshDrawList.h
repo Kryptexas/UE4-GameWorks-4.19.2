@@ -514,6 +514,10 @@ public:
 	/** Computes statistics for this draw list. */
 	FDrawListStats GetStats() const;
 
+	// NVCHANGE_BEGIN: Add VXGI
+	void IterateOverMeshes(TFunctionRef<void(FStaticMesh*)> ProcessMesh);
+	// NVCHANGE_END: Add VXGI
+
 private:
 	void CollectClosestMatchingPolicies(
 		typename TArray<FSetElementId>::TConstIterator DrawingPolicyIter,

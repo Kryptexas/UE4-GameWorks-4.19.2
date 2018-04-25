@@ -9,6 +9,9 @@
 #include "Components/StaticMeshComponent.h"
 #include "TickableEditorObject.h"
 #include "ActorFactories/ActorFactoryBasicShape.h"
+// NVCHANGE_BEGIN: Add VXGI
+#include "ActorFactories/ActorFactoryAreaLight.h"
+// NVCHANGE_END: Add VXGI
 #include "Materials/Material.h"
 #include "Settings/EditorExperimentalSettings.h"
 #include "Engine/StaticMesh.h"

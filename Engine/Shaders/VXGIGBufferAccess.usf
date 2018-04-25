@@ -1,0 +1,362 @@
+// NVCHANGE_BEGIN: Add VXGI
+
+#include "/Engine/Private/Common.ush"
+#include "/Engine/Private/DeferredShadingCommon.ush"
+
+
+//                                    !!! WARNING !!!
+//
+// This shader uses static resource bindings instead of UE4 native resource tables.
+// The bindings are handled in VxgiRendering.cpp when the state for a user-defined view tracer is set up,
+// and in D3D11ShaderCompiler.cpp when the resource description structure for compileViewTracingShaders(...)
+// is being filled out in CompileAndProcessD3DShader(...). 
+// When making changes to the bindings here, be sure to update those two files.
+
+struct GBufferParameters
+{
+	float4x4    viewProjMatrix;
+	float4x4    viewProjMatrixInv;
+	float4x4    viewMatrixInv;
+	float4		cameraPosition;
+
+	float2		viewportOrigin;
+	float2		viewportSize;
+
+	float2		viewportSizeInv;
+	float       projectionA;
+	float       projectionB;
+};
+
+// Layout must match the structure in VxgiRendering.cpp
+cbuffer cGBufferParameters : register(b0)
+{
+	GBufferParameters g_GBuffer[4];
+	GBufferParameters g_PreviousGBuffer[4];
+
+	float g_DiffuseIrradianceScale;
+	float g_DiffuseTracingStep;
+	float g_DiffuseOpacityCorrectionFactor;
+	float g_AmbientRange;
+	float g_AmbientScale;
+	float g_AmbientBias;
+	float g_AmbientPower;
+	float g_DiffuseInitialOffsetBias;
+	float g_DiffuseInitialOffsetDistanceFactor;
+
+	float g_SpecularIrradianceScale;
+	float g_SpecularTracingStep;
+	float g_SpecularOpacityCorrectionFactor;
+	float g_SpecularInitialOffsetBias;
+	float g_SpecularInitialOffsetDistanceFactor;
+	float g_SpecularRoughnessScale;
+	float g_SpecularMinRoughness;
+
+	float g_AreaLightTracingStep;
+	float g_AreaLightOpacityCorrectionFactor;
+	float g_AreaLightInitialOffsetBias;
+	float g_AreaLightInitialOffsetDistanceFactor;
+	float g_AreaLightMinRoughness;
+}
+
+// SEE WARNING ABOVE
+
+Texture2D t_GBufferDepth : register(t0);
+Texture2D t_GBufferA : register(t1);
+Texture2D t_GBufferB : register(t2);
+Texture2D t_GBufferC : register(t3);
+Texture2D t_GBufferD : register(t4);
+Texture2D t_GBufferE : register(t5);
+Texture2D t_PrevGBufferDepth : register(t6);
+Texture2D t_PrevGBufferA : register(t7);
+Texture2D t_PrevGBufferB : register(t8);
+
+float3 ClipToWorldPos(float4 clipPos, GBufferParameters gbufferParams)
+{
+	float4 samplePosition = mul(clipPos, gbufferParams.viewProjMatrixInv);
+	samplePosition.xyz /= samplePosition.w;
+
+	return samplePosition.xyz;
+}
+
+float DepthToViewSpaceDepth(float depth, GBufferParameters gbufferParams)
+{
+	return gbufferParams.projectionB / (depth - gbufferParams.projectionA);
+}
+
+bool IsInvalidNormal(float3 normal)
+{
+	uint3 normalExp = asuint(normal) & 0x7f800000;
+	return all(normalExp == 0) || any(normalExp == 0x7f800000);
+}
+
+struct VxgiGBufferSample
+{
+	float2 windowPos;
+	float viewDepth;
+	float3 worldPos;
+	float4 clipPos;
+	float3 normal;
+	float3 cameraPos;
+	float3 viewRight;
+	float3 viewUp;
+	float specular;
+	float roughness;
+	bool valid;
+};
+
+VxgiGBufferSample VxgiGetDefaultGBufferSample()
+{
+	VxgiGBufferSample result;
+	result.windowPos = 0;
+	result.viewDepth = 0;
+	result.worldPos = 0;
+	result.clipPos = 0;
+	result.normal = 0;
+	result.cameraPos = 0;
+	result.viewRight = 0;
+	result.viewUp = 0;
+	result.specular = 0;
+	result.roughness = 0;
+	result.valid = false;
+	return result;
+}
+
+bool VxgiLoadGBufferSample(float2 windowPos, uint viewIndex, bool previous, bool onlyPosition, out VxgiGBufferSample result)
+{
+	result = VxgiGetDefaultGBufferSample();
+
+	FGBufferData UnrealGBuffer;
+	GBufferParameters gbuffer;
+	int2 iPos = int2(windowPos);
+
+	if (previous)
+	{
+		UnrealGBuffer = DecodeGBufferData(
+			t_PrevGBufferA[iPos],
+			t_PrevGBufferB[iPos],
+			0, // GBufferC
+			0, // GBufferD
+			0, // GBufferE
+			0, // InGBufferVelocity
+			0, // CustomNativeDepth
+			0, // CustomStencil
+			t_PrevGBufferDepth[iPos].x,
+			false, // bGetNormalizedNormal
+			false  // bChecker
+		);
+
+		gbuffer = g_PreviousGBuffer[viewIndex];
+	}
+	else
+	{
+		UnrealGBuffer = DecodeGBufferData(
+			t_GBufferA[iPos],
+			t_GBufferB[iPos],
+			t_GBufferC[iPos],
+			t_GBufferD[iPos],
+			t_GBufferE[iPos],
+			0, // InGBufferVelocity
+			0, // CustomNativeDepth
+			0, // CustomStencil
+			t_GBufferDepth[iPos].x,
+			false, // bGetNormalizedNormal
+			false  // bChecker
+		);
+
+		gbuffer = g_GBuffer[viewIndex];
+	}
+	
+	result.windowPos = windowPos;
+	float2 UV = (windowPos.xy - gbuffer.viewportOrigin.xy) * gbuffer.viewportSizeInv.xy;
+	result.clipPos.xy = UV * float2(2.0, -2.0) + float2(-1.0, 1.0);
+	result.clipPos.z = UnrealGBuffer.Depth;
+	result.clipPos.w = 1;
+
+	if (any(abs(result.clipPos.xyz) > abs(result.clipPos.w)))
+	{
+		return false;
+	}
+
+	result.viewDepth = DepthToViewSpaceDepth(result.clipPos.z, gbuffer);
+	result.worldPos = ClipToWorldPos(result.clipPos, gbuffer);
+	result.cameraPos = gbuffer.cameraPosition.xyz;
+
+	if (onlyPosition)
+	{
+		result.valid = true;
+		return true;
+	}
+
+	if (UnrealGBuffer.ShadingModelID == 0)
+	{
+		return false;
+	}
+
+	result.viewRight = gbuffer.viewMatrixInv[0].xyz;
+	result.viewUp = gbuffer.viewMatrixInv[1].xyz;
+	result.normal = UnrealGBuffer.WorldNormal;
+	result.specular = UnrealGBuffer.Specular;
+	result.roughness = UnrealGBuffer.Roughness;
+	result.valid = !IsInvalidNormal(result.normal);
+
+	if (result.valid)
+		result.normal = normalize(result.normal);
+
+	return result.valid;
+}
+
+float VxgiGetGBufferViewDepth(VxgiGBufferSample gbufferSample)
+{
+	return gbufferSample.viewDepth;
+}
+
+float3 VxgiGetGBufferWorldPos(VxgiGBufferSample gbufferSample)
+{
+	return gbufferSample.worldPos;
+}
+
+float3 VxgiGetGBufferNormal(VxgiGBufferSample gbufferSample)
+{
+	return gbufferSample.normal;
+}
+
+float3 GetTangent(float3 direction)
+{
+	float3 normal = direction;
+	float3 absNormal = abs(normal);
+	float maxComp = max(absNormal.x, max(absNormal.y, absNormal.z));
+
+	float3 tangent;
+	if (maxComp == absNormal.x)
+		tangent = float3((-normal.y - normal.z) * sign(normal.x), absNormal.x, absNormal.x);
+	else if (maxComp == absNormal.y)
+		tangent = float3(absNormal.y, (-normal.x - normal.z) * sign(normal.y), absNormal.y);
+	else
+		tangent = float3(absNormal.z, absNormal.z, (-normal.x - normal.y) * sign(normal.z));
+
+	return normalize(tangent);
+}
+
+void VxgiGetGBufferRightAndUp(VxgiGBufferSample gbufferSample, out float3 right, out float3 up)
+{
+	right = gbufferSample.viewRight;
+	up = gbufferSample.viewUp;
+}
+
+float3 VxgiGetGBufferTangent(VxgiGBufferSample gbufferSample)
+{
+	return GetTangent(gbufferSample.normal);
+}
+
+float3 VxgiGetGBufferViewVector(VxgiGBufferSample gbufferSample)
+{
+	return normalize(gbufferSample.worldPos.xyz - gbufferSample.cameraPos.xyz);
+}
+
+VxgiDiffuseShaderParameters VxgiGetGBufferDiffuseShaderParameters(VxgiGBufferSample gbufferSample)
+{
+	VxgiDiffuseShaderParameters result;
+	result.enable = gbufferSample.valid;
+	result.irradianceScale = g_DiffuseIrradianceScale;
+	result.tracingStep = g_DiffuseTracingStep;
+	result.opacityCorrectionFactor = g_DiffuseOpacityCorrectionFactor;
+	result.ambientRange = g_AmbientRange;
+	result.ambientScale = g_AmbientScale;
+	result.ambientBias = g_AmbientBias;
+	result.ambientPower = g_AmbientPower;
+	result.initialOffsetBias = g_DiffuseInitialOffsetBias;
+	result.initialOffsetDistanceFactor = g_DiffuseInitialOffsetDistanceFactor;
+	return result;
+}
+
+VxgiSpecularShaderParameters VxgiGetGBufferSpecularShaderParameters(VxgiGBufferSample gbufferSample)
+{
+	VxgiSpecularShaderParameters result;
+	result.enable = gbufferSample.valid && gbufferSample.specular > 0 && gbufferSample.roughness >= g_SpecularMinRoughness;
+	result.roughness = min(gbufferSample.roughness * g_SpecularRoughnessScale, 0.75);
+	result.viewDirection = normalize(gbufferSample.worldPos.xyz - gbufferSample.cameraPos.xyz);
+	result.irradianceScale = g_SpecularIrradianceScale;
+	result.tracingStep = g_SpecularTracingStep;
+	result.opacityCorrectionFactor = g_SpecularOpacityCorrectionFactor;
+	result.initialOffsetBias = g_SpecularInitialOffsetBias;
+	result.initialOffsetDistanceFactor = g_SpecularInitialOffsetDistanceFactor;
+	result.coplanarOffsetFactor = 5;
+	return result;
+}
+
+VxgiAreaLightShaderParameters VxgiGetGBufferAreaLightShaderParameters(VxgiGBufferSample gbufferSample)
+{
+	VxgiAreaLightShaderParameters result;
+	result.enableDiffuse = gbufferSample.valid;
+	result.enableSpecular = gbufferSample.valid && gbufferSample.specular > 0 && gbufferSample.roughness >= g_AreaLightMinRoughness;
+	result.viewDirection = normalize(gbufferSample.worldPos.xyz - gbufferSample.cameraPos.xyz);
+	result.roughness = gbufferSample.roughness;
+	result.tracingStep = g_AreaLightTracingStep;
+	result.opacityCorrectionFactor = g_AreaLightOpacityCorrectionFactor;
+	result.initialOffsetBias = g_AreaLightInitialOffsetBias;
+	result.initialOffsetDistanceFactor = g_AreaLightInitialOffsetDistanceFactor;
+	result.coplanarOffsetFactor = 5;
+	return result;
+}
+
+bool VxgiGetGBufferEnableSSAO(VxgiGBufferSample gbufferSample)
+{
+	return gbufferSample.valid;
+}
+
+float4 VxgiGetGBufferClipPos(VxgiGBufferSample gbufferSample, bool normalized)
+{
+	return gbufferSample.clipPos;
+}
+
+float2 VxgiGBufferMapClipToWindow(uint viewIndex, float2 clipPos)
+{
+	GBufferParameters gbuffer = g_GBuffer[viewIndex];
+	
+	float2 UV = clipPos.xy * float2(0.5, -0.5) + 0.5;
+	return UV * gbuffer.viewportSize + gbuffer.viewportOrigin;
+}
+
+float2 VxgiGBufferMapWindowToClip(uint viewIndex, float2 windowPos)
+{
+	GBufferParameters gbuffer = g_GBuffer[viewIndex];
+
+	float2 UV = (windowPos - gbuffer.viewportOrigin.xy) * gbuffer.viewportSizeInv.xy;
+
+	float2 clipPos;
+	clipPos.x = UV.x * 2 - 1;
+	clipPos.y = 1 - UV.y * 2;
+	return clipPos;
+}
+
+bool VxgiGetGBufferPositionInOtherView(VxgiGBufferSample gbufferSample, uint viewIndex, bool previous, out float2 prevWindowPos)
+{
+	prevWindowPos = float2scalar(0);
+
+	float4 previousClipPos;
+
+	if (previous)
+		previousClipPos = mul(float4(gbufferSample.worldPos, 1), g_PreviousGBuffer[viewIndex].viewProjMatrix);
+	else
+		previousClipPos = mul(float4(gbufferSample.worldPos, 1), g_GBuffer[viewIndex].viewProjMatrix);
+
+	if (any(abs(previousClipPos.xyz) > previousClipPos.www) || previousClipPos.w <= 0)
+		return false;
+
+	previousClipPos.xyz /= previousClipPos.w;
+
+	prevWindowPos.xy = VxgiGBufferMapClipToWindow(viewIndex, previousClipPos.xy);
+
+	return true;
+}
+
+float3 VxgiGetEnvironmentIrradiance(float3 surfacePos, float3 coneDirection, float coneFactor, bool isSpecular)
+{
+	return 0;
+}
+
+float4 DummyPS() : SV_Target
+{
+	return 1;
+}
+// NVCHANGE_END: Add VXGI

@@ -89,6 +89,15 @@ void ReflectionEnvironmentTiledDeferredMain(
 #if 1
 		// Note: this texture may also contain planar reflections
 		float4 SSR = Texture2DSample( ScreenSpaceReflectionsTexture, ScreenSpaceReflectionsSampler, ScreenUV );
+
+		// NVCHANGE_BEGIN: Add VXGI
+#if APPLY_VXGI 
+		// Make the rest of the shader think that VXGI reflections are SSR
+		// Actually combine VXGI with SSR if both are enabled
+		SSR.rgb = (ScreenSpaceData.VxgiSpecular.rgb + ScreenSpaceData.VxgiAreaLightSpecular.rgb) * (1 - SSR.a) + SSR.rgb;
+#endif
+		// NVCHANGE_END: Add VXGI
+
 		Color.rgb = SSR.rgb;
 		Color.a = 1 - SSR.a;
 #endif

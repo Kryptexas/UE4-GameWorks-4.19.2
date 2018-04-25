@@ -9,7 +9,6 @@
 #include "Math/VectorRegister.h"
 #include "Math/Transform.h"
 
-
 /* FBox structors
  *****************************************************************************/
 

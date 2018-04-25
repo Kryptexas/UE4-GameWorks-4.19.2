@@ -121,6 +121,14 @@ public:
 	TSharedPtr< FUICommandInfo > CollisionPawn;
 	TSharedPtr< FUICommandInfo > CollisionVisibility;
 
+	// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+	TSharedPtr< FUICommandInfo > VxgiOpacityVoxelsMode;
+	TSharedPtr< FUICommandInfo > VxgiEmittanceVoxelsMode;
+	TSharedPtr< FUICommandInfo > VxgiIrradianceVoxelsMode;
+#endif
+	// NVCHANGE_END: Add VXGI
+
 	/** Toggles realtime rendering in the viewport */
 	TSharedPtr< FUICommandInfo > ToggleRealTime;
 

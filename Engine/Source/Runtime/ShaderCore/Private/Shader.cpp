@@ -365,7 +365,7 @@ void FShaderType::Initialize(const TMap<FString, TArray<const TCHAR*> >& ShaderF
 		for (int32 Index = 1; Index < UniqueShaderTypes.Num(); ++Index)
 		{
 			checkf(UniqueShaderTypes[Index - 1] != UniqueShaderTypes[Index], TEXT("Duplicated FShader type name %s found, please rename one of them!"), UniqueShaderTypes[Index]->GetName());
-		}
+	}
 #endif
 	}
 
@@ -393,6 +393,12 @@ FShaderResource::FShaderResource()
 	, NumRefs(0)
 	, Canary(FShader::ShaderMagic_Uninitialized)
 	, bCodeInSharedLocation(false)
+	// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+	, VxgiUserDefinedShaderSet(NULL)
+	, bIsVxgiShaderSet(0)
+#endif
+	// NVCHANGE_END: Add VXGI
 {
 	INC_DWORD_STAT_BY(STAT_Shaders_NumShaderResourcesLoaded, 1);
 }
@@ -406,7 +412,12 @@ FShaderResource::FShaderResource(const FShaderCompilerOutput& Output, FShaderTyp
 	, NumRefs(0)
 	, Canary(FShader::ShaderMagic_Initialized)
 	, bCodeInSharedLocation(false)
-	
+	// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+	, VxgiUserDefinedShaderSet(NULL)
+	, bIsVxgiShaderSet(Output.bIsVxgiPS)
+#endif
+	// NVCHANGE_END: Add VXGI
 {
 	check(!(SpecificPermutationId != 0 && SpecificType == nullptr));
 
@@ -414,6 +425,15 @@ FShaderResource::FShaderResource(const FShaderCompilerOutput& Output, FShaderTyp
 	CompressCode(Output.ShaderCode.GetReadAccess());
 
 	check(Code.Num() > 0);
+
+	// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+	ParameterMapForVxgiShaderPermutation = Output.ParameterMapForVxgiShaderPermutation;
+	UsesGlobalCBForVxgiPSPermutation = Output.UsesGlobalCBForVxgiShaderPermutation;
+	ShaderResouceTableVxgiShaderPermutation = Output.ShaderResouceTableVxgiShaderPermutation;
+	VxgiGSCode = Output.VxgiGSCode;
+#endif
+	// NVCHANGE_END: Add VXGI
 
 	OutputHash = Output.OutputHash;
 	checkSlow(OutputHash != FSHAHash());
@@ -434,6 +454,12 @@ FShaderResource::~FShaderResource()
 	check(Canary == FShader::ShaderMagic_Uninitialized || Canary == FShader::ShaderMagic_CleaningUp || Canary == FShader::ShaderMagic_Initialized);
 	check(NumRefs == 0);
 	Canary = 0;
+
+	// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+	check(VxgiUserDefinedShaderSet == NULL);
+#endif
+	// NVCHANGE_END: Add VXGI
 
 	DEC_DWORD_STAT_BY_FName(GetMemoryStatType((EShaderFrequency)Target.Frequency).GetName(), Code.Num());
 	DEC_DWORD_STAT_BY(STAT_Shaders_ShaderResourceMemory, GetSizeBytes());
@@ -492,12 +518,21 @@ void FShaderResource::Serialize(FArchive& Ar)
 
 	if (Ar.CustomVer(FRenderingObjectVersion::GUID) < FRenderingObjectVersion::ShaderResourceCodeSharing)
 	{
-		Ar << Code;
+	Ar << Code;
 	}
 	Ar << OutputHash;
 	Ar << NumInstructions;
 	Ar << NumTextureSamplers;
-	
+	// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+	Ar << bIsVxgiShaderSet;
+	Ar << ParameterMapForVxgiShaderPermutation;
+	Ar << ShaderResouceTableVxgiShaderPermutation;
+	Ar << UsesGlobalCBForVxgiPSPermutation;
+	Ar << VxgiGSCode;
+#endif
+	// NVCHANGE_END: Add VXGI
+
 	if (Ar.UE4Ver() >= VER_UE4_COMPRESSED_SHADER_RESOURCES)
 	{
 		Ar << UncompressedCodeSize;
@@ -686,26 +721,67 @@ void FShaderResource::InitRHI()
 	INC_DWORD_STAT_BY(STAT_Shaders_NumShadersUsedForRendering, 1);
 	SCOPE_CYCLE_COUNTER(STAT_Shaders_RTShaderLoadTime);
 
+	// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+	bool NeedRHIShader = true;
+	if (bIsVxgiShaderSet)
+	{
+		//Our Code is a VXGI blob
+		auto VxgiInterface = GDynamicRHI->RHIVXGIGetInterface();
+		auto Status = VxgiInterface->loadUserDefinedShaderSet(&VxgiUserDefinedShaderSet, UncompressedCode.GetData(), UncompressedCode.Num());
+		check(VXGI_SUCCEEDED(Status));
+
+		NeedRHIShader = false;
+
+		if (VxgiUserDefinedShaderSet->getType() != VXGI::IUserDefinedShaderSet::VIEW_TRACING_SHADERS)
+		{
+			const uint32 PermutationCount = VxgiUserDefinedShaderSet->getPermutationCount();
+			for (uint32 Permutation = 0; Permutation < PermutationCount; Permutation++)
+			{
+				NVRHI::ShaderHandle PixelShaderPermutation = VxgiUserDefinedShaderSet->getApplicationShaderHandle(Permutation);
+				FRHICommandListImmediate &RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
+				if (PixelShaderPermutation)
+				{
+					GDynamicRHI->RHIVXGISetPixelShaderResourceAttributes(PixelShaderPermutation, ShaderResouceTableVxgiShaderPermutation[Permutation], UsesGlobalCBForVxgiPSPermutation[Permutation]);
+				}
+			}
+		}
+	}
+	else if (VxgiGSCode.Num() > 0)
+	{
+		//Our code is a normal shader but the VXGIGS also contains a GS
+		auto VxgiInterface = GDynamicRHI->RHIVXGIGetInterface();
+		auto Status = VxgiInterface->loadUserDefinedShaderSet(&VxgiUserDefinedShaderSet, VxgiGSCode.GetData(), VxgiGSCode.Num());
+		check(VXGI_SUCCEEDED(Status));
+	}
+
+	if (NeedRHIShader)
+	{
+#endif
+		// NVCHANGE_END: Add VXGI
+
+	FShaderCache* ShaderCache = FShaderCache::GetShaderCache();
+
 	if(Target.Frequency == SF_Vertex)
 	{
 		VertexShader = FShaderCache::CreateVertexShader((EShaderPlatform)Target.Platform, OutputHash, UncompressedCode);
 		UE_CLOG((bCodeInSharedLocation && !IsValidRef(VertexShader)), LogShaders, Fatal, TEXT("FShaderResource::SerializeShaderCode can't find shader code for: [%s]"), *LegacyShaderPlatformToShaderFormat((EShaderPlatform)Target.Platform).ToString());
-	}
+		}
 	else if(Target.Frequency == SF_Pixel)
 	{
 		PixelShader = FShaderCache::CreatePixelShader((EShaderPlatform)Target.Platform, OutputHash, UncompressedCode);
 		UE_CLOG((bCodeInSharedLocation && !IsValidRef(PixelShader)), LogShaders, Fatal, TEXT("FShaderResource::SerializeShaderCode can't find shader code for: [%s]"), *LegacyShaderPlatformToShaderFormat((EShaderPlatform)Target.Platform).ToString());
-	}
+		}
 	else if(Target.Frequency == SF_Hull)
 	{
 		HullShader = FShaderCache::CreateHullShader((EShaderPlatform)Target.Platform, OutputHash, UncompressedCode);
 		UE_CLOG((bCodeInSharedLocation && !IsValidRef(HullShader)), LogShaders, Fatal, TEXT("FShaderResource::SerializeShaderCode can't find shader code for: [%s]"), *LegacyShaderPlatformToShaderFormat((EShaderPlatform)Target.Platform).ToString());
-	}
+		}
 	else if(Target.Frequency == SF_Domain)
 	{
 		DomainShader = FShaderCache::CreateDomainShader((EShaderPlatform)Target.Platform, OutputHash, UncompressedCode);
 		UE_CLOG((bCodeInSharedLocation && !IsValidRef(DomainShader)), LogShaders, Fatal, TEXT("FShaderResource::SerializeShaderCode can't find shader code for: [%s]"), *LegacyShaderPlatformToShaderFormat((EShaderPlatform)Target.Platform).ToString());
-	}
+		}
 	else if(Target.Frequency == SF_Geometry)
 	{
 		if (SpecificType)
@@ -722,19 +798,25 @@ void FShaderResource::InitRHI()
 		else
 		{
 			GeometryShader = FShaderCache::CreateGeometryShader((EShaderPlatform)Target.Platform, OutputHash, UncompressedCode);
-		}
+			}
 		UE_CLOG((bCodeInSharedLocation && !IsValidRef(GeometryShader)), LogShaders, Fatal, TEXT("FShaderResource::SerializeShaderCode can't find shader code for: [%s]"), *LegacyShaderPlatformToShaderFormat((EShaderPlatform)Target.Platform).ToString());
-	}
+			}
 	else if(Target.Frequency == SF_Compute)
 	{
 		ComputeShader = FShaderCache::CreateComputeShader((EShaderPlatform)Target.Platform, OutputHash, UncompressedCode);
 		UE_CLOG((bCodeInSharedLocation && !IsValidRef(ComputeShader)), LogShaders, Fatal, TEXT("FShaderResource::SerializeShaderCode can't find shader code for: [%s]"), *LegacyShaderPlatformToShaderFormat((EShaderPlatform)Target.Platform).ToString());
-	}
+		}
 
 	if (Target.Frequency != SF_Geometry)
 	{
 		checkf(!SpecificType, TEXT("Only geometry shaders can use GetStreamOutElements, shader type %s"), SpecificType->GetName());
 	}
+
+	// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+	}
+#endif
+	// NVCHANGE_END: Add VXGI
 
 	if (!FPlatformProperties::HasEditorOnlyData())
 	{
@@ -761,6 +843,21 @@ void FShaderResource::ReleaseRHI()
 	DomainShader.SafeRelease();
 	GeometryShader.SafeRelease();
 	ComputeShader.SafeRelease();
+
+	// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+	if (VxgiUserDefinedShaderSet != NULL)
+	{
+		VXGI::IGlobalIllumination* VxgiInterface = GDynamicRHI->RHIVXGIGetInterface();
+		if (VxgiInterface)
+		{
+			VxgiInterface->destroyUserDefinedShaderSet(VxgiUserDefinedShaderSet);
+		}
+
+		VxgiUserDefinedShaderSet = NULL;
+	}
+#endif
+	// NVCHANGE_END: Add VXGI
 }
 
 void FShaderResource::InitializeShaderRHI() 
@@ -785,6 +882,33 @@ FShaderResourceId FShaderResource::GetId() const
 {
 	return FShaderResourceId(Target, OutputHash, SpecificType ? SpecificType->GetName() : nullptr, SpecificPermutationId);
 }
+
+// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+
+VXGI::IUserDefinedShaderSet* FShaderResource::GetVxgiUserDefinedShaderSet()
+{
+	checkSlow(VxgiUserDefinedShaderSet != NULL || bIsVxgiShaderSet || VxgiGSCode.Num() > 0);
+
+	if (!IsInitialized())
+	{
+		STAT(double ShaderInitializationTime = 0);
+		{
+			SCOPE_CYCLE_COUNTER(STAT_Shaders_FrameRTShaderInitForRenderingTime);
+			SCOPE_SECONDS_COUNTER(ShaderInitializationTime);
+
+			InitResourceFromPossiblyParallelRendering();
+		}
+
+		INC_FLOAT_STAT_BY(STAT_Shaders_TotalRTShaderInitForRenderingTime, (float)ShaderInitializationTime);
+	}
+
+	checkSlow(IsInitialized());
+
+	return VxgiUserDefinedShaderSet;
+}
+#endif 
+// NVCHANGE_END: Add VXGI
 
 FShaderId::FShaderId(const FSHAHash& InMaterialShaderMapHash, const FShaderPipelineType* InShaderPipeline, FVertexFactoryType* InVertexFactoryType, FShaderType* InShaderType, int32 InPermutationId, FShaderTarget InTarget)
 	: MaterialShaderMapHash(InMaterialShaderMapHash)
@@ -1121,6 +1245,16 @@ void FShader::RegisterSerializedResource()
 
 void FShader::SetResource(FShaderResource* InResource)
 {
+	// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+	if (!InResource)
+	{
+		Resource = NULL;
+		return;
+	}
+#endif
+	// NVCHANGE_END: Add VXGI
+
 	check(InResource && InResource->Target == Target);
 	Resource = InResource;
 }
@@ -1880,9 +2014,9 @@ void ShaderMapAppendKeyString(EShaderPlatform Platform, FString& KeyString)
 	if (IsMobilePlatform(Platform))
 	{
 		{
-			static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Mobile.DisableVertexFog"));
-			KeyString += (CVar && CVar->GetInt() != 0) ? TEXT("_NoVFog") : TEXT("");
-		}
+		static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Mobile.DisableVertexFog"));
+		KeyString += (CVar && CVar->GetInt() != 0) ? TEXT("_NoVFog") : TEXT("");
+	}
 
 		{
 			static const auto* CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Shadow.CSM.MaxMobileCascades"));
