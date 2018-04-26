@@ -950,16 +950,13 @@ void FSceneRenderer::RenderVxgiTracing(FRHICommandListImmediate& RHICmdList)
 	uint32 CurrentGPU = RI->getAFRGroupOfCurrentFrame(GNumActiveGPUsForRendering);
 
 	NVRHI::PipelineStageBindings GBufferBindings;
-	GBufferBindings.textureBindingCount = 9;
+	GBufferBindings.textureBindingCount = 6;
 	GBufferBindings.textures[0].slot = 0; GBufferBindings.textures[0].texture = GetNVRHITexture2DHandle(SceneContext.SceneDepthZ);
 	GBufferBindings.textures[1].slot = 1; GBufferBindings.textures[1].texture = GetNVRHITexture2DHandle(SceneContext.GBufferA);
 	GBufferBindings.textures[2].slot = 2; GBufferBindings.textures[2].texture = GetNVRHITexture2DHandle(SceneContext.GBufferB);
-	GBufferBindings.textures[3].slot = 3; GBufferBindings.textures[3].texture = GetNVRHITexture2DHandle(SceneContext.GBufferC);
-	GBufferBindings.textures[4].slot = 4; GBufferBindings.textures[4].texture = GetNVRHITexture2DHandle(SceneContext.GBufferD);
-	GBufferBindings.textures[5].slot = 5; GBufferBindings.textures[5].texture = GetNVRHITexture2DHandle(SceneContext.GBufferE);
-	GBufferBindings.textures[6].slot = 6; GBufferBindings.textures[6].texture = GetNVRHITexture2DHandle(SceneContext.PrevSceneDepthZ);
-	GBufferBindings.textures[7].slot = 7; GBufferBindings.textures[7].texture = GetNVRHITexture2DHandle(PrimaryView.ViewState && PrimaryView.ViewState->PrevGBufferA[CurrentGPU] ? PrimaryView.ViewState->PrevGBufferA[CurrentGPU] : SceneContext.GBufferA);
-	GBufferBindings.textures[8].slot = 8; GBufferBindings.textures[8].texture = GetNVRHITexture2DHandle(PrimaryView.ViewState && PrimaryView.ViewState->PrevGBufferB[CurrentGPU] ? PrimaryView.ViewState->PrevGBufferB[CurrentGPU] : SceneContext.GBufferB);
+	GBufferBindings.textures[3].slot = 3; GBufferBindings.textures[3].texture = GetNVRHITexture2DHandle(SceneContext.PrevSceneDepthZ);
+	GBufferBindings.textures[4].slot = 4; GBufferBindings.textures[4].texture = GetNVRHITexture2DHandle(PrimaryView.ViewState && PrimaryView.ViewState->PrevGBufferA[CurrentGPU] ? PrimaryView.ViewState->PrevGBufferA[CurrentGPU] : SceneContext.GBufferA);
+	GBufferBindings.textures[5].slot = 5; GBufferBindings.textures[5].texture = GetNVRHITexture2DHandle(PrimaryView.ViewState && PrimaryView.ViewState->PrevGBufferB[CurrentGPU] ? PrimaryView.ViewState->PrevGBufferB[CurrentGPU] : SceneContext.GBufferB);
 
 	GBufferBindings.constantBufferBindingCount = 1;
 	GBufferBindings.constantBuffers[0].slot = 0;

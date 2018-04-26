@@ -63,12 +63,9 @@ cbuffer cGBufferParameters : register(b0)
 Texture2D t_GBufferDepth : register(t0);
 Texture2D t_GBufferA : register(t1);
 Texture2D t_GBufferB : register(t2);
-Texture2D t_GBufferC : register(t3);
-Texture2D t_GBufferD : register(t4);
-Texture2D t_GBufferE : register(t5);
-Texture2D t_PrevGBufferDepth : register(t6);
-Texture2D t_PrevGBufferA : register(t7);
-Texture2D t_PrevGBufferB : register(t8);
+Texture2D t_PrevGBufferDepth : register(t3);
+Texture2D t_PrevGBufferA : register(t4);
+Texture2D t_PrevGBufferB : register(t5);
 
 float3 ClipToWorldPos(float4 clipPos, GBufferParameters gbufferParams)
 {
@@ -152,9 +149,9 @@ bool VxgiLoadGBufferSample(float2 windowPos, uint viewIndex, bool previous, bool
 		UnrealGBuffer = DecodeGBufferData(
 			t_GBufferA[iPos],
 			t_GBufferB[iPos],
-			t_GBufferC[iPos],
-			t_GBufferD[iPos],
-			t_GBufferE[iPos],
+			0, // GBufferC
+			0, // GBufferD
+			0, // GBufferE
 			0, // InGBufferVelocity
 			0, // CustomNativeDepth
 			0, // CustomStencil
