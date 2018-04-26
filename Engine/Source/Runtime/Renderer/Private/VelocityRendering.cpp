@@ -18,6 +18,9 @@
 #include "ScenePrivate.h"
 #include "PostProcess/ScreenSpaceReflections.h"
 #include "UnrealEngine.h"
+// @third party code - BEGIN HairWorks
+#include "HairWorksRenderer.h"
+// @third party code - END HairWorks
 
 // Changing this causes a full shader recompile
 static TAutoConsoleVariable<int32> CVarBasePassOutputsVelocity(
@@ -933,6 +936,12 @@ void FDeferredShadingSceneRenderer::RenderVelocities(FRHICommandListImmediate& R
 		{
 			RenderVelocitiesInner(RHICmdList, VelocityRT);
 		}
+
+		// @third party code - BEGIN HairWorks
+		// Draw hair velocities
+		if(HairWorksRenderer::ViewsHasHair(Views))
+			HairWorksRenderer::RenderVelocities(RHICmdList, VelocityRT);
+		// @third party code - END HairWorks
 
 		RHICmdList.CopyToResolveTarget(VelocityRT->GetRenderTargetItem().TargetableTexture, VelocityRT->GetRenderTargetItem().ShaderResourceTexture, false, FResolveParams());
 	}

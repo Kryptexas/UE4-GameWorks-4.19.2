@@ -341,3 +341,25 @@ private:
 	 */
 	TMap<FName, TSharedPtr<ThumbnailSceneType>> InstancedThumbnailScenes;
 };
+
+// @third party code - BEGIN HairWorks
+class UHairWorksAsset;
+class UHairWorksComponent;
+
+class UNREALED_API FHairWorksAssetThumbnailScene : public FThumbnailPreviewScene
+{
+public:
+	/** Constructor */
+	FHairWorksAssetThumbnailScene();
+
+	void SetHairAsset(UHairWorksAsset* HairAsset);
+
+protected:
+	// FThumbnailPreviewScene implementation
+	virtual void GetViewMatrixParameters(const float InFOVDegrees, FVector& OutOrigin, float& OutOrbitPitch, float& OutOrbitYaw, float& OutOrbitZoom) const override;
+
+private:
+	/** The HairWorks component used to display HairWorks asset thumbnails */
+	UHairWorksComponent* PreviewComp = nullptr;
+};
+// @third party code - END HairWorks

@@ -13,6 +13,13 @@
 #include "Sound/SoundBase.h"
 #include "Components/ChildActorComponent.h"
 
+// @third party code - BEGIN HairWorks
+#include <Nv/HairWorks/NvHairSdk.h>
+#include "Engine/HairWorksMaterial.h"
+#include "Engine/HairWorksAsset.h"
+#include "Components/HairWorksComponent.h"
+// @third party code - END HairWorks
+
 //////////////////////////////////////////////////////////////////////////
 // FStaticMeshComponentBroker
 
@@ -204,6 +211,50 @@ public:
 	}
 };
 
+// @third party code - BEGIN HairWorks
+//////////////////////////////////////////////////////////////////////////
+// FHairWorksComponentBroker
+
+class FHairWorksComponentBroker : public IComponentAssetBroker
+{
+public:
+	UClass* GetSupportedAssetClass() override
+	{
+		return UHairWorksAsset::StaticClass();
+	}
+
+	virtual bool AssignAssetToComponent(UActorComponent* InComponent, UObject* InAsset) override
+	{
+		// Set asset
+		auto* HairWorksComponent = Cast<UHairWorksComponent>(InComponent);
+		auto* HairWorksAsset = Cast<UHairWorksAsset>(InAsset);
+		if(HairWorksComponent == nullptr || HairWorksAsset == nullptr)
+			return false;
+
+		HairWorksComponent->HairInstance.Hair = HairWorksAsset;
+
+		// Set properties of hair material to the same as the asset.
+		NvHair::InstanceDescriptor HairInstDesc;
+		TArray<UTexture2D*> HairTextures;
+		HairWorksAsset->HairMaterial->GetHairInstanceParameters(HairInstDesc, HairTextures);
+		HairWorksComponent->HairInstance.HairMaterial->SetHairInstanceParameters(HairInstDesc, HairTextures);
+
+		HairWorksComponent->HairInstance.HairMaterial->Pins = HairWorksAsset->HairMaterial->Pins;
+
+		return true;
+	}
+
+	virtual UObject* GetAssetFromComponent(UActorComponent* InComponent) override
+	{
+		auto* HairWorksComponent = Cast<UHairWorksComponent>(InComponent);
+		if(HairWorksComponent != nullptr)
+			return HairWorksComponent->HairInstance.Hair;
+
+		return nullptr;
+	}
+};
+// @third party code - END HairWorks
+
 //////////////////////////////////////////////////////////////////////////
 // FComponentAssetBrokerageage statics
 
@@ -330,6 +381,9 @@ void FComponentAssetBrokerage::InitializeMap()
 		RegisterBroker(MakeShareable(new FParticleSystemComponentBroker), UParticleSystemComponent::StaticClass(), true, true);
 		RegisterBroker(MakeShareable(new FAudioComponentBroker), UAudioComponent::StaticClass(), true, true);
 		RegisterBroker(MakeShareable(new FChildActorComponentBroker), UChildActorComponent::StaticClass(), true, false);
+		// @third party code - BEGIN HairWorks
+		RegisterBroker(MakeShareable(new FHairWorksComponentBroker), UHairWorksComponent::StaticClass(), true, true);
+		// @third party code - END HairWorks
 	}
 }
 

@@ -9,6 +9,9 @@
 #include "DeferredShadingRenderer.h"
 #include "DynamicPrimitiveDrawing.h"
 #include "ScenePrivate.h"
+// @third party code - BEGIN HairWorks
+#include "HairWorksRenderer.h"
+// @third party code - END HairWorks
 
 // Changing this causes a full shader recompile
 static TAutoConsoleVariable<int32> CVarSelectiveBasePassOutputs(
@@ -987,6 +990,11 @@ bool FDeferredShadingSceneRenderer::RenderBasePass(FRHICommandListImmediate& RHI
 				RenderEditorPrimitives(RHICmdList, View, BasePassDepthStencilAccess, bDirty);
 			}
 		}	
+
+		// @third party code - BEGIN HairWorks
+		if(HairWorksRenderer::ViewsHasHair(Views))
+			HairWorksRenderer::RenderBasePass(RHICmdList, Views);
+		// @third party code - BEGIN HairWorks
 	}
 
 	return bDirty;

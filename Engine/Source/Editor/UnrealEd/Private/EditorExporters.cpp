@@ -46,6 +46,9 @@
 #include "Exporters/StaticMeshExporterFBX.h"
 #include "Exporters/StaticMeshExporterOBJ.h"
 #include "Exporters/TextBufferExporterTXT.h"
+// @third party code - BEGIN HairWorks
+#include "Exporters/HairWorksExporter.h"
+// @third party code - END HairWorks
 #include "Engine/StaticMesh.h"
 #include "Sound/SoundWave.h"
 #include "Engine/StaticMeshActor.h"
@@ -69,6 +72,12 @@
 #include "UnrealExporter.h"
 #include "InstancedFoliage.h"
 #include "Engine/Selection.h"
+// @third party code - BEGIN HairWorks
+#include <Nv/Common/NvCoMemoryReadStream.h>
+#include "HairWorksSDK.h"
+#include "Engine/HairWorksMaterial.h"
+#include "Engine/HairWorksAsset.h"
+// @third party code - END HairWorks
 
 #include "Components/SkeletalMeshComponent.h"
 #include "Camera/CameraComponent.h"
@@ -2115,3 +2124,82 @@ UExportTextContainer::UExportTextContainer(const FObjectInitializer& ObjectIniti
 	: Super(ObjectInitializer)
 {
 }
+
+// @third party code - BEGIN HairWorks
+/*------------------------------------------------------------------------------
+UHairWorksExporter implementation.
+------------------------------------------------------------------------------*/
+UHairWorksExporter::UHairWorksExporter(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	SupportedClass = UHairWorksAsset::StaticClass();
+	bText = false;
+	PreferredFormatIndex = 0;
+	FormatExtension.Add(TEXT("apx"));
+	FormatDescription.Add(TEXT("XML HairWorks file"));
+	FormatExtension.Add(TEXT("apb"));
+	FormatDescription.Add(TEXT("Binary HairWorks file"));
+}
+
+bool UHairWorksExporter::ExportBinary(UObject* Object, const TCHAR* Type, FArchive& Ar, FFeedbackContext* Warn, int32 FileIndex, uint32 PortFlags)
+{
+	// Load the asset if needed
+	if(::HairWorks::GetSDK() == nullptr)
+		return false;
+
+	auto& HairAsset = *CastChecked<UHairWorksAsset>(Object);
+
+	if(HairAsset.AssetId == NvHair::ASSET_ID_NULL)
+	{
+		NvCo::MemoryReadStream ReadStream(HairAsset.AssetData.GetData(), HairAsset.AssetData.Num());
+		::HairWorks::GetSDK()->loadAsset(&ReadStream, HairAsset.AssetId, nullptr, &::HairWorks::GetAssetConversionSettings());
+
+		if(HairAsset.AssetId == NvHair::ASSET_ID_NULL)
+			return false;
+	}
+
+	// Save asset
+	auto HairFileFormat = NvHair::SerializeFormat::UNKNOWN;
+
+	if(FString("apx") == Type)
+	{
+		HairFileFormat = NvHair::SerializeFormat::XML;
+	}
+	else if(FString("apb") == Type)
+	{
+		HairFileFormat = NvHair::SerializeFormat::BINARY;
+	}
+	else
+		return false;
+
+	class FStreamWriter : public NvCo::WriteStream
+	{
+	public:
+		FStreamWriter(FArchive& Ar)
+			:Ar(Ar)
+		{}
+		virtual int64 write(const void* data, int64 numBytes)override
+		{
+			Ar.Serialize(const_cast<void*>(data), numBytes);
+			return numBytes;
+		}
+		virtual void flush()override {};
+		virtual void close()override {};
+		virtual bool isClosed()override
+		{
+			return false;
+		};
+
+	private:
+		FArchive& Ar;
+	}StreamWriter(Ar);
+
+	NvHair::InstanceDescriptor HairDescriptor;
+	TArray<UTexture2D*> HairTexture;
+	HairAsset.HairMaterial->GetHairInstanceParameters(HairDescriptor, HairTexture);
+
+	::HairWorks::GetSDK()->saveAsset(&StreamWriter, NvHair::SerializeFormat::XML, HairAsset.AssetId, &HairDescriptor);
+
+	return true;
+}
+// @third party code - END HairWorks

@@ -114,6 +114,16 @@ void FMorphVertexBuffer::ReleaseDynamicRHI()
 	SRVValue.SafeRelease();
 }
 
+// @third party code - BEGIN HairWorks
+void FMorphVertexBuffer::RequireSRV()
+{
+	if (SRVValue != nullptr)
+		return;
+
+	SRVValue = RHICreateShaderResourceView(VertexBufferRHI, 4, PF_R32_FLOAT);
+}
+// @third party code - END HairWorks
+
 /*-----------------------------------------------------------------------------
 FSkeletalMeshObjectGPUSkin
 -----------------------------------------------------------------------------*/
@@ -1358,6 +1368,14 @@ const TArray<FMatrix>& FSkeletalMeshObjectGPUSkin::GetReferenceToLocalMatrices()
 	return DynamicData->ReferenceToLocal;
 }
 
+
+// @third party code - BEGIN HairWorks
+FMorphVertexBuffer& FSkeletalMeshObjectGPUSkin::GetMorphVertexBuffer()
+{
+	// GetLOD() should be called in rendering thread to avoid crash. 
+	return LODs[GetLOD()].MorphVertexBuffer;
+}
+// @third party code - END HairWorks
 
 /*-----------------------------------------------------------------------------
 FDynamicSkelMeshObjectDataGPUSkin

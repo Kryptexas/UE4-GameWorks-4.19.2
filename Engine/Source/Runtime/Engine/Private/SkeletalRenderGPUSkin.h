@@ -237,6 +237,11 @@ public:
 	
 	// section ids that are using this Morph buffer
 	TArray<int32> SectionIds;
+
+	// @third party code - BEGIN HairWorks
+	void RequireSRV();
+	// @third party code - END HairWorks
+
 protected:
 	// guaranteed only to be valid if the vertex buffer is valid
 	FShaderResourceViewRHIRef SRVValue;
@@ -312,6 +317,10 @@ public:
 	//~ End FSkeletalMeshObject Interface
 
 	FSkinWeightVertexBuffer* GetSkinWeightVertexBuffer(int32 LODIndex) const;
+
+	// @third party code - BEGIN HairWorks
+	FMorphVertexBuffer& GetMorphVertexBuffer();
+	// @third party code - END HairWorks
 
 	/** 
 	 * Vertex buffers that can be used for GPU skinning factories 

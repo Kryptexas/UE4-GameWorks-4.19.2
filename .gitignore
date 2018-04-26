@@ -180,6 +180,9 @@ Engine/Binaries/DotNET/SwarmAgent.Options.xml
 .vs
 .vscode
 
+# Add back some files for HairWorks
+!/Engine/Binaries/ThirdParty/HairWorks/*.dll
+
 # NVCHANGE_BEGIN: Add VXGI
 BuildScripts/
 !/*.pdf

@@ -17,6 +17,9 @@
 
 #include "PostProcess/PostProcessing.h"
 #include "PostProcess/SceneFilterRendering.h"
+// @third party code - BEGIN HairWorks
+#include "HairWorksRenderer.h"
+// @third party code - END HairWorks
 
 
 // temporary
@@ -480,6 +483,12 @@ void FRCPassPostProcessCompositeEditorPrimitives::Process(FRenderingCompositePas
 		FDrawingPolicyRenderState DrawRenderState(EditorView);
 		DrawRenderState.SetDepthStencilAccess(FExclusiveDepthStencil::DepthWrite_StencilWrite);
 		DrawRenderState.SetBlendState(TStaticBlendStateWriteMask<CW_RGBA>::GetRHI());
+
+		// @third party code - BEGIN HairWorks
+		// Hair visualization for debug.
+		if(Context.View.VisibleHairs.Num())
+			HairWorksRenderer::RenderVisualization(Context.RHICmdList, Context.View);
+		// @third party code - END HairWorks
 
 		// Draw editor primitives.
 		{

@@ -123,6 +123,10 @@
 #include "Factories/FbxSkeletalMeshImportData.h"
 #include "Factories/FbxStaticMeshImportData.h"
 #include "Factories/FbxImportUI.h"
+// @third party code - BEGIN HairWorks
+#include "Factories/HairWorksFactory.h"
+// @third party code - END HairWorks
+
 #include "Editor/GroupActor.h"
 #include "Particles/ParticleSystem.h"
 #include "Engine/Texture2D.h"
@@ -252,6 +256,18 @@
 #include "Editor/EditorPerProjectUserSettings.h"
 #include "JsonObjectConverter.h"
 #include "MaterialEditorModule.h"
+
+// @third party code - BEGIN HairWorks
+#include "ObjectTools.h"
+#include "Misc/FileHelper.h"
+#include "FileHelpers.h"
+#include "SkelImport.h"
+#include <Nv/Common/NvCoMemoryReadStream.h>
+#include "HairWorksSDK.h"
+#include "Engine/HairWorksMaterial.h"
+#include "Engine/HairWorksAsset.h"
+#include "Components/HairWorksComponent.h"
+// @third party code - END HairWorks
 
 DEFINE_LOG_CATEGORY(LogEditorFactories);
 
@@ -6289,6 +6305,377 @@ UObject* UDataAssetFactory::FactoryCreateNew(UClass* Class, UObject* InParent, F
 		return NewObject<UDataAsset>(InParent, Class, Name, Flags);
 	}
 }
+
+// @third party code - BEGIN HairWorks
+/*------------------------------------------------------------------------------
+	UHairWorksFactory implementation.
+------------------------------------------------------------------------------*/
+UHairWorksFactory::UHairWorksFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	SupportedClass = UHairWorksAsset::StaticClass();
+	bEditorImport = true;
+	bCreateNew = false;
+	Formats.Add(TEXT("apx;HairWorks XML Asset"));
+	Formats.Add(TEXT("apb;HairWorks Binary Asset"));
+}
+
+bool UHairWorksFactory::FactoryCanImport(const FString& Filename)
+{
+	if(::HairWorks::GetSDK() == nullptr)
+		return false;
+
+	TArray<uint8> Buffer;
+	FFileHelper::LoadFileToArray(Buffer, *Filename);
+
+	auto HairAssetId = NvHair::ASSET_ID_NULL;
+	NvCo::MemoryReadStream ReadStream(Buffer.GetData(), Buffer.Num());
+	::HairWorks::GetSDK()->loadAsset(&ReadStream, HairAssetId);
+
+	if(HairAssetId != NvHair::ASSET_ID_NULL)
+	{
+		::HairWorks::GetSDK()->freeAsset(HairAssetId);
+		return true;
+	}
+	else
+		return false;
+}
+
+FText UHairWorksFactory::GetDisplayName() const
+{
+	return FText::FromString("HairWorks");
+}
+
+void UHairWorksFactory::InitHairAssetInfo(UHairWorksAsset& Hair, const NvHair::InstanceDescriptor* NewInstanceDesc)
+{
+	// Get bones. Used for bone remapping, etc.
+	check(::HairWorks::GetSDK() != nullptr);
+	auto& HairSdk = *::HairWorks::GetSDK();
+
+	{
+		auto BoneNum = HairSdk.getNumBones(Hair.AssetId);
+
+		Hair.BoneNames.Empty(BoneNum);
+
+		for (auto Idx = 0; Idx < BoneNum; ++Idx)
+		{
+			NvChar BoneName[NV_HAIR_MAX_STRING];
+			HairSdk.getBoneName(Hair.AssetId, Idx, BoneName);
+
+			auto* NewName = UnFbx::FFbxImporter::GetInstance()->MakeName(BoneName);
+			Hair.BoneNames.Add(*FSkeletalMeshImportData::FixupBoneName(NewName));
+		}
+	}
+	 
+	// Bone lookup table
+	Hair.InitBoneLookupTable();
+
+	// Get material
+	if(Hair.bMaterials)
+	{
+		NvHair::InstanceDescriptor HairInstanceDesc;
+		if(NewInstanceDesc)
+			HairInstanceDesc = *NewInstanceDesc;
+		else
+			HairSdk.getInstanceDescriptorFromAsset(Hair.AssetId, HairInstanceDesc);
+
+		// sRGB conversion
+		auto ConvertColorToSRGB = [](NvHair::Vec4& Color)
+		{
+			reinterpret_cast<FLinearColor&>(Color) = FLinearColor(FColor(Color.x * 255, Color.y * 255, Color.z * 255));
+		};
+
+		ConvertColorToSRGB(HairInstanceDesc.m_rootColor);
+		ConvertColorToSRGB(HairInstanceDesc.m_tipColor);
+		ConvertColorToSRGB(HairInstanceDesc.m_specularColor);
+
+		// Because of SRGB conversion, we need to use a different diffuse blend value to keep consistent with HairWorks Viewer.
+		HairInstanceDesc.m_diffuseBlend = 1 - FMath::Pow(1 - HairInstanceDesc.m_diffuseBlend, 2.2f);
+
+		// UE4 shadow attenuation is different from HairWorks viewer, so we use a different value to keep consistent
+		HairInstanceDesc.m_shadowSigma /= 2;
+		HairInstanceDesc.m_shadowSigma = FMath::Min(HairInstanceDesc.m_shadowSigma, 254.f / 255.f);
+
+		// Fill hair material
+		if(HairInstanceDesc.m_hairNormalBoneIndex >= 0 && HairInstanceDesc.m_hairNormalBoneIndex < Hair.BoneNames.Num())
+			Hair.HairMaterial->HairNormalCenter = Hair.BoneNames[HairInstanceDesc.m_hairNormalBoneIndex];
+		else
+			Hair.HairMaterial->HairNormalCenter = "";
+
+		TArray<UTexture2D*> HairTextures;
+		NvHair::InstanceDescriptor HairInstDesc;
+		Hair.HairMaterial->GetHairInstanceParameters(HairInstDesc, HairTextures);	// To keep textures.
+		Hair.HairMaterial->SetHairInstanceParameters(HairInstanceDesc, HairTextures);
+	}
+
+	// Initialize pins
+	if(Hair.bConstraints)
+		Hair.InitPins();
+}
+
+UObject* UHairWorksFactory::FactoryCreateBinary(
+	UClass*				Class,
+	UObject*			InParent,
+	FName				Name,
+	EObjectFlags		Flags,
+	UObject*			Context,
+	const TCHAR*		FileType,
+	const uint8*&		Buffer,
+	const uint8*			BufferEnd,
+	FFeedbackContext*	Warn
+	)
+{
+	FEditorDelegates::OnAssetPreImport.Broadcast(this, Class, InParent, Name, FileType);
+
+	// Create real hair asset to get basic asset information
+	auto HairAssetId = NvHair::ASSET_ID_NULL;
+	
+	NvCo::MemoryReadStream ReadStream(Buffer, BufferEnd - Buffer);
+	::HairWorks::GetSDK()->loadAsset(&ReadStream, HairAssetId, nullptr, &::HairWorks::GetAssetConversionSettings());
+	if(HairAssetId == NvHair::ASSET_ID_NULL)
+	{
+		FEditorDelegates::OnAssetPostImport.Broadcast(this, nullptr);
+		return nullptr;
+	}
+
+	// Create UHairWorksAsset
+	auto* Hair = NewObject<UHairWorksAsset>(InParent, Name, Flags);
+
+	Hair->AssetId = HairAssetId;
+
+	// Initialize hair
+	InitHairAssetInfo(*Hair);
+
+	// Setup import data
+	Hair->AssetImportData->Update(CurrentFilename);
+
+	// Set data
+	Hair->AssetData.Append(Buffer, BufferEnd - Buffer);
+
+	// Get texture factory to import textures
+	UReimportTextureFactory* TextureFactory = nullptr;
+
+	for(TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
+	{
+		TextureFactory = Cast<UReimportTextureFactory>(ClassIt->GetDefaultObject());
+		if(TextureFactory != nullptr)
+			break;
+	}
+
+	// Import textures
+	if(TextureFactory != nullptr)
+	{
+		const FString DestinationPath = FPaths::GetPath(InParent->GetName());
+		const FString SourcePath = FPaths::GetPath(CurrentFilename);
+		const FString OrginalFilename = CurrentFilename;
+
+		TArray<UTexture2D*> Textures;
+		Textures.SetNumZeroed(NvHair::ETextureType::COUNT_OF);
+
+		for(int32 TextureIdx = 0; TextureIdx < NvHair::ETextureType::COUNT_OF; ++TextureIdx)
+		{
+			// Check existing asset. Codes are copied from FAssetTools::ImportAssets()
+			char TextureFileNameRaw[NV_HAIR_MAX_STRING] = "";
+			::HairWorks::GetSDK()->getTextureName(Hair->AssetId, (NvHair::ETextureType)TextureIdx, TextureFileNameRaw);
+
+			const FString TextureFileName = FString(ANSI_TO_TCHAR(TextureFileNameRaw)).TrimStart().TrimEnd();
+			if(TextureFileName.IsEmpty())
+				continue;
+
+			const FString TextureName = ObjectTools::SanitizeObjectName(FPaths::GetBaseFilename(TextureFileName));
+
+			const FString PackageName = DestinationPath + TEXT("/") + TextureName;
+
+			if(FEditorFileUtils::IsMapPackageAsset(PackageName))
+				continue;
+
+			UPackage* Pkg = CreatePackage(nullptr, *PackageName);
+			if(Pkg == nullptr)
+				continue;
+
+			Pkg->FullyLoad();
+
+			UObject* ExistingObject = StaticFindObject(UObject::StaticClass(), Pkg, *TextureName);
+			if(ExistingObject != nullptr)
+			{
+				Textures[TextureIdx] = Cast<UTexture2D>(ExistingObject);
+				continue;
+			}
+
+			// Import the new texture
+			bool Canceled = false;
+			UTexture2D* Texture = Cast<UTexture2D>(TextureFactory->ImportObject(TextureFactory->SupportedClass, Pkg, FName(*TextureName), Flags, FPaths::Combine(*SourcePath, *TextureFileName), nullptr, Canceled));
+
+			Textures[TextureIdx] = Texture;
+
+			// Set sRGB flag
+			if(Texture != nullptr)
+			{
+				switch(TextureIdx)
+				{
+				case NvHair::ETextureType::DENSITY:
+				case NvHair::ETextureType::WIDTH:
+				case NvHair::ETextureType::STIFFNESS:
+				case NvHair::ETextureType::ROOT_STIFFNESS:
+				case NvHair::ETextureType::CLUMP_SCALE:
+				case NvHair::ETextureType::CLUMP_ROUNDNESS:
+				case NvHair::ETextureType::WAVE_SCALE:
+				case NvHair::ETextureType::WAVE_FREQ:
+				case NvHair::ETextureType::LENGTH:
+				case NvHair::ETextureType::WEIGHTS:
+					Texture->SRGB = 0;
+					break;
+				case NvHair::ETextureType::ROOT_COLOR:
+				case NvHair::ETextureType::TIP_COLOR:
+				case NvHair::ETextureType::STRAND:
+				case NvHair::ETextureType::SPECULAR:
+					Texture->SRGB = 1;
+					break;
+				}
+			}
+		}
+
+		// Revert file name
+		CurrentFilename = OrginalFilename;
+
+		// Assign textures to hair asset
+		NvHair::InstanceDescriptor HairInstDesc;
+		TArray<UTexture2D*> TmpTextures;
+		Hair->HairMaterial->GetHairInstanceParameters(HairInstDesc, TmpTextures);
+		Hair->HairMaterial->SetHairInstanceParameters(HairInstDesc, Textures);
+	}
+
+	// Trigger event
+	FEditorDelegates::OnAssetPostImport.Broadcast(this, Hair);
+
+	return Hair;
+}
+
+bool UHairWorksFactory::CanReimport(UObject* Obj, TArray<FString>& OutFilenames)
+{
+	if(::HairWorks::GetSDK() == nullptr)
+		return false;
+
+	auto* Hair = Cast<UHairWorksAsset>(Obj);
+	if (Hair == nullptr)
+		return false;
+
+	Hair->AssetImportData->ExtractFilenames(OutFilenames);
+
+	return true;
+}
+
+void UHairWorksFactory::SetReimportPaths(UObject* Obj, const TArray<FString>& NewReimportPaths)
+{
+	auto* Hair = Cast<UHairWorksAsset>(Obj);
+	if(Hair != nullptr && ensure(NewReimportPaths.Num() == 1))
+	{
+		Hair->AssetImportData->UpdateFilenameOnly(NewReimportPaths[0]);
+	}
+}
+
+EReimportResult::Type UHairWorksFactory::Reimport(UObject* Obj)
+{
+	// Finish render thread work.
+	FlushRenderingCommands();
+
+	// Validate asset
+	auto* Hair = Cast<UHairWorksAsset>(Obj);
+	if (Hair == nullptr)
+		return EReimportResult::Failed;
+
+	// Load new hair asset
+	check(::HairWorks::GetSDK() != nullptr);
+	auto& HairSdk = *::HairWorks::GetSDK();
+
+	auto NewHairAssetId = NvHair::ASSET_ID_NULL;
+	{	
+		// Load file
+		TArray<uint8> FileData;
+		if(!FFileHelper::LoadFileToArray(FileData, *Hair->AssetImportData->GetFirstFilename()))
+		{
+			UE_LOG(LogEditorFactories, Error, TEXT("Can't load file [%s]"), *Hair->AssetImportData->GetFirstFilename());
+			return EReimportResult::Failed;
+		}
+
+		// Create HairWorks asset
+		NvCo::MemoryReadStream ReadStream(FileData.GetData(), FileData.Num());
+		HairSdk.loadAsset(&ReadStream, NewHairAssetId, nullptr, &::HairWorks::GetAssetConversionSettings());
+		if(NewHairAssetId == NvHair::ASSET_ID_NULL)
+		{
+			UE_LOG(LogEditorFactories, Error, TEXT("Can't create Hair asset"));
+			return EReimportResult::Failed;
+		}
+	}
+
+	// Copy asset content
+	NvHair::InstanceDescriptor NewInstanceDesc;
+	HairSdk.getInstanceDescriptorFromAsset(NewHairAssetId, NewInstanceDesc);
+
+	if(Hair->AssetId != NvHair::ASSET_ID_NULL)
+	{
+		NvHair::AssetCopySettings CopySettings;
+		CopySettings.m_copyAll = false;
+		CopySettings.m_copyCollision = Hair->bCollisions;
+		CopySettings.m_copyConstraints = Hair->bConstraints;
+		CopySettings.m_copyGroom = Hair->bGroom;
+		CopySettings.m_copyTextures = Hair->bTextures;
+		HairSdk.copyAsset(NewHairAssetId, Hair->AssetId, CopySettings);
+
+		// Finished copy. Clear.
+		HairSdk.freeAsset(NewHairAssetId);
+	}
+	else	// Old asset is null. So just use the new asset.
+	{
+		Hair->AssetId = NewHairAssetId;
+
+		UE_LOG(LogHairWorks, Warning, TEXT("Original asset is invalid. So the new asset is used. "));
+	}
+	
+	NewHairAssetId = NvHair::ASSET_ID_NULL;
+
+	// Initialize hair
+	InitHairAssetInfo(*Hair, &NewInstanceDesc);
+
+	// Stream the updated HairWorks asset to asset data.
+	{
+		class FNvWriteStream: public NvCo::WriteStream
+		{
+		public:
+			FNvWriteStream(TArray<uint8>& WriteBuffer): Buffer(WriteBuffer) {}
+
+			virtual NvInt64 write(const void* data, NvInt64 numBytes)override
+			{
+				Buffer.Append(static_cast<const uint8*>(data), numBytes);
+				return numBytes;
+			}
+			virtual void flush()override{}
+			virtual void close()override{}
+			virtual bool isClosed()override{ return false; }
+
+			TArray<uint8>& Buffer;
+		};
+
+		Hair->AssetData.Empty();
+		FNvWriteStream WriteStream(Hair->AssetData);
+		HairSdk.saveAsset(&WriteStream, NvHair::SerializeFormat::XML, Hair->AssetId);
+	}
+
+	// Notify components the change.
+	for (TObjectIterator<UHairWorksComponent> It; It; ++It)
+	{
+		if(It->HairInstance.Hair != Hair)
+			continue;
+
+		It->RecreateRenderState_Concurrent();
+	}
+
+	// Mark package dirty.
+	(Obj->GetOuter() ? Obj->GetOuter() : Obj)->MarkPackageDirty();
+
+	return EReimportResult::Succeeded;
+}
+// @third party code - END HairWorks
 
 /*------------------------------------------------------------------------------
 	UBlendSpaceFactoryNew.

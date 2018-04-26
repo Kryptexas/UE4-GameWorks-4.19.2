@@ -878,7 +878,11 @@ public:
 	/**
 	 * Projects the shadow onto the scene for a particular view.
 	 */
-	void RenderProjection(FRHICommandListImmediate& RHICmdList, int32 ViewIndex, const class FViewInfo* View, const class FSceneRenderer* SceneRender, bool bProjectingForForwardShading, bool bMobile) const;
+	void RenderProjection(FRHICommandListImmediate& RHICmdList, int32 ViewIndex, const class FViewInfo* View, const class FSceneRenderer* SceneRender, bool bProjectingForForwardShading, bool bMobile
+		// @third party code - BEGIN HairWorks
+		, bool bHairPass
+		// @third party code - END HairWorks
+		) const;
 
 	void BeginRenderRayTracedDistanceFieldProjection(FRHICommandListImmediate& RHICmdList, const FViewInfo& View);
 
@@ -977,6 +981,9 @@ public:
 	/** Creates a new view from the pool and caches it in ShadowDepthView for depth rendering. */
 	void SetupShadowDepthView(FRHICommandListImmediate& RHICmdList, FSceneRenderer* SceneRenderer);
 
+	// @third party code - BEGIN HairWorks
+	bool ShouldRenderForHair(const FViewInfo& View)const;
+	// @third party code - END HairWorks
 private:
 	// 0 if Setup...() wasn't called yet
 	const FLightSceneInfo* LightSceneInfo;
@@ -1070,7 +1077,11 @@ private:
 		const class FSceneRenderer* SceneRender,
 		const TArray<FVector4, TInlineAllocator<8>>& FrustumVertices,
 		bool bMobileModulatedProjections,
-		bool bCameraInsideShadowFrustum) const;
+		bool bCameraInsideShadowFrustum
+		// @third party code - BEGIN HairWorks
+		, bool bHairPass
+		// @third party code - END HairWorks
+	) const;
 
 	friend class FShadowDepthVS;
 	template <bool bRenderingReflectiveShadowMaps> friend class TShadowDepthBasePS;

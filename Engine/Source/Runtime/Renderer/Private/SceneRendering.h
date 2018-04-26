@@ -916,6 +916,9 @@ public:
 
 	/** The dynamic primitives visible in this view. */
 	TArray<const FPrimitiveSceneInfo*,SceneRenderingAllocator> VisibleDynamicPrimitives;
+	// @third party code - BEGIN HairWorks
+	TArray<const FPrimitiveSceneInfo*, SceneRenderingAllocator> VisibleHairs;
+	// @third party code - END HairWorks
 
 	/** The dynamic editor primitives visible in this view. */
 	TArray<const FPrimitiveSceneInfo*,SceneRenderingAllocator> VisibleEditorPrimitives;

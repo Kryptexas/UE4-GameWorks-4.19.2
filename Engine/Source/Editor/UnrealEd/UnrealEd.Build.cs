@@ -294,5 +294,9 @@ public class UnrealEd : ModuleRules
 		{
 			PublicDefinitions.Add( "WITH_RECAST=0" );
 		}
+
+		// @third party code - BEGIN HairWorks
+		AddEngineThirdPartyPrivateStaticDependencies(Target, "HairWorks");
+		// @third party code - END HairWorks
 	}
 }

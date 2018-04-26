@@ -13,6 +13,9 @@
 	#include "amd_ags.h"
 #include "HideWindowsPlatformTypes.h"
 
+// @third party code - BEGIN HairWorks
+#include "HairWorksSDK.h"
+// @third party code - END HairWorks
 
 bool D3D11RHI_ShouldCreateWithD3DDebug()
 {
@@ -256,6 +259,11 @@ void FD3D11DynamicRHI::Shutdown()
 {
 	UE_LOG(LogD3D11RHI, Log, TEXT("Shutdown"));
 	check(IsInGameThread() && IsInRenderingThread());  // require that the render thread has been shut down
+
+	// @third party code - BEGIN HairWorks
+	// Shut down HairWorks
+	HairWorks::ShutDown();
+	// @third party code - END HairWorks
 
 	// Cleanup the D3D device.
 	CleanupD3DDevice();

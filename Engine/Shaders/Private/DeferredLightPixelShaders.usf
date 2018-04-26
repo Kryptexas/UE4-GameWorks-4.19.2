@@ -9,6 +9,11 @@
 #include "Common.ush"
 #include "DeferredShadingCommon.ush"
 #include "DeferredLightingCommon.ush"
+// @third party code - BEGIN HairWorks
+#if SM5_PROFILE
+#include "HairWorks/HairWorksLighting.ush"
+#endif
+// @third party code - END HairWorks
 
 FDeferredLightData SetupLightDataForStandardDeferred()
 {
@@ -51,8 +56,24 @@ void DirectionalPixelMain(
 	float3 ScreenVector : TEXCOORD1,
 	float4 SVPos : SV_POSITION,
 	out float4 OutColor : SV_Target0
+	// @third party code - BEGIN HairWorks
+#if SM5_PROFILE
+	, out float3 OutHairColor : SV_Target1
+#endif
+	// @third party code - END HairWorks
 	)
 {
+	// @third party code - BEGIN HairWorks
+#if SM5_PROFILE
+	// Lighten hair
+	OutHairColor = 0;
+	if(bHairDeferredRendering)
+	{
+		OutHairColor = GetHairWorksDynamicLighting(ScreenVector, InUV * View.BufferSizeAndInvSize.xy, SetupLightDataForStandardDeferred());
+	}
+#endif
+	// @third party code - END HairWorks
+
 	OutColor = 0;
 	float3 CameraVector = normalize(ScreenVector);
 
@@ -88,11 +109,31 @@ void RadialPixelMain(
 	float4 InScreenPosition : TEXCOORD0,
 	float4 SVPos : SV_POSITION,
 	out float4 OutColor : SV_Target0
+	// @third party code - BEGIN HairWorks
+#if SM5_PROFILE
+	, out float3 OutHairColor : SV_Target1
+#endif
+	// @third party code - END HairWorks
 	)
 {
 	OutColor = 0;
 	float2 ScreenUV = InScreenPosition.xy / InScreenPosition.w * View.ScreenPositionScaleBias.xy + View.ScreenPositionScaleBias.wz;
 	
+	// @third party code - BEGIN HairWorks
+#if SM5_PROFILE
+	// Lighten only hair
+	OutHairColor = 0;
+	if(bHairDeferredRendering)
+	{
+		float3 ScreenVector = mul(float4(InScreenPosition.xy / InScreenPosition.w, 1, 0), View.ScreenToTranslatedWorld).xyz;
+
+		OutHairColor = GetHairWorksDynamicLighting(ScreenVector, ScreenUV * View.BufferSizeAndInvSize.xy, SetupLightDataForStandardDeferred());
+
+		return;
+	}
+#endif
+	// @third party code - END HairWorks
+
 	FScreenSpaceData ScreenSpaceData = GetScreenSpaceData(ScreenUV);
 
 	// Only light pixels marked as using deferred shading

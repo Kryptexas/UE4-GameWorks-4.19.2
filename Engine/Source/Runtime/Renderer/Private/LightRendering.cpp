@@ -12,6 +12,9 @@
 #include "PostProcess/SceneFilterRendering.h"
 #include "PipelineStateCache.h"
 #include "ClearQuad.h"
+// @third party code - BEGIN HairWorks
+#include "HairWorksRenderer.h"
+// @third party code - END HairWorks
 
 DECLARE_GPU_STAT(Lights);
 
@@ -67,6 +70,9 @@ public:
 		DeferredParameters.Bind(Initializer.ParameterMap);
 		LightAttenuationTexture.Bind(Initializer.ParameterMap, TEXT("LightAttenuationTexture"));
 		LightAttenuationTextureSampler.Bind(Initializer.ParameterMap, TEXT("LightAttenuationTextureSampler"));
+		// @third party code - BEGIN HairWorks
+		HairDeferredParameters.Bind(Initializer.ParameterMap);
+		// @third party code - END HairWorks
 		PreIntegratedBRDF.Bind(Initializer.ParameterMap, TEXT("PreIntegratedBRDF"));
 		PreIntegratedBRDFSampler.Bind(Initializer.ParameterMap, TEXT("PreIntegratedBRDFSampler"));
 		IESTexture.Bind(Initializer.ParameterMap, TEXT("IESTexture"));
@@ -79,11 +85,20 @@ public:
 	{
 	}
 
-	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, const FLightSceneInfo* LightSceneInfo, IPooledRenderTarget* ScreenShadowMaskTexture)
+	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, const FLightSceneInfo* LightSceneInfo, IPooledRenderTarget* ScreenShadowMaskTexture
+		// @third party code - BEGIN HairWorks
+		, bool bLightenHair = false
+		// @third party code - END HairWorks
+		)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 		SetParametersBase(RHICmdList, ShaderRHI, View, ScreenShadowMaskTexture, LightSceneInfo->Proxy->GetIESTextureResource());
 		SetDeferredLightParameters(RHICmdList, ShaderRHI, GetUniformBufferParameter<FDeferredLightUniformStruct>(), LightSceneInfo, View);
+
+		// @third party code - BEGIN HairWorks
+		// Hair parameters
+		HairDeferredParameters.SetParameters(RHICmdList, ShaderRHI, *this, bLightenHair);
+		// @third party code - END HairWorks
 	}
 
 	void SetParametersSimpleLight(FRHICommandList& RHICmdList, const FSceneView& View, const FSimpleLightEntry& SimpleLight, const FSimpleLightPerViewEntry& SimpleLightPerViewData)
@@ -99,6 +114,9 @@ public:
 		Ar << DeferredParameters;
 		Ar << LightAttenuationTexture;
 		Ar << LightAttenuationTextureSampler;
+		// @third party code - BEGIN HairWorks
+		Ar << HairDeferredParameters;
+		// @third party code - END HairWorks
 		Ar << PreIntegratedBRDF;
 		Ar << PreIntegratedBRDFSampler;
 		Ar << IESTexture;
@@ -169,6 +187,9 @@ private:
 	FDeferredPixelShaderParameters DeferredParameters;
 	FShaderResourceParameter LightAttenuationTexture;
 	FShaderResourceParameter LightAttenuationTextureSampler;
+	// @third party code - BEGIN HairWorks
+	HairWorksRenderer::FDeferredShadingParameters HairDeferredParameters;
+	// @third party code - END HairWorks
 	FShaderResourceParameter PreIntegratedBRDF;
 	FShaderResourceParameter PreIntegratedBRDFSampler;
 	FShaderResourceParameter IESTexture;
@@ -466,6 +487,11 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 				// make sure we don't clear the depth
 				SceneContext.BeginRenderingSceneColor(RHICmdList, ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthRead_StencilWrite, true);
 
+				// @third party code - BEGIN HairWorks
+				if(HairWorksRenderer::ViewsHasHair(Views))
+					HairWorksRenderer::BeginRenderingSceneColor(RHICmdList);
+				// @third party code - END HairWorks
+
 				// Draw non-shadowed non-light function lights without changing render targets between them
 				for (int32 LightIndex = StandardDeferredStart; LightIndex < AttenuationLightStart; LightIndex++)
 				{
@@ -599,6 +625,26 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 						View.HeightfieldLightingViewInfo.ClearShadowing(View, RHICmdList, LightSceneInfo);
 					}
 
+					// @third party code - BEGIN HairWorks
+					// Clear for hair.
+					if(HairWorksRenderer::ViewsHasHair(Views))
+					{
+						GRenderTargetPool.FindFreeElement(
+							RHICmdList,
+							ScreenShadowMaskTexture->GetDesc(),
+							HairWorksRenderer::HairRenderTargets->LightAttenuation,
+							TEXT("HairLightAttenuation")
+						);
+
+						SetRenderTarget(
+							RHICmdList,
+							HairWorksRenderer::HairRenderTargets->LightAttenuation->GetRenderTargetItem().TargetableTexture,
+							nullptr,
+							ESimpleRenderTargetMode::EClearColorExistingDepth
+						);
+					}
+					// @third party code - END HairWorks
+
 					// Clear light attenuation for local lights with a quad covering their extents
 					const bool bClearLightScreenExtentsOnly = SortedLightInfo.SortKey.Fields.LightType != LightType_Directional;
 					// All shadows render with min blending
@@ -671,6 +717,11 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 				GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, ScreenShadowMaskTexture);
 
 				SceneContext.BeginRenderingSceneColor(RHICmdList, ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthRead_StencilWrite);
+
+				// @third party code - BEGIN HairWorks
+				if(HairWorksRenderer::ViewsHasHair(Views))
+					HairWorksRenderer::BeginRenderingSceneColor(RHICmdList);
+				// @third party code - END HairWorks
 
 				// Render the light to the scene color buffer, conditionally using the attenuation buffer or a 1x1 white texture as input 
 				if(bDirectLighting)
@@ -769,7 +820,11 @@ static void SetShaderTemplLighting(
 	const FViewInfo& View,
 	FShader* VertexShader,
 	const FLightSceneInfo* LightSceneInfo, 
-	IPooledRenderTarget* ScreenShadowMaskTexture)
+	IPooledRenderTarget* ScreenShadowMaskTexture
+	// @third party code - BEGIN HairWorks
+	, bool bLightenHair = false
+	// @third party code - END HairWorks
+	)
 {
 	if(View.Family->EngineShowFlags.VisualizeLightCulling)
 	{
@@ -789,7 +844,11 @@ static void SetShaderTemplLighting(
 			GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(VertexShader);
 			GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
 			SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
-			PixelShader->SetParameters(RHICmdList, View, LightSceneInfo, ScreenShadowMaskTexture);
+			PixelShader->SetParameters(RHICmdList, View, LightSceneInfo, ScreenShadowMaskTexture
+				// @third party code - BEGIN HairWorks
+				, bLightenHair
+				// @third party code - END HairWorks
+				);
 		}
 		else
 		{
@@ -798,7 +857,11 @@ static void SetShaderTemplLighting(
 			GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(VertexShader);
 			GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
 			SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
-			PixelShader->SetParameters(RHICmdList, View, LightSceneInfo, ScreenShadowMaskTexture);
+			PixelShader->SetParameters(RHICmdList, View, LightSceneInfo, ScreenShadowMaskTexture
+				// @third party code - BEGIN HairWorks
+				, bLightenHair
+				// @third party code - END HairWorks
+				);
 		}
 	}
 }
@@ -883,6 +946,12 @@ void FDeferredShadingSceneRenderer::RenderLight(FRHICommandList& RHICmdList, con
 	GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One, BO_Add, BF_One, BF_One>::GetRHI();
 	GraphicsPSOInit.PrimitiveType = PT_TriangleList;
 
+	// @third party code - BEGIN HairWorks
+	// Set blend state of second render target for hair
+	if(HairWorksRenderer::ViewsHasHair(Views))
+		GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One, BO_Add, BF_One, BF_One, CW_RGBA, BO_Add, BF_One, BF_One, BO_Add, BF_One, BF_One>::GetRHI();
+	// @third party code - END HairWorks
+
 	bool bStencilDirty = false;
 	const FSphere LightBounds = LightSceneInfo->Proxy->GetBoundingSphere();
 
@@ -931,7 +1000,7 @@ void FDeferredShadingSceneRenderer::RenderLight(FRHICommandList& RHICmdList, con
 				}
 				else
 				{
-					SetShaderTemplLighting<false, false, false>(RHICmdList, GraphicsPSOInit, View, *VertexShader, LightSceneInfo, ScreenShadowMaskTexture);
+					SetShaderTemplLighting<false, false, false>(RHICmdList, GraphicsPSOInit, View, *VertexShader, LightSceneInfo, ScreenShadowMaskTexture, View.VisibleHairs.Num() > 0);
 				}
 			}
 
@@ -951,9 +1020,21 @@ void FDeferredShadingSceneRenderer::RenderLight(FRHICommandList& RHICmdList, con
 		}
 		else
 		{
+			// @third party code - BEGIN HairWorks
+			bool bHairPass = false;
+
+RenderForHair:
+			// @third party code - END HairWorks
+
 			TShaderMapRef<TDeferredLightVS<true> > VertexShader(View.ShaderMap);
 
 			SetBoundingGeometryRasterizerAndDepthState(GraphicsPSOInit, View, LightBounds);
+
+			// @third party code - BEGIN HairWorks
+			// Depth buffer is not for hair so we disable depth test
+			if (bHairPass)
+				GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
+			// @third party code - END HairWorks
 
 			if (bRenderOverlap)
 			{
@@ -967,34 +1048,40 @@ void FDeferredShadingSceneRenderer::RenderLight(FRHICommandList& RHICmdList, con
 			}
 			else
 			{
+				// @third party code - BEGIN HairWorks
 				if( LightSceneInfo->Proxy->IsInverseSquared() )
 				{
 					if(bUseIESTexture)
 					{
-						SetShaderTemplLighting<true, true, true>(RHICmdList, GraphicsPSOInit, View, *VertexShader, LightSceneInfo, ScreenShadowMaskTexture);
+						SetShaderTemplLighting<true, true, true>(RHICmdList, GraphicsPSOInit, View, *VertexShader, LightSceneInfo, ScreenShadowMaskTexture, bHairPass);
 					}
 					else
 					{
-						SetShaderTemplLighting<false, true, true>(RHICmdList, GraphicsPSOInit, View, *VertexShader, LightSceneInfo, ScreenShadowMaskTexture);
+						SetShaderTemplLighting<false, true, true>(RHICmdList, GraphicsPSOInit, View, *VertexShader, LightSceneInfo, ScreenShadowMaskTexture, bHairPass);
 					}
 				}
 				else
 				{
 					if(bUseIESTexture)
 					{
-						SetShaderTemplLighting<true, true, false>(RHICmdList, GraphicsPSOInit, View, *VertexShader, LightSceneInfo, ScreenShadowMaskTexture);
+						SetShaderTemplLighting<true, true, false>(RHICmdList, GraphicsPSOInit, View, *VertexShader, LightSceneInfo, ScreenShadowMaskTexture, bHairPass);
 					}
 					else
 					{
-						SetShaderTemplLighting<false, true, false>(RHICmdList, GraphicsPSOInit, View, *VertexShader, LightSceneInfo, ScreenShadowMaskTexture);
+						SetShaderTemplLighting<false, true, false>(RHICmdList, GraphicsPSOInit, View, *VertexShader, LightSceneInfo, ScreenShadowMaskTexture, bHairPass);
 					}
 				}
+				// @third party code - END HairWorks
 			}
 
 			VertexShader->SetParameters(RHICmdList, View, LightSceneInfo);
 
 			// NUse DBT to allow work culling on shadow lights
-			if (GSupportsDepthBoundsTest && bAllowDepthBoundsTest != 0)
+			if (GSupportsDepthBoundsTest && bAllowDepthBoundsTest != 0
+				// @third party code - BEGIN HairWorks
+				&& !bHairPass
+				// @third party code - END HairWorks			
+				)
 			{
 				// Can use the depth bounds test to skip work for pixels which won't be touched by the light (i.e outside the depth range)
 				float NearDepth = 1.f;
@@ -1023,11 +1110,24 @@ void FDeferredShadingSceneRenderer::RenderLight(FRHICommandList& RHICmdList, con
 			}
 
 			// Use DBT to allow work culling on shadow lights
-			if (GSupportsDepthBoundsTest && bAllowDepthBoundsTest != 0)
+			if (GSupportsDepthBoundsTest && bAllowDepthBoundsTest != 0
+				// @third party code - BEGIN HairWorks
+				&& !bHairPass
+				// @third party code - END HairWorks
+				)
 			{
 				// Turn DBT back off
 				RHICmdList.EnableDepthBoundsTest(false, 0, 1);
 			}
+
+			// @third party code - BEGIN HairWorks
+			// Render light to hair buffer
+			if(!bHairPass && HairWorksRenderer::IsLightAffectHair(*LightSceneInfo, View))
+			{
+				bHairPass = true;
+				goto RenderForHair;
+			}
+			// @third party code - END HairWorks
 		}
 	}
 

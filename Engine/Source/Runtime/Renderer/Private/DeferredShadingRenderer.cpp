@@ -25,6 +25,9 @@
 #include "PipelineStateCache.h"
 #include "ClearQuad.h"
 #include "RendererModule.h"
+// @third party code - BEGIN HairWorks
+#include "HairWorksRenderer.h"
+// @third party code - END HairWorks
 
 // NvFlow begin
 #include "GameWorks/RendererHooksNvFlow.h"
@@ -867,6 +870,25 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		FTaskGraphInterface::Get().WaitUntilTasksComplete(UpdateViewCustomDataEvents, ENamedThreads::GetRenderThread());
 	}
 
+	// @third party code - BEGIN HairWorks
+	// Prepare hair rendering
+	if (!IsForwardShadingEnabled(FeatureLevel))
+	{
+		// Do hair simulation
+		{
+			SCOPED_DRAW_EVENT(RHICmdList, HairSimulation);
+			HairWorksRenderer::StepSimulation(RHICmdList, ViewFamily.CurrentWorldTime, ViewFamily.DeltaWorldTime);	 // Must be called before pin meshes are drawn. 
+		}
+
+		// Allocate hair render targets
+		static auto* AlwaysCreateRenderTargets = IConsoleManager::Get().FindConsoleVariable(TEXT("r.HairWorks.AlwaysCreateRenderTargets"));
+		if ((!AlwaysCreateRenderTargets->GetInt() && HairWorksRenderer::ViewsHasHair(Views)) ||
+			AlwaysCreateRenderTargets->GetInt()
+			)
+			HairWorksRenderer::AllocRenderTargets(RHICmdList, FSceneRenderTargets::Get(RHICmdList).GetBufferSizeXY());
+	}
+	// @third party code - END HairWorks
+
 	// Draw the scene pre-pass / early z pass, populating the scene depth buffer and HiZ
 	GRenderTargetPool.AddPhaseEvent(TEXT("EarlyZPass"));
 	const bool bNeedsPrePass = NeedsPrePass(this);
@@ -1360,6 +1382,12 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		}
 		ServiceLocalQueue();
 	}
+
+	// @third party code - BEGIN HairWorks
+	// Blend hair lighting
+	if(HairWorksRenderer::ViewsHasHair(Views))
+		HairWorksRenderer::BlendLightingColor(RHICmdList);
+	// @third party code - END HairWorks
 
 	// NVCHANGE_BEGIN: Add HBAO+
 #if WITH_GFSDK_SSAO

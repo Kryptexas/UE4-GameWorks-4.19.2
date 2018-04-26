@@ -1664,6 +1664,27 @@ void FSceneRenderer::CreatePerObjectProjectedShadow(
 				FMath::Min<int32>(MinShadowResolution, ShadowBufferResolution.X - SHADOW_BORDER * 2)
 				)
 			);
+
+		// @third party code - BEGIN HairWorks
+		// Increase shadow resolution for hairs
+		{
+			const auto& PrimViewRel = View.PrimitiveViewRelevanceMap[ShadowGroupPrimitives[0]->GetIndex()];
+			if(PrimViewRel.bHairWorks)
+			{
+				static const auto& CVarHairTexelsScale = *IConsoleManager::Get().FindConsoleVariable(TEXT("r.HairWorks.Shadow.TexelsScale"));
+				const float HairUnclampedResolution = UnclampedResolution * CVarHairTexelsScale.GetFloat();
+
+				MaxDesiredResolution = FMath::Max(
+					MaxDesiredResolution,
+					FMath::Clamp<uint32>(
+						HairUnclampedResolution,
+						FMath::Min<int32>(MinShadowResolution, ShadowBufferResolution.X - SHADOW_BORDER * 2),
+						MaxShadowResolution
+						)
+				);
+			}
+		}
+		// @third party code - END HairWorks
 	}
 
 	FBoxSphereBounds Bounds = OriginalBounds;

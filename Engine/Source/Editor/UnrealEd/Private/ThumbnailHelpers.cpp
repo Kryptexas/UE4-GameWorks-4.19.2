@@ -15,6 +15,9 @@
 #include "Engine/StaticMesh.h"
 #include "Engine/StaticMeshActor.h"
 #include "Components/DirectionalLightComponent.h"
+// @third party code - BEGIN HairWorks
+#include "Components/HairWorksComponent.h"
+// @third party code - END HairWorks
 #include "UnrealEdGlobals.h"
 #include "FXSystem.h"
 #include "ContentStreaming.h"
@@ -1079,6 +1082,14 @@ bool FClassActorThumbnailScene::IsValidComponentForVisualization(UActorComponent
 		{
 			return true;
 		}
+
+		// @third party code - BEGIN HairWorks
+		UHairWorksComponent* HairWorksComp = Cast<UHairWorksComponent>(Component);
+		if(HairWorksComp && HairWorksComp->HairInstance.Hair)
+		{
+			return true;
+		}
+		// @third party code - END HairWorks
 	}
 
 	return false;
@@ -1197,3 +1208,56 @@ USceneThumbnailInfo* FClassThumbnailScene::GetSceneThumbnailInfo(const float Tar
 	USceneThumbnailInfo* ThumbnailInfo = USceneThumbnailInfo::StaticClass()->GetDefaultObject<USceneThumbnailInfo>();
 	return ThumbnailInfo;
 }
+
+// @third party code - BEGIN HairWorks
+/*
+***************************************************************
+  FHairWorksAssetThumbnailScene
+***************************************************************
+*/
+
+FHairWorksAssetThumbnailScene::FHairWorksAssetThumbnailScene()
+{
+	bForceAllUsedMipsResident = false;
+
+	// Create preview actor
+	FActorSpawnParameters SpawnInfo;
+	SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	SpawnInfo.bNoFail = true;
+	SpawnInfo.ObjectFlags = RF_Transient;
+	auto* PreviewActor = GetWorld()->SpawnActor<AActor>(SpawnInfo);
+	PreviewActor->SetActorEnableCollision(false);
+
+	// Create preview component
+	PreviewComp = NewObject<UHairWorksComponent>(PreviewActor);
+	PreviewActor->AddOwnedComponent(PreviewComp);
+	PreviewActor->RegisterAllComponents();
+}
+
+void FHairWorksAssetThumbnailScene::SetHairAsset(UHairWorksAsset* HairAsset)
+{
+	PreviewComp->HairInstance.Hair = HairAsset;
+
+	PreviewComp->UnregisterComponent();
+	PreviewComp->RegisterComponent();
+
+	const float Radius = PreviewComp->Bounds.GetSphere().W;
+	PreviewComp->SetWorldLocation(FVector(0, 0, Radius));
+}
+
+void FHairWorksAssetThumbnailScene::GetViewMatrixParameters(const float InFOVDegrees, FVector & OutOrigin, float & OutOrbitPitch, float & OutOrbitYaw, float & OutOrbitZoom) const
+{
+	const float HalfFOVRadians = FMath::DegreesToRadians<float>(InFOVDegrees) * 0.5f;
+	const auto& Bounds = PreviewComp->Bounds;
+	const float HalfMeshSize = Bounds.SphereRadius * 0.75f;
+	const float TargetDistance = HalfMeshSize / FMath::Tan(HalfFOVRadians);
+
+	USceneThumbnailInfo* ThumbnailInfo = USceneThumbnailInfo::StaticClass()->GetDefaultObject<USceneThumbnailInfo>();
+	check(ThumbnailInfo);
+
+	OutOrigin = -Bounds.Origin;
+	OutOrbitPitch = ThumbnailInfo->OrbitPitch;
+	OutOrbitYaw = ThumbnailInfo->OrbitYaw;
+	OutOrbitZoom = TargetDistance + ThumbnailInfo->OrbitZoom;
+}
+// @third party code - END HairWorks

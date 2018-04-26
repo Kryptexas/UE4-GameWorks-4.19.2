@@ -8,6 +8,11 @@
 
 #include "Common.ush"
 #include "DeferredLightingCommon.ush"
+// @third party code - BEGIN HairWorks
+#if SM5_PROFILE
+#include "HairWorks/HairWorksLighting.ush"
+#endif
+// @third party code - END HairWorks
 
 #define THREADGROUP_TOTALSIZE (THREADGROUP_SIZEX * THREADGROUP_SIZEY)
 
@@ -46,6 +51,13 @@ groupshared uint TileSimpleLightIndices[MAX_LIGHTS];
 Texture2D<float4> InTexture;
 RWTexture2D<float4> RWOutTexture;
 
+// @third party code - BEGIN HairWorks
+#if SM5_PROFILE
+Texture2D<float4> HairInTexture;
+RWTexture2D<float3> RWHairOutTexture;
+#endif
+// @third party code - END HairWorks
+
 [numthreads(THREADGROUP_SIZEX, THREADGROUP_SIZEY, 1)]
 void TiledDeferredLightingMain(
 	uint3 GroupId : SV_GroupID,
@@ -76,6 +88,18 @@ void TiledDeferredLightingMain(
 	//@todo - move depth range computation to a central point where it can be reused by all the frame's tiled deferred passes!
     InterlockedMin(IntegerTileMinZ, asuint(SceneDepth));
     InterlockedMax(IntegerTileMaxZ, asuint(SceneDepth));
+
+	// @third party code - BEGIN HairWorks
+#if SM5_PROFILE
+	if(bHairDeferredRendering)
+	{
+		float HairDepthNear = ConvertFromDeviceZ(HairNearestDepthTexture[PixelPos]);
+		InterlockedMin(IntegerTileMinZ, asuint(min(SceneDepth, HairDepthNear)));
+		InterlockedMax(IntegerTileMaxZ, asuint(SceneDepth));
+	}
+	else
+#endif
+	// @third party code - END HairWorks
 
     GroupMemoryBarrierWithGroupSync();
 #else
@@ -244,6 +268,82 @@ void TiledDeferredLightingMain(
 	FScreenSpaceData ScreenSpaceData = GetScreenSpaceDataUint(PixelPos);
 	FGBufferData InGBufferData = ScreenSpaceData.GBuffer; 
 	float3 CameraVector = normalize(WorldPosition - View.WorldCameraOrigin);
+
+	// @third party code - BEGIN HairWorks
+#if SM5_PROFILE
+	if(bHairDeferredRendering)
+	{
+		const float HairNearestDepth = HairNearestDepthTexture[PixelPos];
+		if(HairNearestDepth > 0)
+		{
+			float3 OutHairColor = 0;
+
+			uint2 Size;
+			uint SampleNum;
+			HairDepthTextureMS.GetDimensions(Size.x, Size.y, SampleNum);
+
+			float3 ScreenVector = mul(float4(ScreenPosition.xy, 1, 0), View.ScreenToTranslatedWorld).xyz;
+
+			LOOP
+			for(uint TileLightIndex = 0; TileLightIndex < NumLightsAffectingTile; TileLightIndex++)
+			{
+				uint LightIndex = TileLightIndices[TileLightIndex];
+
+				FDeferredLightData LightData = (FDeferredLightData)0;
+				LightData.LightPositionAndInvRadius = TiledDeferred.LightPositionAndInvRadius[LightIndex];
+				LightData.LightColorAndFalloffExponent = TiledDeferred.LightColorAndFalloffExponent[LightIndex];
+				{
+					float4 Value = TiledDeferred2.LightDirectionAndSpotlightMaskAndMinRoughness[LightIndex];
+					LightData.LightDirection = Value.xyz;
+					LightData.bSpotLight = Value.w > 0;
+					LightData.MinRoughness = abs(Value.w);
+				}
+				LightData.SpotAnglesAndSourceRadius = float4(TiledDeferred2.SpotAnglesAndSourceRadiusAndSimpleLighting[LightIndex].xyz, 0);
+				LightData.ShadowMapChannelMask = TiledDeferred2.ShadowMapChannelMask[LightIndex];
+				LightData.bInverseSquared = LightData.LightColorAndFalloffExponent.w == 0;
+				// Only radial lights supported with tiled deferred
+				LightData.bRadialLight = true;
+				// The only type of shadowing supported for lights using tiled is static shadowing, so the light should only compute shadowing if it has static shadowing
+				//LightData.bShadowed = dot(LightData.ShadowMapChannelMask, float4(1, 1, 1, 1));
+				LightData.ShadowedBits = false;
+
+				// Lights requiring light attenuation are not supported tiled for now
+				UNROLL
+				for(uint i = 0; i < min(SampleNum, 8); ++i)
+				{
+					FHairScreenSpaceData HairScreenSpaceData = GetHairWorksScreenSpaceData(PixelPos, i);
+					OutHairColor += GetHairWorksDynamicLighting(ScreenVector, PixelPos, HairScreenSpaceData, LightData);
+				}
+			}
+
+			// The simple shading model does not depend on ShadingModelID, so use it anytime the material is lit
+			LOOP
+			for(uint TileLightIndex = 0; TileLightIndex < NumSimpleLightsAffectingTile; TileLightIndex++)
+			{
+				uint LightIndex = TileSimpleLightIndices[TileLightIndex];
+
+				FSimpleDeferredLightData LightData = (FSimpleDeferredLightData)0;
+				LightData.LightPositionAndInvRadius = TiledDeferred.LightPositionAndInvRadius[LightIndex];
+				LightData.LightColorAndFalloffExponent = TiledDeferred.LightColorAndFalloffExponent[LightIndex];
+				LightData.bInverseSquared = LightData.LightColorAndFalloffExponent.w == 0;
+
+				UNROLL
+				for(uint i = 0; i < min(SampleNum, 8); ++i)
+				{
+					FHairScreenSpaceData HairScreenSpaceData = GetHairWorksScreenSpaceData(PixelPos, i);
+					OutHairColor += GetHairWorksSimpleLighting(ScreenVector, PixelPos, HairScreenSpaceData, LightData);
+				}
+			}
+
+			BRANCH
+			if(all(DispatchThreadId.xy < ViewDimensions.zw))
+			{
+				RWHairOutTexture[PixelPos.xy] = HairInTexture[PixelPos.xy] + OutHairColor / SampleNum;
+			}
+		}
+	}
+#endif
+	// @third party code - END HairWorks
 		
 	BRANCH
 	if (InGBufferData.ShadingModelID != SHADINGMODELID_UNLIT)

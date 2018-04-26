@@ -14,6 +14,9 @@
 #include "EngineGlobals.h"
 #include "ClearQuad.h"
 #include "PipelineStateCache.h"
+// @third party code - BEGIN HairWorks
+#include "HairWorksRenderer.h"
+// @third party code - END HairWorks
 
 #if WITH_EDITOR
 
@@ -135,6 +138,10 @@ void FRCPassPostProcessSelectionOutlineColor::Process(FRenderingCompositePassCon
 				FHitProxyDrawingPolicyFactory::DrawDynamicMesh(Context.RHICmdList, EditorView, FactoryContext, MeshBatch, true, DrawRenderState, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId);
 			}
 		}
+
+		// @third party code - BEGIN HairWorks
+		HairWorksRenderer::RenderSelectionOutline(Context.RHICmdList, View);
+		// @third party code - END HairWorks
 
 		// to get an outline around the objects if it's partly outside of the screen
 		{
