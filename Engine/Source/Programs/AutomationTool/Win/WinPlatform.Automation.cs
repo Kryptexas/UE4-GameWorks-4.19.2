@@ -38,7 +38,7 @@ public abstract class BaseWinPlatform : Platform
         // NVCHANGE_END: Add VXGI
         
         // NVCHANGE_BEGIN: Add TXAA
-        SC.StageFiles(StagedFileType.NonUFS, CommandUtils.CombinePaths(SC.LocalRoot, "Engine/Binaries/ThirdParty/NVIDIA/TXAA"), "*.dll");
+        SC.StageFiles(StagedFileType.NonUFS, DirectoryReference.Combine(SC.LocalRoot, "Engine/Binaries/ThirdParty/NVIDIA/TXAA"), "*.dll", StageFilesSearch.TopDirectoryOnly);
         // NVCHANGE_END: Add TXAA
 
         // NVCHANGE_BEGIN: Add HBAO+
