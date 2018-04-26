@@ -981,3 +981,10 @@ void* FMetalDynamicRHI::RHIGetNativeDevice()
 {
 	return (void*)ImmediateContext.Context->GetDevice();
 }
+#if WITH_TXAA
+void FMetalRHICommandContext::RHIResolveTXAA(FTextureRHIParamRef Target, FTextureRHIParamRef Source, FTextureRHIParamRef Feedback, FTextureRHIParamRef Velocity, FTextureRHIParamRef Depth, const FVector2D& Jitter)
+{
+    UE_LOG(LogRHI, Fatal, TEXT("%s not implemented yet"), ANSI_TO_TCHAR(__FUNCTION__));
+}
+#endif
+

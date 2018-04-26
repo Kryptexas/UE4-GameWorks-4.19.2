@@ -777,7 +777,13 @@ void FSceneView::SetupAntiAliasingMethod()
 		static auto* MobileMSAACvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileMSAA"));
 		static uint32 MobileMSAAValue = GShaderPlatformForFeatureLevel[FeatureLevel] == SP_OPENGL_ES2_IOS ? 1 : MobileMSAACvar->GetValueOnAnyThread();
 
-		int32 Quality = FMath::Clamp(PostProcessAAQualityCVar->GetValueOnAnyThread(), 0, 6);
+		int32 Quality = FMath::Clamp(PostProcessAAQualityCVar->GetValueOnAnyThread(), 0, 
+#if WITH_TXAA
+            7
+#else
+            6
+#endif // WITH_TXAA
+        );
 		const bool bWillApplyTemporalAA = Family->EngineShowFlags.PostProcessing || bIsPlanarReflection;
 
 		if (!bWillApplyTemporalAA || !Family->EngineShowFlags.AntiAliasing || Quality <= 0
@@ -792,9 +798,15 @@ void FSceneView::SetupAntiAliasingMethod()
 
 		if (AntiAliasingMethod == AAM_TemporalAA)
 		{
-			if (!Family->EngineShowFlags.TemporalAA || !Family->bRealtimeUpdate || Quality < 3)
+			if (!Family->EngineShowFlags.TemporalAA || !Family->bRealtimeUpdate || Quality < 3 || Quality == 7)
 			{
-				AntiAliasingMethod = AAM_FXAA;
+                if (Quality < 3)
+				    AntiAliasingMethod = AAM_FXAA;
+#if WITH_TXAA
+                else if (Quality == 7)
+                    AntiAliasingMethod = AAM_TXAA;
+#endif // WITH_TXAA
+
 			}
 		}
 	}

@@ -11,6 +11,15 @@
 #include "PixelFormat.h"
 #include "HAL/IConsoleManager.h"
 
+#ifndef WITH_TXAA
+#define WITH_TXAA 1
+#else
+#if WITH_TXAA!=0
+#define WITH_TXAA 1
+#endif
+#endif // WITH_TXAA
+
+
 enum EShaderFrequency
 {
 	SF_Vertex			= 0,

@@ -2112,3 +2112,188 @@ void FD3D11DynamicRHI::RHIRenderHBAO(
 
 #endif
 // NVCHANGE_END: Add HBAO+
+
+#if WITH_TXAA
+
+// Used to ensure that TXAA has no aftereffects
+class D3D11SavedState
+{
+public:
+
+    D3D11SavedState(ID3D11DeviceContext *context)
+        : pd3dContext(context)
+    {
+        pd3dContext->AddRef();
+        SaveState();
+    }
+
+    D3D11SavedState(ID3D11Device *device)
+    {
+        device->GetImmediateContext(&pd3dContext);
+        SaveState();
+    }
+
+    ~D3D11SavedState()
+    {
+        // first set NULL RTs in case we have bounds targets that need to go back to SRVs
+        ID3D11RenderTargetView *pNULLRTVs[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT];
+        for (int i = 0; i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
+            pNULLRTVs[i] = NULL;
+        pd3dContext->OMSetRenderTargets(D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT, pNULLRTVs, NULL);
+
+        // Then restore state
+        pd3dContext->PSSetShaderResources(0, D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT, pPSSRVs);
+        uint32 NumViewPorts = D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE;
+        pd3dContext->RSSetViewports(NumViewPorts, Viewports);
+        pd3dContext->VSSetShader(pVertexShader, NULL, NULL);
+        pd3dContext->PSSetShader(pPixelShader, NULL, NULL);
+        pd3dContext->PSSetSamplers(0, D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT, pSamplers);
+        pd3dContext->VSSetConstantBuffers(0, D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT, pVSConstantBuffers);
+        pd3dContext->PSSetConstantBuffers(0, D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT, pPSConstantBuffers);
+        pd3dContext->RSSetState(pRasterizer);
+        pd3dContext->OMSetDepthStencilState(pDepthStencil, NULL);
+        pd3dContext->OMSetBlendState(pBlendState, BlendFactors, BlendSampleMask);
+        pd3dContext->IASetInputLayout(pInputLayout);
+        pd3dContext->IASetPrimitiveTopology(PrimitiveToplogy);
+        pd3dContext->OMSetRenderTargets(D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT, pRTVs, pDSV);
+
+
+        SAFE_RELEASE(pd3dContext);	// we added a manual ref
+
+        for (int i = 0; i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
+            SAFE_RELEASE(pRTVs[i]);
+        SAFE_RELEASE(pDSV);
+        for (int i = 0; i < D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT; i++)
+            SAFE_RELEASE(pPSSRVs[i]);
+        SAFE_RELEASE(pVertexShader);
+        SAFE_RELEASE(pPixelShader);
+        for (int i = 0; i < D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT; i++)
+            SAFE_RELEASE(pSamplers[i]);
+        for (int i = 0; i < D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT; i++)
+            SAFE_RELEASE(pVSConstantBuffers[i]);
+        for (int i = 0; i < D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT; i++)
+            SAFE_RELEASE(pPSConstantBuffers[i]);
+        SAFE_RELEASE(pRasterizer);
+        SAFE_RELEASE(pDepthStencil);
+        SAFE_RELEASE(pBlendState);
+        SAFE_RELEASE(pInputLayout);
+    }
+
+private:
+
+    void SaveState()
+    {
+        pd3dContext->OMGetRenderTargets(D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT, pRTVs, &pDSV);
+        pd3dContext->PSGetShaderResources(0, D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT, pPSSRVs);
+        uint32 NumViewPorts = D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE;
+        pd3dContext->RSGetViewports(&NumViewPorts, Viewports);
+        pd3dContext->VSGetShader(&pVertexShader, NULL, NULL);
+        pd3dContext->PSGetShader(&pPixelShader, NULL, NULL);
+        pd3dContext->PSGetSamplers(0, D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT, pSamplers);
+        pd3dContext->VSGetConstantBuffers(0, D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT, pVSConstantBuffers);
+        pd3dContext->PSGetConstantBuffers(0, D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT, pPSConstantBuffers);
+        pd3dContext->RSGetState(&pRasterizer);
+        pd3dContext->OMGetDepthStencilState(&pDepthStencil, NULL);
+        pd3dContext->OMGetBlendState(&pBlendState, BlendFactors, &BlendSampleMask);
+        pd3dContext->IAGetInputLayout(&pInputLayout);
+        pd3dContext->IAGetPrimitiveTopology(&PrimitiveToplogy);
+    }
+
+    ID3D11RenderTargetView *pRTVs[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT];
+    ID3D11DepthStencilView*pDSV;
+    ID3D11ShaderResourceView*pPSSRVs[D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT];
+    D3D11_VIEWPORT Viewports[D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE];
+    ID3D11VertexShader *pVertexShader;
+    ID3D11PixelShader *pPixelShader;
+    ID3D11SamplerState*pSamplers[D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT];
+    ID3D11Buffer *pVSConstantBuffers[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT];
+    ID3D11Buffer *pPSConstantBuffers[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT];
+    ID3D11RasterizerState *pRasterizer;
+    ID3D11DepthStencilState *pDepthStencil;
+    ID3D11BlendState *pBlendState;
+    float BlendFactors[4];
+    uint32 BlendSampleMask;
+    ID3D11InputLayout *pInputLayout;
+    D3D11_PRIMITIVE_TOPOLOGY PrimitiveToplogy;
+
+    ID3D11DeviceContext *pd3dContext;
+};
+
+
+void FD3D11DynamicRHI::RHIResolveTXAA(FTextureRHIParamRef Target, FTextureRHIParamRef Source, FTextureRHIParamRef Feedback, FTextureRHIParamRef Velocity, FTextureRHIParamRef Depth, const FVector2D& Jitter)
+{
+    D3D11SavedState SavedState(Direct3DDeviceIMContext);	// restore on loss of context
+
+    NvTxaaResolveParametersDX11 ResolveParameters;
+    memset(&ResolveParameters, 0, sizeof(ResolveParameters));
+
+    ResolveParameters.txaaContext = &TxaaContext;
+    ResolveParameters.deviceContext = Direct3DDeviceIMContext;
+
+    FD3D11TextureBase* TargetTex = GetD3D11TextureFromRHITexture(Target);
+    ID3D11RenderTargetView* TargetRTV = TargetTex ? TargetTex->GetRenderTargetView(0, 0) : NULL;
+    ResolveParameters.resolveTarget = TargetRTV;
+
+    FD3D11TextureBase* SourceTex = GetD3D11TextureFromRHITexture(Source);
+    ID3D11ShaderResourceView* SourceSRV = SourceTex ? SourceTex->GetShaderResourceView() : NULL;
+    ResolveParameters.msaaSource = SourceSRV;
+
+    FD3D11TextureBase* FeedbackTex = GetD3D11TextureFromRHITexture(Feedback);
+    ID3D11ShaderResourceView* FeedbackSRV = FeedbackTex ? FeedbackTex->GetShaderResourceView() : NULL;
+    ResolveParameters.feedbackSource = FeedbackSRV;
+
+    ResolveParameters.alphaResolveMode = NV_TXAA_ALPHARESOLVEMODE_RESOLVESRCALPHA;
+    ResolveParameters.feedback = const_cast<NvTxaaFeedbackParameters*>(&NvTxaaDefaultFeedback);
+    ResolveParameters.perFrameConstants = new NvTxaaPerFrameConstants();
+    static const auto CVarTxaaMVSelect = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.TXAA.MVSelect"));
+    static const auto CVarTxaaDebugMVScale = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.TXAA.DebugMVScale"));
+    static const auto CVarTxaaUseBlackmanHarrisFilter = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.TXAA.UseBlackmanHarrisFilter"));
+    static const auto CVarTxaaEnableAntiFlicker = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.TXAA.EnableAntiFlicker"));
+    static const auto CVarTxaaUseRGB = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.TXAA.UseRGB"));
+    static const auto CVarTxaaEnableColorClipping = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.TXAA.EnableColorClipping"));
+    static const auto CVarTxaaBlendFactor = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.TXAA.BlendFactor"));
+	static const auto CVarTxaaDebugMV = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.TXAA.DebugMV"));
+
+    ResolveParameters.perFrameConstants->motionVecSelection = CVarTxaaMVSelect->GetValueOnRenderThread();
+    ResolveParameters.perFrameConstants->isZFlipped = true;
+    ResolveParameters.perFrameConstants->useBHFilters = CVarTxaaUseBlackmanHarrisFilter->GetValueOnRenderThread();
+    ResolveParameters.perFrameConstants->useAntiFlickerFilter = CVarTxaaEnableAntiFlicker->GetValueOnRenderThread();
+    ResolveParameters.perFrameConstants->useRGB = CVarTxaaUseRGB->GetValueOnRenderThread();
+    ResolveParameters.perFrameConstants->mvScale = CVarTxaaDebugMVScale->GetValueOnRenderThread();
+    ResolveParameters.perFrameConstants->xJitter = Jitter.X;
+    ResolveParameters.perFrameConstants->yJitter = Jitter.Y;
+    ResolveParameters.perFrameConstants->enableClipping = CVarTxaaEnableColorClipping->GetValueOnRenderThread();
+    ResolveParameters.perFrameConstants->frameBlendFactor = CVarTxaaBlendFactor->GetValueOnRenderThread();
+
+    FD3D11TextureBase* DepthTex = GetD3D11TextureFromRHITexture(Depth);
+    ID3D11ShaderResourceView* DepthSRV = DepthTex ? DepthTex->GetShaderResourceView() : NULL;
+    ResolveParameters.msaaDepth = DepthSRV;
+
+    NvTxaaMotionDX11 Motion;
+    memset(&Motion, 0, sizeof(Motion));
+
+    FD3D11TextureBase* VelocityTex = GetD3D11TextureFromRHITexture(Velocity);
+    ID3D11ShaderResourceView* VelocitySRV = VelocityTex ? VelocityTex->GetShaderResourceView() : NULL;
+    Motion.motionVectors = VelocitySRV;
+    //     Motion.motionVectorsMS = VelocitySRV;
+
+    NvTxaaCompressionRange CompressRange = { 1.0f, 20.0f };
+    ResolveParameters.compressionRange = &CompressRange;
+
+    if (CVarTxaaDebugMV->GetValueOnRenderThread()) {
+        NvTxaaDebugParametersDX11 Debug;
+        Debug.target = TargetRTV;
+        switch (CVarTxaaDebugMV->GetValueOnRenderThread()) {
+        case 1: Debug.channel = NV_TXAA_DEBUGCHANNEL_MOTIONVECTORS; break;
+        case 2: Debug.channel = NV_TXAA_DEBUGCHANNEL_TEMPORALREPROJ; break;
+        case 3: Debug.channel = NV_TXAA_DEBUGCHANNEL_CONTROL; break;
+        }
+        ResolveParameters.debug = &Debug;
+    }
+
+    NvTxaaStatus Status = GFSDK_TXAA_DX11_ResolveFromMotionVectors(&ResolveParameters, &Motion);
+    check(Status == NV_TXAA_STATUS_OK);
+
+}
+#endif
+

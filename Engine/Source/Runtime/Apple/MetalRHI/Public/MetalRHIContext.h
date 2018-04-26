@@ -316,7 +316,9 @@ public:
 	 * Compute queue will wait for the fence to be written before continuing.
 	 */
 	virtual void RHIWaitComputeFence(FComputeFenceRHIParamRef InFence) final override;
-
+#if WITH_TXAA
+    virtual void RHIResolveTXAA(FTextureRHIParamRef Target, FTextureRHIParamRef Source, FTextureRHIParamRef Feedback, FTextureRHIParamRef Velocity, FTextureRHIParamRef Depth, const FVector2D& Jitter) final override;
+#endif
 	
 protected:
 	static TGlobalResource<TBoundShaderStateHistory<10000>> BoundShaderStateHistory;

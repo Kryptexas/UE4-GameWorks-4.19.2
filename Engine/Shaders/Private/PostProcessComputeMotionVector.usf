@@ -1,0 +1,115 @@
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+
+/*=============================================================================
+	PostProcessTemporalAA.usf: Temporal AA
+=============================================================================*/
+
+#include "Common.ush"
+#include "PostProcessCommon.ush"
+
+#define AA_CROSS 2
+#define HAS_INVERTED_Z_BUFFER 1
+
+float VelocityScaling;
+
+void ComputeMotionVectorPS(
+	in noperspective float2 UV : TEXCOORD0,
+	in noperspective float3 InExposureScaleVignette : TEXCOORD1,
+	// Note: these are needed to match up with the vertex shader outputs which is FPostProcessTonemapVS, otherwise a d3d debug error is issued
+	in noperspective float4 Unused1 : TEXCOORD2,
+	in noperspective float4 Unused2 : TEXCOORD3,
+	in float4 SvPosition : SV_Position, // after all interpolators
+	out float2 OutColor : SV_Target0)
+{
+	// FIND MOTION OF PIXEL AND NEAREST IN NEIGHBORHOOD
+    // ------------------------------------------------
+    float3 PosN; // Position of this pixel, possibly later nearest pixel in neighborhood.
+    PosN.xy = SvPositionToScreenPosition(SvPosition).xy;
+    PosN.z = SceneDepthTexture.SampleLevel(SceneDepthTextureSampler, UV, 0).r;
+    // Screen position of minimum depth.
+    float2 VelocityOffset = float2(0.0, 0.0);
+    
+#if AA_CROSS
+	// For motion vector, use camera/dynamic motion from min depth pixel in pattern around pixel.
+	// This enables better quality outline on foreground against different motion background.
+	// Larger 2 pixel distance "x" works best (because AA dilates surface).
+    float4 Depths;
+    Depths.x = SceneDepthTexture.SampleLevel(SceneDepthTextureSampler, UV, 0, int2(-AA_CROSS, -AA_CROSS)).r;
+    Depths.y = SceneDepthTexture.SampleLevel(SceneDepthTextureSampler, UV, 0, int2(AA_CROSS, -AA_CROSS)).r;
+    Depths.z = SceneDepthTexture.SampleLevel(SceneDepthTextureSampler, UV, 0, int2(-AA_CROSS, AA_CROSS)).r;
+    Depths.w = SceneDepthTexture.SampleLevel(SceneDepthTextureSampler, UV, 0, int2(AA_CROSS, AA_CROSS)).r;
+
+    float2 DepthOffset = float2(AA_CROSS, AA_CROSS);
+    float DepthOffsetXx = float(AA_CROSS);
+
+#if HAS_INVERTED_Z_BUFFER
+    // Nearest depth is the largest depth (depth surface 0=far, 1=near).
+    if (Depths.x > Depths.y)
+    {
+        DepthOffsetXx = -AA_CROSS;
+    }
+    if (Depths.z > Depths.w)
+    {
+        DepthOffset.x = -AA_CROSS;
+    }
+    float DepthsXY = max(Depths.x, Depths.y);
+    float DepthsZW = max(Depths.z, Depths.w);
+    if (DepthsXY > DepthsZW)
+    {
+        DepthOffset.y = -AA_CROSS;
+        DepthOffset.x = DepthOffsetXx;
+    }
+    float DepthsXYZW = max(DepthsXY, DepthsZW);
+    if (DepthsXYZW > PosN.z)
+    {
+        // This is offset for reading from velocity texture.
+        // This supports half or fractional resolution velocity textures.
+        // With the assumption that UV position scales between velocity and color.
+        VelocityOffset = DepthOffset * PostprocessInput0Size.zw;
+        // This is [0 to 1] flipped in Y.
+        //PosN.xy = ScreenPos + DepthOffset * ViewportSize.zw * 2.0;
+        PosN.z = DepthsXYZW;
+    }
+#else
+#error Fix me!
+#endif // HAS_INVERTED_Z_BUFFER
+#endif	// AA_CROSS 
+	// Camera motion for pixel or nearest pixel (in ScreenPos space).
+    float4 ThisClip = float4(PosN.xy, PosN.z, 1);
+    float4 PrevClip = mul(ThisClip, View.ClipToPrevClip);
+    float2 PrevScreen = PrevClip.xy / PrevClip.w;
+    float2 BackN = PosN.xy - PrevScreen;
+
+    float2 BackTemp = BackN * ViewportSize.xy;
+    float2 VelocityN;
+    VelocityN = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UV + VelocityOffset, 0).xy;
+    VelocityN *= VelocityScaling.x;
+    bool DynamicN = VelocityN.x > 0.0;
+    if (DynamicN)
+    {
+        BackN = DecodeVelocityFromTexture(VelocityN);
+    }
+    BackTemp = BackN * ViewportSize.xy;
+
+	// Easier to do off screen check before conversion.
+	// BackN is in units of 2pixels/viewportWidthInPixels
+	// This converts back projection vector to [-1 to 1] offset in viewport.
+    BackN = SvPositionToScreenPosition(SvPosition).xy - BackN;
+    bool OffScreen = max(abs(BackN.x), abs(BackN.y)) >= 1.0;
+	// Also clamp to be on screen (fixes problem with DOF).
+	// The .z and .w is the 1/width and 1/height.
+	// This clamps to be a pixel inside the viewport.
+    BackN.x = clamp(BackN.x, -1.0 + ViewportSize.z, 1.0 - ViewportSize.z);
+    BackN.y = clamp(BackN.y, -1.0 + ViewportSize.w, 1.0 - ViewportSize.w);
+
+    // account for multires, BackN is presently in lineaer space
+    //BackN = VRProjMapNDCLinearToVRProj(BackN);
+
+	// Convert from [-1 to 1] to view rectangle which is somewhere in [0 to 1].
+	// The extra +0.5 factor is because ScreenPosToPixel.zw is incorrectly computed
+	// as the upper left of the pixel instead of the center of the pixel.
+    BackN = (BackN * ScreenPosToPixel.xy + ScreenPosToPixel.zw + 0.5) * PostprocessInput0Size.zw;
+
+    float2 Velocity = BackN - UV;
+    OutColor = Velocity;
+}

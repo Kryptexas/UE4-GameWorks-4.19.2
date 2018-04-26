@@ -553,8 +553,8 @@ void FOpenGLDynamicRHI::CachedSetupTextureStage(FOpenGLContextState& ContextStat
 			// Always set if last target was external texture, or new target is not external and number of mips doesn't match
 			if ((!bSameTarget && TextureState.Target == GL_TEXTURE_EXTERNAL_OES) || ((Target != GL_TEXTURE_EXTERNAL_OES) && !bSameNumMips))
 			{
-				FOpenGL::TexParameter(Target, GL_TEXTURE_MAX_LEVEL, MaxMip);
-			}
+			FOpenGL::TexParameter(Target, GL_TEXTURE_MAX_LEVEL, MaxMip);
+		}
 		}
 #else
 		if (FOpenGL::SupportsTextureMaxLevel() && !bSameNumMips)
@@ -3354,11 +3354,11 @@ void FOpenGLDynamicRHI::RHIClearMRT(bool bClearColor,int32 NumClearColors,const 
 	if (bPrevScissorEnabled || PendingState.Viewport.Min.X != 0 || PendingState.Viewport.Min.Y != 0 || PendingState.Viewport.Max.X != PendingState.RenderTargetWidth || PendingState.Viewport.Max.Y != PendingState.RenderTargetHeight)
 	{
 		RHISetScissorRect(false, 0, 0, 0, 0);
-		bScissorChanged = true;
-	}
+			bScissorChanged = true;
+		}
 
-	// Always update in case there are uncommitted changes to disable scissor
-	UpdateScissorRectInOpenGLContext(ContextState);
+		// Always update in case there are uncommitted changes to disable scissor
+		UpdateScissorRectInOpenGLContext(ContextState);
 
 	int8 ClearType = CT_None;
 
@@ -3586,3 +3586,9 @@ void FOpenGLDynamicRHI::RHIInvalidateCachedState()
 
 
 
+#if WITH_TXAA
+void FOpenGLDynamicRHI::RHIResolveTXAA(FTextureRHIParamRef Target, FTextureRHIParamRef Source, FTextureRHIParamRef Feedback, FTextureRHIParamRef Velocity, FTextureRHIParamRef Depth, const FVector2D& Jitter)
+{
+    UE_LOG(LogRHI, Fatal, TEXT("%s not implemented yet"), ANSI_TO_TCHAR(__FUNCTION__));
+}
+#endif

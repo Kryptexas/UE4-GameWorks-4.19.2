@@ -23,6 +23,8 @@ public class D3D11RHI : ModuleRules
         AddEngineThirdPartyPrivateStaticDependencies(Target, "NVAPI");
 		AddEngineThirdPartyPrivateStaticDependencies(Target, "AMD_AGS");
         AddEngineThirdPartyPrivateStaticDependencies(Target, "NVAftermath");
+        AddEngineThirdPartyPrivateStaticDependencies(Target, "TXAA");
+
         // NVCHANGE_BEGIN: Add VXGI
         if ((Target.Platform == UnrealTargetPlatform.Win64) || (Target.Platform == UnrealTargetPlatform.Win32))
         {

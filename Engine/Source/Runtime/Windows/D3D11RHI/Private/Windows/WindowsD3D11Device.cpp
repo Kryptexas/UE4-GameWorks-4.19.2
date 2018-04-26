@@ -1446,6 +1446,33 @@ void FD3D11DynamicRHI::InitD3DDevice()
 #endif
 		// NVCHANGE_END: Add HBAO+
 
+#if WITH_TXAA
+        if (GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM5)
+        {
+            FString TXAALibBinariesPath = FPaths::EngineDir() / TEXT("Binaries/ThirdParty/NVIDIA/TXAA/GFSDK_Txaa.");
+#if PLATFORM_64BITS
+            //TxaaLibModuleHandle = LoadLibraryW(*(TXAALibBinariesPath + "GFSDK_Txaa.win64.dll"));
+            TXAALibBinariesPath += "win64.";
+#else
+            //TxaaLibModuleHandle = LoadLibraryW(*(TXAALibBinariesPath + "GFSDK_Txaa.win32.dll"));
+            TXAALibBinariesPath += "win32.";
+#endif
+#if DEBUG_TXAA
+            TXAALibBinariesPath += "D.";
+#endif
+            TXAALibBinariesPath += "dll";
+            TxaaLibModuleHandle = LoadLibraryW(*(TXAALibBinariesPath));
+            check(TxaaLibModuleHandle);
+
+            if (NV_TXAA_STATUS_OK == GFSDK_TXAA_DX11_InitializeContext(&TxaaContext, Direct3DDevice)) {
+                TxaaInitialized = true;
+            }
+            else {
+                TxaaInitialized = false;
+                UE_LOG(LogD3D11RHI, Log, TEXT("TXAA library initialization failed!"));
+            }
+        }
+#endif
 		FHardwareInfo::RegisterHardwareInfo( NAME_RHI, TEXT( "D3D11" ) );
 
 		GRHISupportsTextureStreaming = true;

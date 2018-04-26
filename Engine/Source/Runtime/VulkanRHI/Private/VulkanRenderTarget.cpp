@@ -1560,3 +1560,11 @@ void FVulkanRenderTargetLayout::CreateRenderPassHash()
 	// match exactly what we have, just avoid the memcpy!
 	RenderPassHash = FCrc::MemCrc32(&Desc, sizeof(Desc));
 }
+
+#if WITH_TXAA
+void FVulkanCommandListContext::RHIResolveTXAA(FTextureRHIParamRef Target, FTextureRHIParamRef Source, FTextureRHIParamRef Feedback, FTextureRHIParamRef Velocity, FTextureRHIParamRef Depth, const FVector2D& Jitter)
+{
+    UE_LOG(LogRHI, Fatal, TEXT("%s not implemented yet"), ANSI_TO_TCHAR(__FUNCTION__));
+
+}
+#endif // WITH_TXAA

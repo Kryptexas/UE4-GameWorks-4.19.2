@@ -112,6 +112,10 @@ FText FMetaSettingGatherer::ValueToString(EAntiAliasingMethod Value)
 		return LOCTEXT("AA_FXAA", "FXAA");
 	case AAM_TemporalAA:
 		return LOCTEXT("AA_TemporalAA", "Temporal AA");
+#if WITH_TXAA
+    case AAM_TXAA:
+        return LOCTEXT("AA_TXAA", "TXAA");
+#endif // WITH_TXAA
 	case AAM_MSAA:
 		return LOCTEXT("AA_MSAA", "MSAA");
 	default:

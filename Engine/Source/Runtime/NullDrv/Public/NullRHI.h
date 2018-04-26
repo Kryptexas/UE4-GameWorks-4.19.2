@@ -827,7 +827,11 @@ public:
 	{ 
 		return nullptr; 
 	}
-
+#if WITH_TXAA
+    virtual void RHIResolveTXAA(FTextureRHIParamRef Target, FTextureRHIParamRef Source, FTextureRHIParamRef Feedback, FTextureRHIParamRef Velocity, FTextureRHIParamRef Depth, const FVector2D& Jitter) override
+    {
+    }
+#endif
 private:
 
 	/** Allocates a static buffer for RHI functions to return as a write destination. */

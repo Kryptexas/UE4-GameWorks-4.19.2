@@ -2385,7 +2385,11 @@ void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdLis
 			ViewState->SetupDistanceFieldTemporalOffset(ViewFamily);
 		}
 
-		if( View.AntiAliasingMethod == AAM_TemporalAA && ViewState )
+		if( (View.AntiAliasingMethod == AAM_TemporalAA 
+#if WITH_TXAA
+            || View.AntiAliasingMethod == AAM_TXAA
+#endif // WITH_TXAA
+            ) && ViewState )
 		{
 			// Subpixel jitter for temporal AA
 			int32 TemporalAASamples = CVarTemporalAASamples.GetValueOnRenderThread();

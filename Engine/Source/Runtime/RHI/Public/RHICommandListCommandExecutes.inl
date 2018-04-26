@@ -759,8 +759,14 @@ void FRHICommandInvalidateCachedState::Execute(FRHICommandListBase& CmdList)
 	RHISTAT(RHIInvalidateCachedState);
 	INTERNAL_DECORATOR(RHIInvalidateCachedState)();
 }
+#if WITH_TXAA
+void FRHICommandResolveTXAA::Execute(FRHICommandListBase& CmdList)
+{
+    RHISTAT(ResolveTXAA);
+    INTERNAL_DECORATOR(RHIResolveTXAA)(Target, Source, Feedback, Velocity, Depth, Jitter);
+}
 
-
+#endif
 // NvFlow begin
 void FRHICommandNvFlowWork::Execute(FRHICommandListBase& CmdList)
 {
