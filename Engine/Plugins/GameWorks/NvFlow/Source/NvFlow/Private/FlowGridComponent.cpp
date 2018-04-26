@@ -345,6 +345,8 @@ void UFlowGridComponent::UpdateShapes(float DeltaTime, uint32 NumSimSubSteps)
 
 		// get emitter parameters, if available
 		AActor* Actor = Body->OwnerComponent->GetOwner();
+		if (!Actor)
+			continue;
 		UFlowEmitterComponent* FlowEmitterComponent = Actor->FindComponentByClass<UFlowEmitterComponent>();
 
 		// search in attached component actors, as needed
