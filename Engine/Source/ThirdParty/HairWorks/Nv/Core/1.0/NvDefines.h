@@ -705,11 +705,11 @@ namespace nvidia {}
 // Depreciated
 
 // For compatibility - better to use NV_EXTERN_C (macro name is closer to action)
-#define NV_C_EXPORT NV_EXTERN_C
+//#define NV_C_EXPORT NV_EXTERN_C
 
-#define NV_NOALIAS NV_NO_ALIAS
-#define NV_NOINLINE NV_NO_INLINE
-#define NV_NOCOPY NV_NO_COPY
+//#define NV_NOALIAS NV_NO_ALIAS
+//#define NV_NOINLINE NV_NO_INLINE
+//#define NV_NOCOPY NV_NO_COPY
 
 /** @} */
 #endif // #ifndef NV_CORE_DEFINES_H

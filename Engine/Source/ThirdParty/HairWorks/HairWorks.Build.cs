@@ -24,12 +24,12 @@ public class HairWorks : ModuleRules
 			// Add HairWorks DLL
 			var HairWorksBinaryDir = "$(EngineDir)/Binaries/ThirdParty/HairWorks";
 			var HairWorksDllPath = System.IO.Path.Combine(HairWorksBinaryDir, "NvHairWorksDx11." + PlatformString + ".dll");
-			RuntimeDependencies.Add(new RuntimeDependency(HairWorksDllPath));
+			RuntimeDependencies.Add(HairWorksDllPath);
 
 			// Add shader compiler DLL
 			var ShaderCompilerDllName = "d3dcompiler_47.dll";
 			var ShaderCompilerDllPath = System.IO.Path.Combine(HairWorksBinaryDir, ShaderCompilerDllName);
-			RuntimeDependencies.Add(new RuntimeDependency(ShaderCompilerDllPath));
+			RuntimeDependencies.Add(ShaderCompilerDllPath);
 		}
 	}
 }

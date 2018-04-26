@@ -8,7 +8,7 @@ public class TXAA : ModuleRules
     {
         Type = ModuleType.External;
 
-        const bool debugTXAA = false;
+        bool debugTXAA = false;
         PublicDefinitions.Add("WITH_TXAA=1");
         if (debugTXAA)
             PublicDefinitions.Add("DEBUG_TXAA=1");
