@@ -48,6 +48,13 @@ void FD3D11DynamicRHI::CreateVxgiInterface()
 	UE_LOG(LogD3D11RHI, Log, TEXT("VXGI: Version %u.%u.%u.%u"), VxgiVersion.Major, VxgiVersion.Minor, VxgiVersion.Branch, VxgiVersion.Revision);
 
 	bVxgiVoxelizationParametersSet = false;
+
+	// Workaround for a VXGI initialization issue on hardware that does not support FastGS.
+	// setVoxelizationParameters needs to be called before creating any voxelization shader objects.
+	VXGI::VoxelizationParameters DefaultParams;
+	DefaultParams.persistentVoxelData = false;
+	DefaultParams.ambientOcclusionMode = true;
+	RHIVXGISetVoxelizationParameters(DefaultParams);
 }
 
 void FD3D11DynamicRHI::ReleaseVxgiInterface()
