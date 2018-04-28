@@ -5,6 +5,7 @@
 #include "RHIDefinitions.h"
 #include "Containers/IndirectArray.h"
 #include "Rendering/SkeletalMeshLODRenderData.h"
+#include "Rendering/SkeletalMeshModel.h"	//#nv #Blast Ability to hide bones using a dynamic index buffer
 
 struct FMeshUVChannelInfo;
 class USkeletalMesh;
@@ -56,3 +57,72 @@ private:
 	/** True if the resource has been initialized. */
 	bool bInitialized;
 };
+
+
+//#nv begin #Blast Ability to hide bones using a dynamic index buffer
+struct FSkelMeshSectionOverride
+{
+	/** The offset of this section's indices in the LOD's index buffer. */
+	uint32 BaseIndex;
+
+	/** The number of triangles in this section. */
+	uint32 NumTriangles;
+
+	FSkelMeshSectionOverride()
+		: BaseIndex(0)
+		, NumTriangles(0)
+	{}
+};
+
+class ENGINE_API FDynamicLODModelOverride
+{
+public:
+	/** Sections. */
+	TArray<FSkelMeshSectionOverride> Sections;
+
+	// Index Buffer (MultiSize: 16bit or 32bit)
+	FMultiSizeIndexContainer	MultiSizeIndexContainer;
+
+	/** Resources needed to render the model using PN-AEN */
+	FMultiSizeIndexContainer	AdjacencyMultiSizeIndexContainer;
+	/**
+	* Initialize the LOD's render resources.
+	*
+	* @param Parent Parent mesh
+	*/
+	void InitResources(const FSkeletalMeshLODRenderData& InitialData);
+
+	/**
+	* Releases the LOD's render resources.
+	*/
+	void ReleaseResources();
+
+	void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) const;
+	SIZE_T GetResourceSizeBytes() const;
+};
+
+class ENGINE_API FSkeletalMeshDynamicOverride
+{
+public:
+	/** Per-LOD render data. */
+	TIndirectArray<FDynamicLODModelOverride> LODModels;
+
+	/** Default constructor. */
+	FSkeletalMeshDynamicOverride() : bInitialized(false) {}
+
+	/** Initializes rendering resources. */
+	void InitResources(const FSkeletalMeshRenderData& InitialData);
+
+	/** Releases rendering resources. */
+	void ReleaseResources();
+
+	void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize);
+	SIZE_T GetResourceSizeBytes();
+
+	inline bool IsInitialized() const { return bInitialized; }
+
+private:
+	/** True if the resource has been initialized. */
+	bool bInitialized;
+};
+//nv end

@@ -47,6 +47,7 @@
 #include "Rendering/SkeletalMeshRenderData.h"
 #include "UObject/PropertyPortFlags.h"
 #include "Templates/UniquePtr.h"
+#include "Misc/ScopedSlowTask.h" //#nv #Blast Ability to hide bones using a dynamic index buffer
 
 #if WITH_EDITOR
 #include "Rendering/SkeletalMeshModel.h"
@@ -211,6 +212,133 @@ void FreeSkeletalMeshBuffersSinkCallback()
 		}
 	}
 }
+
+
+//#nv begin #Blast Ability to hide bones using a dynamic index buffer
+/*-----------------------------------------------------------------------------
+FDynamicLODModelOverride
+-----------------------------------------------------------------------------*/
+
+void FDynamicLODModelOverride::InitResources(const FSkeletalMeshLODRenderData& InitialData)
+{
+	Sections.SetNum(InitialData.RenderSections.Num());
+	for (int32 S = 0; S < Sections.Num(); S++)
+	{
+		Sections[S].BaseIndex = InitialData.RenderSections[S].BaseIndex;
+		Sections[S].NumTriangles = InitialData.RenderSections[S].NumTriangles;
+	}
+
+	FMultiSizeIndexContainerData TempData;
+	TempData.DataTypeSize = InitialData.MultiSizeIndexContainer.GetDataTypeSize();
+	InitialData.MultiSizeIndexContainer.GetIndexBuffer(TempData.Indices);
+	MultiSizeIndexContainer.RebuildIndexBuffer(TempData.DataTypeSize, TempData.Indices);
+
+	INC_DWORD_STAT_BY(STAT_SkeletalMeshIndexMemory, MultiSizeIndexContainer.IsIndexBufferValid() ? (MultiSizeIndexContainer.GetIndexBuffer()->Num() * MultiSizeIndexContainer.GetDataTypeSize()) : 0);
+
+	MultiSizeIndexContainer.InitResources();
+
+	//Need to check if the data was stripped in cooking or not
+	if (RHISupportsTessellation(GMaxRHIShaderPlatform) && InitialData.AdjacencyMultiSizeIndexContainer.IsIndexBufferValid())
+	{
+		TempData.DataTypeSize = InitialData.AdjacencyMultiSizeIndexContainer.GetDataTypeSize();
+		InitialData.AdjacencyMultiSizeIndexContainer.GetIndexBuffer(TempData.Indices);
+		AdjacencyMultiSizeIndexContainer.RebuildIndexBuffer(TempData.DataTypeSize, TempData.Indices);
+
+		AdjacencyMultiSizeIndexContainer.InitResources();
+		INC_DWORD_STAT_BY(STAT_SkeletalMeshIndexMemory, AdjacencyMultiSizeIndexContainer.IsIndexBufferValid() ? (AdjacencyMultiSizeIndexContainer.GetIndexBuffer()->Num() * AdjacencyMultiSizeIndexContainer.GetDataTypeSize()) : 0);
+	}
+}
+
+void FDynamicLODModelOverride::ReleaseResources()
+{
+	DEC_DWORD_STAT_BY(STAT_SkeletalMeshIndexMemory, MultiSizeIndexContainer.IsIndexBufferValid() ? (MultiSizeIndexContainer.GetIndexBuffer()->Num() * MultiSizeIndexContainer.GetDataTypeSize()) : 0);
+	DEC_DWORD_STAT_BY(STAT_SkeletalMeshIndexMemory, AdjacencyMultiSizeIndexContainer.IsIndexBufferValid() ? (AdjacencyMultiSizeIndexContainer.GetIndexBuffer()->Num() * AdjacencyMultiSizeIndexContainer.GetDataTypeSize()) : 0);
+
+	MultiSizeIndexContainer.ReleaseResources();
+	AdjacencyMultiSizeIndexContainer.ReleaseResources();
+}
+
+void FDynamicLODModelOverride::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) const
+{
+	CumulativeResourceSize.AddUnknownMemoryBytes(Sections.GetAllocatedSize());
+	if (MultiSizeIndexContainer.IsIndexBufferValid())
+	{
+		const FRawStaticIndexBuffer16or32Interface* IndexBuffer = MultiSizeIndexContainer.GetIndexBuffer();
+		if (IndexBuffer)
+		{
+			CumulativeResourceSize.AddUnknownMemoryBytes(IndexBuffer->GetResourceDataSize());
+		}
+	}
+
+	if (AdjacencyMultiSizeIndexContainer.IsIndexBufferValid())
+	{
+		const FRawStaticIndexBuffer16or32Interface* AdjacentIndexBuffer = AdjacencyMultiSizeIndexContainer.GetIndexBuffer();
+		if (AdjacentIndexBuffer)
+		{
+			CumulativeResourceSize.AddUnknownMemoryBytes(AdjacentIndexBuffer->GetResourceDataSize());
+		}
+	}
+
+	CumulativeResourceSize.AddUnknownMemoryBytes(sizeof(int32));
+}
+
+SIZE_T FDynamicLODModelOverride::GetResourceSizeBytes() const
+{
+	FResourceSizeEx ResSize;
+	GetResourceSizeEx(ResSize);
+	return ResSize.GetTotalMemoryBytes();
+}
+
+
+/*-----------------------------------------------------------------------------
+FSkeletalMeshDynamicOverride
+-----------------------------------------------------------------------------*/
+
+void FSkeletalMeshDynamicOverride::InitResources(const FSkeletalMeshRenderData& InitialData)
+{
+	if (!bInitialized)
+	{
+		// initialize resources for each lod
+		for (int32 LODIndex = 0; LODIndex < InitialData.LODRenderData.Num(); LODIndex++)
+		{
+			FDynamicLODModelOverride* LODModel = new FDynamicLODModelOverride();
+			LODModels.Add(LODModel);
+			LODModel->InitResources(InitialData.LODRenderData[LODIndex]);
+		}
+		bInitialized = true;
+	}
+}
+
+void FSkeletalMeshDynamicOverride::ReleaseResources()
+{
+	if (bInitialized)
+	{
+		// release resources for each lod
+		for (int32 LODIndex = 0; LODIndex < LODModels.Num(); LODIndex++)
+		{
+			LODModels[LODIndex].ReleaseResources();
+		}
+		bInitialized = false;
+	}
+}
+
+
+void FSkeletalMeshDynamicOverride::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
+{
+	for (int32 LODIndex = 0; LODIndex < LODModels.Num(); ++LODIndex)
+	{
+		const FDynamicLODModelOverride& Model = LODModels[LODIndex];
+		Model.GetResourceSizeEx(CumulativeResourceSize);
+	}
+}
+
+SIZE_T FSkeletalMeshDynamicOverride::GetResourceSizeBytes()
+{
+	FResourceSizeEx ResSize;
+	GetResourceSizeEx(ResSize);
+	return ResSize.GetTotalMemoryBytes();
+}
+//nv end
 
 /*-----------------------------------------------------------------------------
 	FClothingAssetData
@@ -2236,6 +2364,97 @@ void USkeletalMesh::RemoveMeshSection(int32 InLodIndex, int32 InSectionIndex)
 	PostEditChange();
 }
 
+//#nv begin #Blast Ability to hide bones using a dynamic index buffer
+void USkeletalMesh::RebuildIndexBufferRanges()
+{
+	IndexBufferRanges.Reset();
+	const int32 BoneCount = RefSkeleton.GetNum();
+	IndexBufferRanges.SetNum(BoneCount);
+
+	FSkeletalMeshRenderData* Resource = GetResourceForRendering();
+	if (!Resource)
+	{
+		return;
+	}
+
+	FScopedSlowTask Progress(float(Resource->LODRenderData.Num()), LOCTEXT("RebuildIndexBufferRangesProgress", "Rebuilding bone index buffer ranges"));
+
+	TArray<uint32> TempBuffer;
+	for (int32 I = 0; I < BoneCount; I++)
+	{
+		IndexBufferRanges[I].LODModels.SetNum(Resource->LODRenderData.Num());
+	}
+
+	TArray<int32> TempBoneIndicies;
+	for (int32 I = 0; I < Resource->LODRenderData.Num(); I++)
+	{
+		Progress.EnterProgressFrame();
+		const FSkeletalMeshLODRenderData& SrcModel = Resource->LODRenderData[I];
+		if (SrcModel.MultiSizeIndexContainer.IsIndexBufferValid())
+		{
+			SrcModel.MultiSizeIndexContainer.GetIndexBuffer(TempBuffer);
+		}
+
+		const int32 SectionCount = SrcModel.RenderSections.Num();
+		for (int32 B = 0; B < BoneCount; B++)
+		{
+			FSkeletalMeshIndexBufferRanges::FPerLODInfo& DestModel = IndexBufferRanges[B].LODModels[I];
+			DestModel.Sections.SetNum(SectionCount);
+		}
+
+		const FSkeletalMeshLODModel& LODModel = GetImportedModel()->LODModels[I];
+		for (int32 S = 0; S < SectionCount; S++)
+		{
+			const FSkelMeshSection& SkelSection = LODModel.Sections[S];
+			for (uint32 TI = 0; TI < SkelSection.NumTriangles; TI++)
+			{
+				const int32 IndexIndex = SkelSection.BaseIndex + TI * 3;
+				//The indices required for this triangle
+				FInt32Range CurIndexRange(IndexIndex, IndexIndex + 3);
+
+				TempBoneIndicies.Reset(3);
+				for (int32 VI = 0; VI < 3; VI++)
+				{
+					const int32 VertexIndex = TempBuffer[IndexIndex + VI] - SkelSection.BaseVertexIndex;
+					const FSoftSkinVertex& VertexData = SkelSection.SoftVertices[VertexIndex];
+					for (int32 WeightIdx = 0; WeightIdx < MAX_TOTAL_INFLUENCES; WeightIdx++)
+					{
+						if (VertexData.InfluenceWeights[WeightIdx] > 0)
+						{
+							int32 BoneIdx = SkelSection.BoneMap[VertexData.InfluenceBones[WeightIdx]];
+							if (BoneIdx != INDEX_NONE)
+							{
+								TempBoneIndicies.AddUnique(BoneIdx);
+							}
+						}
+					}
+				}
+
+				for (int32 BoneIndex : TempBoneIndicies)
+				{
+					FSkeletalMeshIndexBufferRanges::FPerLODInfo& DestModel = IndexBufferRanges[BoneIndex].LODModels[I];
+					FSkeletalMeshIndexBufferRanges::FPerSectionInfo& DestSection = DestModel.Sections[S];
+
+					bool bJoined = false;
+					for (FInt32Range& Existing : DestSection.Regions)
+					{
+						if (Existing.Contiguous(CurIndexRange))
+						{
+							Existing = FInt32Range::Hull(Existing, CurIndexRange);
+							bJoined = true;
+							break;
+						}
+					}
+					if (!bJoined)
+					{
+						DestSection.Regions.Add(CurIndexRange);
+					}
+				}
+			}
+		}
+	}
+}
+//nv end
 #endif // #if WITH_EDITOR
 
 void USkeletalMesh::ReleaseCPUResources()
@@ -3330,6 +3549,17 @@ void FSkeletalMeshSceneProxy::GetDynamicElementsSection(const TArray<const FScen
 
 	const bool bIsWireframe = ViewFamily.EngineShowFlags.Wireframe;
 
+//#nv begin #Blast Ability to hide bones using a dynamic index buffer
+	FSkeletalMeshDynamicOverride* DynamicOverride = MeshObject->GetSkeletalMeshDynamicOverride();
+	FDynamicLODModelOverride* LODModelDynamicOverride = nullptr;
+	FSkelMeshSectionOverride* SectionDynamicOverride = nullptr;
+	if (DynamicOverride)
+	{
+		LODModelDynamicOverride = &DynamicOverride->LODModels[LODIndex];
+		SectionDynamicOverride = &LODModelDynamicOverride->Sections[SectionIndex];
+	}
+//nv end
+
 	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 	{
 		if (VisibilityMap & (1 << ViewIndex))
@@ -3350,17 +3580,45 @@ void FSkeletalMeshSceneProxy::GetDynamicElementsSection(const TArray<const FScen
 			}
 
 			Mesh.bSelectable = bInSelectable;
-			BatchElement.FirstIndex = Section.BaseIndex;
 
-			BatchElement.IndexBuffer = LODData.MultiSizeIndexContainer.GetIndexBuffer();
+//#nv begin #Blast Ability to hide bones using a dynamic index buffer
+			int32 SectionNumTriangles;
+			if (SectionDynamicOverride) //If one is valid both are valid, no need to check both
+			{
+				BatchElement.FirstIndex = SectionDynamicOverride->BaseIndex;
+				BatchElement.IndexBuffer = LODModelDynamicOverride->MultiSizeIndexContainer.GetIndexBuffer();
+				SectionNumTriangles = SectionDynamicOverride->NumTriangles;
+				if (SectionNumTriangles == 0)
+				{
+					continue;
+				}
+			}
+			else
+			{
+				BatchElement.FirstIndex = Section.BaseIndex;
+				BatchElement.IndexBuffer = LODData.MultiSizeIndexContainer.GetIndexBuffer();
+				SectionNumTriangles = Section.NumTriangles;
+			}
+//nv end
+
 			BatchElement.MaxVertexIndex = LODData.GetNumVertices() - 1;
 			BatchElement.VertexFactoryUserData = FGPUSkinCache::GetFactoryUserData(MeshObject->SkinCacheEntry, SectionIndex);
 
 			const bool bRequiresAdjacencyInformation = RequiresAdjacencyInformation( SectionElementInfo.Material, Mesh.VertexFactory->GetType(), ViewFamily.GetFeatureLevel() );
 			if ( bRequiresAdjacencyInformation )
 			{
-				check(LODData.AdjacencyMultiSizeIndexContainer.IsIndexBufferValid() );
-				BatchElement.IndexBuffer = LODData.AdjacencyMultiSizeIndexContainer.GetIndexBuffer();
+//#nv begin #Blast Ability to hide bones using a dynamic index buffer
+				if (LODModelDynamicOverride)
+				{
+					check(LODModelDynamicOverride->AdjacencyMultiSizeIndexContainer.IsIndexBufferValid());
+					BatchElement.IndexBuffer = LODModelDynamicOverride->AdjacencyMultiSizeIndexContainer.GetIndexBuffer();
+				}
+				else
+				{
+					check(LODData.AdjacencyMultiSizeIndexContainer.IsIndexBufferValid());
+					BatchElement.IndexBuffer = LODData.AdjacencyMultiSizeIndexContainer.GetIndexBuffer();
+				}
+//nv end
 				Mesh.Type = PT_12_ControlPointPatchList;
 				BatchElement.FirstIndex *= 4;
 			}
@@ -3381,7 +3639,7 @@ void FSkeletalMeshSceneProxy::GetDynamicElementsSection(const TArray<const FScen
 
 			BatchElement.PrimitiveUniformBufferResource = &GetUniformBuffer();
 
-			BatchElement.NumPrimitives = Section.NumTriangles;
+			BatchElement.NumPrimitives = SectionNumTriangles;	//#nv #Blast Ability to hide bones using a dynamic index buffer
 
 #if WITH_EDITORONLY_DATA
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)

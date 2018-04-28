@@ -23,6 +23,7 @@
 #include "Rendering/SkinWeightVertexBuffer.h"
 #include "SkeletalMeshTypes.h"
 #include "Animation/MorphTarget.h"
+#include "ComponentRecreateRenderStateContext.h"	//#nv #Blast Ability to hide bones using a dynamic index buffer
 // @third party code - BEGIN HairWorks
 #include "Components/HairWorksComponent.h"
 // @third party code - END HairWorks
@@ -351,6 +352,9 @@ USkinnedMeshComponent::USkinnedMeshComponent(const FObjectInitializer& ObjectIni
 	bSyncAttachParentLOD = true;
 
 	CurrentBoneTransformRevisionNumber = 0;
+//#nv begin #Blast Ability to hide bones using a dynamic index buffer
+	BoneHidingMethod = BHM_Zero_Scale;
+//nv end
 }
 
 
@@ -397,6 +401,9 @@ void USkinnedMeshComponent::GetResourceSizeEx(FResourceSizeEx& CumulativeResourc
 	{
 		MeshObject->GetResourceSizeEx(CumulativeResourceSize);
 	}
+//#nv begin #Blast Ability to hide bones using a dynamic index buffer
+	IndexBufferOverride.GetResourceSizeEx(CumulativeResourceSize);
+//nv end
 }
 
 FPrimitiveSceneProxy* USkinnedMeshComponent::CreateSceneProxy()
@@ -540,6 +547,22 @@ void USkinnedMeshComponent::CreateRenderState_Concurrent()
 
 		// scene proxy update of material usage based on active morphs
 		UpdateMorphMaterialUsageOnProxy();
+
+//#nv begin #Blast Ability to hide bones using a dynamic index buffer
+		auto MeshResource = ShouldRender() ? SkeletalMesh->GetResourceForRendering() : nullptr;
+		if (MeshResource)
+		{
+			if (BoneHidingMethod == BHM_Dynamic_Index_Buffer && SkeletalMesh->GetIndexBufferRanges().Num() != 0)
+			{
+				IndexBufferOverride.InitResources(*MeshResource);
+			}
+		}
+
+		if (IndexBufferOverride.IsInitialized())
+		{
+			RebuildBoneVisibilityIndexBuffer();
+		}
+//nv end
 	}
 }
 
@@ -562,6 +585,21 @@ void USkinnedMeshComponent::DestroyRenderState_Concurrent()
 		BeginCleanup(MeshObject);
 		MeshObject = NULL;
 	}
+
+//#nv begin #Blast Ability to hide bones using a dynamic index buffer
+	// The index buffer override cannot be called from the render thread.
+	// DestroyRenderState_Concurrent() may be called during rendering for various reasons, e.g. to clear decals after fracturing.
+	// It is not necessary to reinitialize the IndexBufferOverride when this occurs, so we can skip the release here.
+	if (IsInGameThread() && IndexBufferOverride.IsInitialized())
+	{
+		IndexBufferOverride.ReleaseResources();
+
+		// Block until this is done
+		FlushRenderingCommands();
+
+		IndexBufferOverride = FSkeletalMeshDynamicOverride();
+	}
+//nv end
 }
 
 FString USkinnedMeshComponent::GetDetailedInfoInternal() const
@@ -1645,6 +1683,154 @@ FName USkinnedMeshComponent::GetSocketBoneName(FName InSocketName) const
 	return NAME_None;
 }
 
+//#nv begin #Blast Ability to hide bones using a dynamic index buffer
+void USkinnedMeshComponent::SetBoneHidingMethod(EBoneHidingMethod InBoneHidingMethod)
+{
+	if (InBoneHidingMethod < 0 || InBoneHidingMethod > BHM_MAX)
+	{
+		UE_LOG(LogSkinnedMeshComp, Warning, TEXT("USkinnedMeshComponent::SetBoneHidingMethod : Invalid Parameter: InBoneHidingMethod"));
+		return;
+	}
+
+	if (BoneHidingMethod != InBoneHidingMethod)
+	{
+		FComponentRecreateRenderStateContext Recreator(this);
+		BoneHidingMethod = InBoneHidingMethod;
+	}
+}
+
+void USkinnedMeshComponent::RebuildBoneVisibilityUpdateIndexBuffer_RenderThread(FSkeletalMeshIndexBufferRanges* CombinedResult)
+{
+	for (int32 L = 0; L < CombinedResult->LODModels.Num(); L++)
+	{
+		FDynamicLODModelOverride& OverrideModel = IndexBufferOverride.LODModels[L];
+		FSkeletalMeshIndexBufferRanges::FPerLODInfo& CombinedLODInfo = CombinedResult->LODModels[L];
+
+		if (IndexBufferOverride.LODModels[L].MultiSizeIndexContainer.IsIndexBufferValid())
+		{
+			FRawStaticIndexBuffer16or32Interface* IndexBuffer = IndexBufferOverride.LODModels[L].MultiSizeIndexContainer.GetIndexBuffer();
+			FRawStaticIndexBuffer16or32Interface* AdjIndexBuffer = IndexBufferOverride.LODModels[L].AdjacencyMultiSizeIndexContainer.IsIndexBufferValid() ?
+				IndexBufferOverride.LODModels[L].AdjacencyMultiSizeIndexContainer.GetIndexBuffer() : nullptr;
+
+			//We need this for GetPointerTo
+			check(IndexBuffer->GetNeedsCPUAccess());
+			check(!AdjIndexBuffer || AdjIndexBuffer->GetNeedsCPUAccess());
+
+			uint8* IndexBufferData = (IndexBuffer && IndexBuffer->IndexBufferRHI) ? reinterpret_cast<uint8*>(RHILockIndexBuffer(IndexBuffer->IndexBufferRHI, 0, IndexBuffer->GetResourceDataSize(), RLM_WriteOnly)) : nullptr;
+			const uint8* IndexBufferSrcData = (IndexBuffer && IndexBuffer->IndexBufferRHI) ? reinterpret_cast<uint8*>(IndexBuffer->GetPointerTo(0)) : nullptr;
+			const int32 IndexBufferElementSize = (IndexBuffer && IndexBuffer->IndexBufferRHI) ? (reinterpret_cast<uint8*>(IndexBuffer->GetPointerTo(1)) - IndexBufferSrcData) : 0;
+
+			uint8* AdjIndexBufferData = (AdjIndexBuffer && AdjIndexBuffer->IndexBufferRHI) ? reinterpret_cast<uint8*>(RHILockIndexBuffer(AdjIndexBuffer->IndexBufferRHI, 0, AdjIndexBuffer->GetResourceDataSize(), RLM_WriteOnly)) : nullptr;
+			const uint8* AdjIndexBufferSrcData = (AdjIndexBuffer && AdjIndexBuffer->IndexBufferRHI) ? reinterpret_cast<uint8*>(AdjIndexBuffer->GetPointerTo(0)) : nullptr;
+			const int32 AdjIndexCountMult = 4; //PT_12_ControlPointPatchList vs PT_TriangleList
+			const int32 AdjIndexBufferElementSize = ((AdjIndexBuffer && AdjIndexBuffer->IndexBufferRHI) ? (reinterpret_cast<uint8*>(AdjIndexBuffer->GetPointerTo(1)) - AdjIndexBufferSrcData) : 0) * AdjIndexCountMult;
+
+			int32 CurIndexCount = 0;
+			for (int32 S = 0; S < CombinedLODInfo.Sections.Num(); S++)
+			{
+				FSkelMeshSectionOverride& OverrideSection = OverrideModel.Sections[S];
+				const FSkeletalMeshIndexBufferRanges::FPerSectionInfo& SectionInfo = CombinedLODInfo.Sections[S];
+				int32 SectionIndexCount = 0;
+				for (const FInt32Range& Region : SectionInfo.Regions)
+				{
+					const int32 RegionSize = Region.Size<int32>();
+					if (IndexBufferData)
+					{
+						FMemory::Memcpy(IndexBufferData + (CurIndexCount + SectionIndexCount) * IndexBufferElementSize, IndexBufferSrcData + Region.GetLowerBoundValue() * IndexBufferElementSize, RegionSize * IndexBufferElementSize);
+					}
+					if (AdjIndexBufferData)
+					{
+						FMemory::Memcpy(AdjIndexBufferData + (CurIndexCount + SectionIndexCount) * AdjIndexBufferElementSize, AdjIndexBufferSrcData + Region.GetLowerBoundValue() * AdjIndexBufferElementSize, RegionSize * AdjIndexBufferElementSize);
+					}
+					SectionIndexCount += RegionSize;
+				}
+				OverrideSection.BaseIndex = CurIndexCount;
+				check((SectionIndexCount % 3) == 0);
+				OverrideSection.NumTriangles = SectionIndexCount / 3;
+				CurIndexCount += SectionIndexCount;
+			}
+
+			if (IndexBuffer && IndexBuffer->IndexBufferRHI)
+			{
+				RHIUnlockIndexBuffer(IndexBuffer->IndexBufferRHI);
+			}
+			if (AdjIndexBuffer && AdjIndexBuffer->IndexBufferRHI)
+			{
+				RHIUnlockIndexBuffer(AdjIndexBuffer->IndexBufferRHI);
+			}
+		}
+	}
+
+	delete CombinedResult;
+}
+
+void USkinnedMeshComponent::RebuildBoneVisibilityIndexBuffer()
+{
+	FSkeletalMeshRenderData* MeshResource = SkeletalMesh ? SkeletalMesh->GetResourceForRendering() : nullptr;
+	if (MeshResource)
+	{
+		//Get a combined set of visible ranges from the visible bones
+		FSkeletalMeshIndexBufferRanges* CombinedResult = new FSkeletalMeshIndexBufferRanges();
+		CombinedResult->LODModels.SetNum(MeshResource->LODRenderData.Num());
+		for (int32 L = 0; L < MeshResource->LODRenderData.Num(); L++)
+		{
+			CombinedResult->LODModels[L].Sections.SetNum(MeshResource->LODRenderData[L].RenderSections.Num());
+		}
+
+		//Build a single FSkeletalMeshIndexBufferRanges from the FSkeletalMeshIndexBufferRanges of each visible bone
+		for (int32 B = 0; B < BoneVisibilityStates.Num(); ++B)
+		{
+			if (BoneVisibilityStates[B] != BVS_Visible)
+			{
+				continue;	// Skip invisible bones
+			}
+			const FSkeletalMeshIndexBufferRanges& BoneRanges = SkeletalMesh->GetIndexBufferRanges()[B];
+			for (int32 L = 0; L < MeshResource->LODRenderData.Num(); L++)
+			{
+				FSkeletalMeshIndexBufferRanges::FPerLODInfo& DestLODInfo = CombinedResult->LODModels[L];
+				const FSkeletalMeshIndexBufferRanges::FPerLODInfo& SrcLODInfo = BoneRanges.LODModels[L];
+				for (int32 S = 0; S < SrcLODInfo.Sections.Num(); S++)
+				{
+					FSkeletalMeshIndexBufferRanges::FPerSectionInfo& DestSectionInfo = DestLODInfo.Sections[S];
+					const FSkeletalMeshIndexBufferRanges::FPerSectionInfo& SrcSectionInfo = SrcLODInfo.Sections[S];
+					for (const FInt32Range& BoneRegion : SrcSectionInfo.Regions)
+					{
+						bool bJoined = false;
+						for (FInt32Range& Existing : DestSectionInfo.Regions)
+						{
+							if (Existing.Contiguous(BoneRegion))
+							{
+								Existing = FInt32Range::Hull(Existing, BoneRegion);
+								bJoined = true;
+								break;
+							}
+						}
+						if (!bJoined)
+						{
+							DestSectionInfo.Regions.Add(BoneRegion);
+						}
+					}
+				}
+			}
+		}
+
+		ENQUEUE_RENDER_COMMAND(RebuildBoneVisibilityUpdateIndexBuffer)
+			([this, CombinedResult](FRHICommandListImmediate& RHICmdList)
+		{
+			RebuildBoneVisibilityUpdateIndexBuffer_RenderThread(CombinedResult);
+		});
+	}
+}
+
+void USkinnedMeshComponent::PostInitMeshObject(FSkeletalMeshObject* NewMeshObject)
+{
+	//Need to check directly since this is called before IndexBufferOverride.InitResources
+	if (NewMeshObject != nullptr && BoneHidingMethod == BHM_Dynamic_Index_Buffer && SkeletalMesh->GetIndexBufferRanges().Num() != 0)
+	{
+		NewMeshObject->SetSkeletalMeshDynamicOverride(&IndexBufferOverride);
+	}
+}
+//nv end
 
 FQuat USkinnedMeshComponent::GetBoneQuaternion(FName BoneName, EBoneSpaces::Type Space) const
 {

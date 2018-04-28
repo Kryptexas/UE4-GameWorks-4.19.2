@@ -36,6 +36,7 @@ FSkeletalMeshObject::FSkeletalMeshObject(USkinnedMeshComponent* InMeshComponent,
 ,	SelectedEditorMaterial(InMeshComponent->GetSelectedEditorMaterial())
 #endif	
 ,	SkeletalMeshRenderData(InSkelMeshRenderData)
+,	SkeletalMeshDynamicOverride(nullptr) //#nv #Blast Ability to hide bones using a dynamic index buffer
 ,	SkeletalMeshLODInfo(InMeshComponent->SkeletalMesh->LODInfo)
 ,	SkinCacheEntry(nullptr)
 ,	LastFrameNumber(0)

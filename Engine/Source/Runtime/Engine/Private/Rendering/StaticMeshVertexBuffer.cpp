@@ -185,7 +185,7 @@ void FStaticMeshVertexBuffer::Serialize(FArchive& Ar, bool bNeedsCPUAccess)
 			TangentsData->Serialize(Ar);
 
 			// Make a copy of the vertex data pointer.
-			TangentsDataPtr = TangentsData->GetDataPointer();
+			TangentsDataPtr = NumVertices ? TangentsData->GetDataPointer() : nullptr;	//#nv #Blast NumVertices check, necessary only to load old Blast levels
 		}
 
 		if (TexcoordData != nullptr)
@@ -194,7 +194,7 @@ void FStaticMeshVertexBuffer::Serialize(FArchive& Ar, bool bNeedsCPUAccess)
 			TexcoordData->Serialize(Ar);
 
 			// Make a copy of the vertex data pointer.
-			TexcoordDataPtr = TexcoordData->GetDataPointer();
+			TexcoordDataPtr = NumVertices ? TexcoordData->GetDataPointer() : nullptr;	//#nv #Blast NumVertices check, necessary only to load old Blast levels
 			
 			// convert half float data to full float if the HW requires it.
 			if (!GetUseFullPrecisionUVs() && !GVertexElementTypeSupport.IsSupported(VET_Half2))
