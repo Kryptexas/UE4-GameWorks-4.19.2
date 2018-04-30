@@ -1718,8 +1718,12 @@ void FRCPassPostProcessSunMergeES2::Process(FRenderingCompositePassContext& Cont
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
 
 	// Double buffer sun+bloom+vignette composite.
-	if(Context.View.AntiAliasingMethod == AAM_TemporalAA)
-	{
+// #if WITH_TXAA
+// 	if(Context.View.AntiAliasingMethod == AAM_TemporalAA || Context.View.AntiAliasingMethod == AAM_TXAA)
+// #else
+    if (Context.View.AntiAliasingMethod == AAM_TemporalAA)
+// #endif // WITH_TXAA
+        {
 		FSceneViewState* ViewState = (FSceneViewState*)Context.View.State;
 		if(ViewState) 
 		{
@@ -1921,8 +1925,12 @@ void FRCPassPostProcessSunMergeSmallES2::Process(FRenderingCompositePassContext&
 
 	// Double buffer sun+bloom+vignette composite.
 
-	if (Context.View.AntiAliasingMethod == AAM_TemporalAA)
-	{
+// #if WITH_TXAA
+// 	if (Context.View.AntiAliasingMethod == AAM_TemporalAA || Context.View.AntiAliasingMethod == AAM_TXAA)
+// #else
+    if (Context.View.AntiAliasingMethod == AAM_TemporalAA)
+// #endif // WITH_TXAA
+        {
 		FSceneViewState* ViewState = (FSceneViewState*)Context.View.State;
 		if(ViewState) 
 		{

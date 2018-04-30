@@ -797,9 +797,15 @@ bool FViewInfo::VerifyMembersChecks() const
 	FSceneView::VerifyMembersChecks();
 
 	// ------------------------------------------- Screen percentage checks.
-	checkf(
-		!(PrimaryScreenPercentageMethod == EPrimaryScreenPercentageMethod::TemporalUpscale && AntiAliasingMethod != AAM_TemporalAA),
-		TEXT("ScreenPercentageMethod == EPrimaryScreenPercentageMethod::TemporalUpscale requires AntiAliasingMethod == AAM_TemporalAA"));
+// #if WITH_TXAA
+// 	checkf(
+// 		!(PrimaryScreenPercentageMethod == EPrimaryScreenPercentageMethod::TemporalUpscale && AntiAliasingMethod != AAM_TemporalAA && AntiAliasingMethod != AAM_TXAA),
+// 		TEXT("ScreenPercentageMethod == EPrimaryScreenPercentageMethod::TemporalUpscale requires AntiAliasingMethod == AAM_TemporalAA OR AntiAliasingMethod == AAM_TXAA"));
+// #else
+    checkf(
+        !(PrimaryScreenPercentageMethod == EPrimaryScreenPercentageMethod::TemporalUpscale && AntiAliasingMethod != AAM_TemporalAA),
+        TEXT("ScreenPercentageMethod == EPrimaryScreenPercentageMethod::TemporalUpscale requires AntiAliasingMethod == AAM_TemporalAA"));
+// #endif // WITH_TXAA
 
 	if (PrimaryScreenPercentageMethod == EPrimaryScreenPercentageMethod::TemporalUpscale)
 	{
@@ -1946,7 +1952,11 @@ void FSceneRenderer::PrepareViewRectsForRendering()
 		{
 			// Tenmporal upsample is supported on SM5 only if TAA is turned on.
 			if (View.PrimaryScreenPercentageMethod == EPrimaryScreenPercentageMethod::TemporalUpscale &&
-				(View.AntiAliasingMethod != AAM_TemporalAA ||
+// #if WITH_TXAA
+// 				((View.AntiAliasingMethod != AAM_TemporalAA  && View.AntiAliasingMethod != AAM_TXAA) ||
+// #else
+                ((View.AntiAliasingMethod != AAM_TemporalAA) ||
+// #endif // WITH_TXAA
 				 FeatureLevel < ERHIFeatureLevel::SM5 ||
 				 ViewFamily.EngineShowFlags.VisualizeBuffer))
 			{
@@ -2494,8 +2504,12 @@ void FSceneRenderer::RenderCustomDepthPass(FRHICommandListImmediate& RHICmdList)
 					DrawRenderState.SetDepthStencilState(TStaticDepthStencilState<true, CF_DepthNearOrEqual>::GetRHI());
 				}
     
-				if ((CVarCustomDepthTemporalAAJitter.GetValueOnRenderThread() == 0) && (View.AntiAliasingMethod == AAM_TemporalAA))
-				{
+#if WITH_TXAA
+				if ((CVarCustomDepthTemporalAAJitter.GetValueOnRenderThread() == 0) && (View.AntiAliasingMethod == AAM_TemporalAA || View.AntiAliasingMethod == AAM_TXAA))
+#else
+                if ((CVarCustomDepthTemporalAAJitter.GetValueOnRenderThread() == 0) && View.AntiAliasingMethod == AAM_TemporalAA)
+#endif // WITH_TXAA
+                    {
 					FBox VolumeBounds[TVC_MAX];
     
 					FViewMatrices ModifiedViewMatricies = View.ViewMatrices;

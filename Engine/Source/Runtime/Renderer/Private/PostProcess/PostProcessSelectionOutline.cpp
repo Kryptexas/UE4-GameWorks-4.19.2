@@ -85,7 +85,11 @@ void FRCPassPostProcessSelectionOutlineColor::Process(FRenderingCompositePassCon
 			// Kills material texture mipbias because after TAA.
 			EditorView.MaterialTextureMipBias = 0.0f;
 
-			if (EditorView.AntiAliasingMethod == AAM_TemporalAA)
+#if WITH_TXAA
+			if (EditorView.AntiAliasingMethod == AAM_TemporalAA || EditorView.AntiAliasingMethod == AAM_TXAA)
+#else
+            if (EditorView.AntiAliasingMethod == AAM_TemporalAA)
+#endif // WITH_TXAA
 			{
 				EditorView.ViewMatrices.HackRemoveTemporalAAProjectionJitter();
 			}

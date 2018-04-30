@@ -961,7 +961,11 @@ void FRCPassPostProcessSubsurfaceRecombine::Process(FRenderingCompositePassConte
 	{
 		if(QualityCVar == -1)
 		{
-			RecombineQuality = (View.AntiAliasingMethod == AAM_TemporalAA) ? 0 : 1;
+// #if WITH_TXAA
+// 			RecombineQuality = (View.AntiAliasingMethod == AAM_TemporalAA || View.AntiAliasingMethod == AAM_TXAA) ? 0 : 1;
+// #else
+            RecombineQuality = (View.AntiAliasingMethod == AAM_TemporalAA) ? 0 : 1;
+// #endif // WITH_TXAA
 		}
 		else if(QualityCVar == 1)
 		{

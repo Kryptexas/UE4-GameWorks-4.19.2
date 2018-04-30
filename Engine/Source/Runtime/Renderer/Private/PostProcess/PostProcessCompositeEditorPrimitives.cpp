@@ -428,7 +428,11 @@ void FRCPassPostProcessCompositeEditorPrimitives::Process(FRenderingCompositePas
 		// Disable decals so that we don't do a SetDepthStencilState() in TMobileBasePassDrawingPolicy::SetupPipelineState()
 		EditorView.bSceneHasDecals = false;
 
-		if (EditorView.AntiAliasingMethod == AAM_TemporalAA)
+#ifdef WITH_TXAA
+		if (EditorView.AntiAliasingMethod == AAM_TemporalAA || EditorView.AntiAliasingMethod == AAM_TXAA)
+#else
+        if (EditorView.AntiAliasingMethod == AAM_TemporalAA)
+#endif // WITH_TXAA
 		{
 			EditorView.ViewMatrices.HackRemoveTemporalAAProjectionJitter();
 		}
