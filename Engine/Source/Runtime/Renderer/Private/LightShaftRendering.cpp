@@ -571,11 +571,7 @@ void ApplyTemporalAA(
 	TRefCountPtr<IPooledRenderTarget>& HistoryOutput)
 {
 	if (
-// #if WITH_TXAA
-//         (View.AntiAliasingMethod == AAM_TemporalAA || View.AntiAliasingMethod == AAM_TXAA)
-// #else
-        View.AntiAliasingMethod == AAM_TemporalAA
-// #endif // WITH_TXAA
+		View.AntiAliasingMethod == AAM_TemporalAA
 		&& HistoryState && HistoryState->IsValid())
 	{
 		if (!View.bCameraCut)

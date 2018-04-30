@@ -724,12 +724,8 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 
 	SetupAntiAliasingMethod();
 
-// #if WITH_TXAA
-//     if (CVarEnableTemporalUpsample.GetValueOnAnyThread() && (AntiAliasingMethod == AAM_TemporalAA || AntiAliasingMethod == AAM_TXAA))
-// #else
-    if (CVarEnableTemporalUpsample.GetValueOnAnyThread() && AntiAliasingMethod == AAM_TemporalAA)
-// #endif // WITH_TXAA
-    {
+	if (CVarEnableTemporalUpsample.GetValueOnAnyThread() && AntiAliasingMethod == AAM_TemporalAA)
+	{
 		// The renderer will automatically fallback to SpatialUpscale if not using TemporalAA anti aliasing method.
 		PrimaryScreenPercentageMethod = EPrimaryScreenPercentageMethod::TemporalUpscale;
 	}
@@ -781,13 +777,7 @@ void FSceneView::SetupAntiAliasingMethod()
 		static auto* MobileMSAACvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileMSAA"));
 		static uint32 MobileMSAAValue = GShaderPlatformForFeatureLevel[FeatureLevel] == SP_OPENGL_ES2_IOS ? 1 : MobileMSAACvar->GetValueOnAnyThread();
 
-		int32 Quality = FMath::Clamp(PostProcessAAQualityCVar->GetValueOnAnyThread(), 0, 
-#if WITH_TXAA
-            7
-#else
-            6
-#endif // WITH_TXAA
-        );
+		int32 Quality = FMath::Clamp(PostProcessAAQualityCVar->GetValueOnAnyThread(), 0, 6);
 		const bool bWillApplyTemporalAA = Family->EngineShowFlags.PostProcessing || bIsPlanarReflection;
 
 		if (!bWillApplyTemporalAA || !Family->EngineShowFlags.AntiAliasing || Quality <= 0
@@ -800,21 +790,16 @@ void FSceneView::SetupAntiAliasingMethod()
 			AntiAliasingMethod = AAM_None;
 		}
 
-// #if WITH_TXAA
-// 		if (AntiAliasingMethod == AAM_TemporalAA || AntiAliasingMethod == AAM_TXAA)
-// #else
-        if (AntiAliasingMethod == AAM_TemporalAA)
-// #endif // WITH_TXAA
-            {
-			if (!Family->EngineShowFlags.TemporalAA || !Family->bRealtimeUpdate || Quality < 3 || Quality == 7)
+	#if WITH_TXAA
+		if (AntiAliasingMethod == AAM_TemporalAA || AntiAliasingMethod == AAM_TXAA)
+	#else
+		if (AntiAliasingMethod == AAM_TemporalAA)
+	#endif // WITH_TXAA
+		{
+			if (!Family->EngineShowFlags.TemporalAA || !Family->bRealtimeUpdate || Quality < 3)
 			{
-                if (Quality < 3)
+				if (Quality < 3)
 				    AntiAliasingMethod = AAM_FXAA;
-#if WITH_TXAA
-                else if (Quality == 7)
-                    AntiAliasingMethod = AAM_TXAA;
-#endif // WITH_TXAA
-
 			}
 		}
 	}

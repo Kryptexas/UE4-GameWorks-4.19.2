@@ -496,11 +496,7 @@ static void AddPostProcessDepthOfFieldBokeh(FPostprocessContext& Context, FRende
 	FSceneViewState* ViewState = (FSceneViewState*)Context.View.State;
 	
 	FRenderingCompositePass* DOFInputPass = DOFSetup;
-// #if WITH_TXAA
-//     if ((Context.View.AntiAliasingMethod == AAM_TemporalAA  || Context.View.AntiAliasingMethod == AAM_TXAA) && ViewState)
-// #else
-    if (Context.View.AntiAliasingMethod == AAM_TemporalAA  && ViewState)
-// #endif // WITH_TXAA
+	if (Context.View.AntiAliasingMethod == AAM_TemporalAA  && ViewState)
 	{
 		FRenderingCompositePass* HistoryInput;
 		if( ViewState->DOFHistory.IsValid() && ViewState->bDOFHistory && !Context.View.bCameraCut )
@@ -550,12 +546,8 @@ static bool AddPostProcessDepthOfFieldGaussian(FPostprocessContext& Context, FDe
 
 			FRenderingCompositeOutputRef DOFInputPass = DOFSetup;
 			const bool bMobileQuality = (Context.View.GetFeatureLevel() <= ERHIFeatureLevel::ES3_1);
-// #if WITH_TXAA
-//             if ((Context.View.AntiAliasingMethod == AAM_TemporalAA || Context.View.AntiAliasingMethod == AAM_TXAA) && ViewState && !bMobileQuality)
-// #else
-            if (Context.View.AntiAliasingMethod == AAM_TemporalAA && ViewState && !bMobileQuality)
-// #endif // WITH_TXAA
-            {
+			if (Context.View.AntiAliasingMethod == AAM_TemporalAA && ViewState && !bMobileQuality)
+			{
 				// If no history use current as history
 				FRenderingCompositeOutputRef HistoryInput = DOFSetup;
 
@@ -675,12 +667,8 @@ static void AddPostProcessDepthOfFieldCircle(FPostprocessContext& Context, const
 
 	auto ColorSetup = FRenderingCompositeOutputRef( DOFSetup, ePId_Output0 );
 	auto CocSetup = FRenderingCompositeOutputRef( DOFSetup, FPostProcessing::HasAlphaChannelSupport() ? ePId_Output1 : ePId_Output0 );
-// #if WITH_TXAA
-// 	if( (Context.View.AntiAliasingMethod == AAM_TemporalAA || Context.View.AntiAliasingMethod == AAM_TXAA) && ViewState )
-// #else
-    if (Context.View.AntiAliasingMethod == AAM_TemporalAA && ViewState)
-// #endif // WITH_TXAA
-        {
+	if (Context.View.AntiAliasingMethod == AAM_TemporalAA && ViewState)
+	{
 		FRenderingCompositePass* HistoryInput;
 		if( ViewState->DOFHistory.IsValid() && !ViewState->bDOFHistory && !Context.View.bCameraCut )
 		{
@@ -1575,12 +1563,8 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, const FViewI
 
 			EAntiAliasingMethod AntiAliasingMethod = Context.View.AntiAliasingMethod;
 
-// #if WITH_TXAA
-// 			if( (AntiAliasingMethod == AAM_TemporalAA || AntiAliasingMethod == AAM_TXAA) && ViewState)
-// #else
-            if (AntiAliasingMethod == AAM_TemporalAA && ViewState)
-// #endif // WITH_TXAA
-                {
+			if (AntiAliasingMethod == AAM_TemporalAA && ViewState)
+			{
 				if(VelocityInput.IsValid())
 				{
 					AddTemporalAA( Context, VelocityInput );
@@ -2302,11 +2286,7 @@ void FPostProcessing::ProcessES2(FRHICommandListImmediate& RHICmdList, const FVi
 		FRenderingCompositeOutputRef BloomOutput;
 		FRenderingCompositeOutputRef DofOutput;
 
-// #if WITH_TXAA
-// 		bool bUseAa = View.AntiAliasingMethod == AAM_TemporalAA || View.AntiAliasingMethod == AAM_TXAA;
-// #else
-        bool bUseAa = View.AntiAliasingMethod == AAM_TemporalAA;
-// #endif // WITH_TXAA
+		bool bUseAa = View.AntiAliasingMethod == AAM_TemporalAA;
 
 		// AA with Mobile32bpp mode requires this outside of bUsePost.
 		if(bUseAa)
@@ -2798,12 +2778,8 @@ void FPostProcessing::ProcessPlanarReflection(FRHICommandListImmediate& RHICmdLi
 		FSceneViewState* ViewState = Context.View.ViewState;
 		EAntiAliasingMethod AntiAliasingMethod = Context.View.AntiAliasingMethod;
 
-// #if WITH_TXAA
-// 		if ((AntiAliasingMethod == AAM_TemporalAA || AntiAliasingMethod == AAM_TXAA) && ViewState)
-// #else
-        if (AntiAliasingMethod == AAM_TemporalAA  && ViewState)
-// #endif // WITH_TXAA
-            {
+		if (AntiAliasingMethod == AAM_TemporalAA  && ViewState)
+		{
 			if(VelocityInput.IsValid())
 			{
 				AddTemporalAA( Context, VelocityInput );

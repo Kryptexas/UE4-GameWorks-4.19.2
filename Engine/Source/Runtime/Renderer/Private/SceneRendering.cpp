@@ -797,15 +797,9 @@ bool FViewInfo::VerifyMembersChecks() const
 	FSceneView::VerifyMembersChecks();
 
 	// ------------------------------------------- Screen percentage checks.
-// #if WITH_TXAA
-// 	checkf(
-// 		!(PrimaryScreenPercentageMethod == EPrimaryScreenPercentageMethod::TemporalUpscale && AntiAliasingMethod != AAM_TemporalAA && AntiAliasingMethod != AAM_TXAA),
-// 		TEXT("ScreenPercentageMethod == EPrimaryScreenPercentageMethod::TemporalUpscale requires AntiAliasingMethod == AAM_TemporalAA OR AntiAliasingMethod == AAM_TXAA"));
-// #else
-    checkf(
-        !(PrimaryScreenPercentageMethod == EPrimaryScreenPercentageMethod::TemporalUpscale && AntiAliasingMethod != AAM_TemporalAA),
-        TEXT("ScreenPercentageMethod == EPrimaryScreenPercentageMethod::TemporalUpscale requires AntiAliasingMethod == AAM_TemporalAA"));
-// #endif // WITH_TXAA
+	checkf(
+		!(PrimaryScreenPercentageMethod == EPrimaryScreenPercentageMethod::TemporalUpscale && AntiAliasingMethod != AAM_TemporalAA),
+		TEXT("ScreenPercentageMethod == EPrimaryScreenPercentageMethod::TemporalUpscale requires AntiAliasingMethod == AAM_TemporalAA"));
 
 	if (PrimaryScreenPercentageMethod == EPrimaryScreenPercentageMethod::TemporalUpscale)
 	{
@@ -1952,11 +1946,7 @@ void FSceneRenderer::PrepareViewRectsForRendering()
 		{
 			// Tenmporal upsample is supported on SM5 only if TAA is turned on.
 			if (View.PrimaryScreenPercentageMethod == EPrimaryScreenPercentageMethod::TemporalUpscale &&
-// #if WITH_TXAA
-// 				((View.AntiAliasingMethod != AAM_TemporalAA  && View.AntiAliasingMethod != AAM_TXAA) ||
-// #else
-                ((View.AntiAliasingMethod != AAM_TemporalAA) ||
-// #endif // WITH_TXAA
+				((View.AntiAliasingMethod != AAM_TemporalAA) ||
 				 FeatureLevel < ERHIFeatureLevel::SM5 ||
 				 ViewFamily.EngineShowFlags.VisualizeBuffer))
 			{

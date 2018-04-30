@@ -118,11 +118,7 @@ bool IsSSRTemporalPassRequired(const FViewInfo& View, bool bCheckSSREnabled)
 	{
 		return false;
 	}
-// #if WITH_TXAA
-//     return (View.AntiAliasingMethod != AAM_TemporalAA && View.AntiAliasingMethod != AAM_TXAA) || CVarSSRTemporal.GetValueOnRenderThread() != 0;
-// #else
-    return View.AntiAliasingMethod != AAM_TemporalAA || CVarSSRTemporal.GetValueOnRenderThread() != 0;
-// #endif // WITH_TXAA
+	return View.AntiAliasingMethod != AAM_TemporalAA || CVarSSRTemporal.GetValueOnRenderThread() != 0;
 }
 
 
@@ -146,11 +142,7 @@ FLinearColor ComputeSSRParams(const FRenderingCompositePassContext& Context, uin
 
 	if(Context.ViewState)
 	{
-// #if WITH_TXAA
-// 		bool bTemporalAAIsOn = Context.View.AntiAliasingMethod == AAM_TemporalAA || Context.View.AntiAliasingMethod == AAM_TXAA;
-// #else
-        bool bTemporalAAIsOn = Context.View.AntiAliasingMethod == AAM_TemporalAA;
-// #endif // WITH_TXAA
+		bool bTemporalAAIsOn = Context.View.AntiAliasingMethod == AAM_TemporalAA;
 
 		if(bTemporalAAIsOn)
 		{
