@@ -516,6 +516,11 @@ void FSceneRenderer::InitVxgiRenderingState(const FSceneViewFamily* InViewFamily
 
 bool FSceneRenderer::IsVxgiEnabled(const FViewInfo& View)
 {
+	if (IsForwardShadingEnabled(FeatureLevel))
+	{
+		return false; // VXGI is incompatible with forward shading
+	}
+
 	if (!View.State && !View.bEnableVxgiForSceneCapture)
 	{
 		return false; //some editor panel or something
