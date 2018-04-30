@@ -2056,6 +2056,9 @@ void FD3D11DynamicRHI::RHIRenderHBAO(
 	const GFSDK_SSAO_Parameters& BaseParams
 )
 {
+	static const auto CVarHBAOGBufferNormals = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HBAO.GBufferNormals"));
+	static const auto CVarHBAOVisualizeAO = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HBAO.VisualizeAO"));
+
 	if (!HBAOContext)
 	{
 		return;
@@ -2090,8 +2093,8 @@ void FD3D11DynamicRHI::RHIRenderHBAO(
 
 	FD3D11TextureBase* NormalTexture = GetD3D11TextureFromRHITexture(SceneNormalTextureRHI);
 	ID3D11ShaderResourceView* NormalSRV = NormalTexture->GetShaderResourceView();
-
-	int32 bHBAOGbufferNormals = IConsoleManager::Get().FindConsoleVariable(TEXT("r.HBAO.GBufferNormals"))->GetInt();
+	
+	int32 bHBAOGbufferNormals = CVarHBAOGBufferNormals->GetValueOnRenderThread();
 	Input.NormalData.Enable = bHBAOGbufferNormals;
 	Input.NormalData.pFullResNormalTextureSRV = NormalSRV;
 	Input.NormalData.DecodeScale = 2.f;
@@ -2099,7 +2102,7 @@ void FD3D11DynamicRHI::RHIRenderHBAO(
 	Input.NormalData.WorldToViewMatrix.Data = GFSDK_SSAO_Float4x4(&ViewMatrix.M[0][0]);
 	Input.NormalData.WorldToViewMatrix.Layout = GFSDK_SSAO_ROW_MAJOR_ORDER;
 
-	int32 bHBAOVisualizeAO = IConsoleManager::Get().FindConsoleVariable(TEXT("r.HBAO.VisualizeAO"))->GetInt();
+	int32 bHBAOVisualizeAO = CVarHBAOVisualizeAO->GetValueOnRenderThread();
 	GFSDK_SSAO_Output_D3D11 Output;
 	ZeroMemory(&Output, sizeof(Output));
 	Output.pRenderTargetView = RenderTargetView;
