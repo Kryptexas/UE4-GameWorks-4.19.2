@@ -2946,6 +2946,12 @@ FBlastMeshSceneProxy::FBlastMeshSceneProxy(const UBlastMeshComponent* Component,
 	FSkeletalMeshSceneProxy(Component, InSkelMeshRenderData)
 {
 	PhysicsAssetForDebug = Component->GetBlastMesh()->PhysicsAsset;
+
+	const UBlastMeshComponent* BlastMeshComponent = Cast<const UBlastMeshComponent>(Component);
+	if (BlastMeshComponent && BlastMeshComponent->bPerBoneMotionBlur)
+	{
+		bAlwaysHasVelocity = true;
+	}
 }
 
 void FBlastMeshSceneProxy::DebugDrawPhysicsAsset(int32 ViewIndex, FMeshElementCollector& Collector, const FEngineShowFlags& EngineShowFlags) const
