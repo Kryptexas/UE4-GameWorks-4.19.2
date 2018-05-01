@@ -256,6 +256,7 @@ namespace Audio
 				BufferDataPtr[i] = (BufferType)(BufferDataPtr[i] * FadeParam.Update());
 			}
 
+			bFadedOut = (FadeVolume == 0.0f);
 			bPerformingFade = false;
 			AudioFadeEvent->Trigger();
 		}

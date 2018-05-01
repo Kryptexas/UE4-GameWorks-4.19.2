@@ -199,7 +199,7 @@ EMovieSceneCompileResult UMovieSceneTrack::Compile(FMovieSceneEvaluationTrack& O
 	{
 		for (const UMovieSceneSection* Section : GetAllSections())
 		{
-			if (!Section->IsActive())
+			if (!Section->IsActive() || Section->GetRange().IsEmpty())
 			{
 				continue;
 			}

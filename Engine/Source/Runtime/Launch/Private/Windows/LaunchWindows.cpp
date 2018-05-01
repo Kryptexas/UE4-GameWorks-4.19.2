@@ -108,6 +108,16 @@ void SetupWindowsEnvironment( void )
 }
 
 /**
+ * Fallback for catching exceptions which aren't caught elsewhere. This allows catching exceptions on threads created outside the engine.
+ * Note that Windows does not call this handler if a debugger is attached, separately to our internal logic around crash handling.
+ */
+LONG WINAPI UnhandledException(EXCEPTION_POINTERS *ExceptionInfo)
+{
+	ReportCrash(ExceptionInfo);
+	return EXCEPTION_CONTINUE_SEARCH;
+}
+
+/**
  * The inner exception handler catches crashes/asserts in native C++ code and is the only way to get the correct callstack
  * when running a 64-bit executable. However, XAudio2 doesn't always like this and it may result in no sound.
  */
@@ -200,6 +210,9 @@ int32 WINAPI WinMain( _In_ HINSTANCE hInInstance, _In_opt_ HINSTANCE hPrevInstan
 	}
 	else
 	{
+		// Install an unhandled exception filter, to catch any exceptions on threads that are not created by the engine.
+		SetUnhandledExceptionFilter(UnhandledException);
+
 		// Use structured exception handling to trap any crashes, walk the the stack and display a crash dialog box.
 #if !PLATFORM_SEH_EXCEPTIONS_DISABLED
 		__try
@@ -219,7 +232,10 @@ int32 WINAPI WinMain( _In_ HINSTANCE hInInstance, _In_opt_ HINSTANCE hPrevInstan
 #endif
 			// Crashed.
 			ErrorLevel = 1;
-			GError->HandleError();
+			if(GError)
+			{
+				GError->HandleError();
+			}
 			LaunchStaticShutdownAfterError();
 			FPlatformMallocCrash::Get().PrintPoolsUsage();
 			FPlatformMisc::RequestExit( true );

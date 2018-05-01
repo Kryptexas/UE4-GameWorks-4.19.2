@@ -14,7 +14,6 @@
 #include "PackedNormal.h"
 #include "RawIndexBuffer.h"
 #include "UniquePtr.h"
-#include "Runtime/Launch/Resources/Version.h"
 #include "StaticMeshComponent.generated.h"
 
 class FColorVertexBuffer;

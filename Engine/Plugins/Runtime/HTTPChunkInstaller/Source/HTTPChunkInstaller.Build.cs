@@ -18,10 +18,5 @@ public class HTTPChunkInstaller : ModuleRules
                 "PakFile",
             }
             );
-
- //       if (Target.Platform != UnrealTargetPlatform.Win64 && Target.Platform != UnrealTargetPlatform.Win32 && Target.Platform != UnrealTargetPlatform.IOS)
-        {
-            PrecompileForTargets = PrecompileTargetsType.None;
-        }
     }
 }

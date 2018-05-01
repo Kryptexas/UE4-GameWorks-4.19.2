@@ -1,7 +1,7 @@
 {
 	"FileVersion": 3,
-	"Version": 180,
-	"VersionName": "0.18",
+	"Version": 181,
+	"VersionName": "0.181",
 	"FriendlyName": "DatasmithContent",
 	"Description": "Content for Datasmith Importer.",
 	"Category": "Unreal Studio",

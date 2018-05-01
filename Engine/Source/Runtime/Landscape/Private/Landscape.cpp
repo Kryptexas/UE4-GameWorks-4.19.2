@@ -654,7 +654,7 @@ void ULandscapeComponent::PostLoad()
 #endif
 
 	// Be sure we have the appropriate material count
-	const bool bTessellationEnabled = (MaterialInstances.Num() > 0 && MaterialInstances[0]->Parent->GetMaterial()->D3D11TessellationMode != EMaterialTessellationMode::MTM_NoTessellation);
+	const bool bTessellationEnabled = (MaterialInstances.Num() > 0 && MaterialInstances[0] != nullptr && MaterialInstances[0]->Parent != nullptr && MaterialInstances[0]->Parent->GetMaterial()->D3D11TessellationMode != EMaterialTessellationMode::MTM_NoTessellation);
 
 	if (bTessellationEnabled && MaterialInstances.Num() < 2)
 	{

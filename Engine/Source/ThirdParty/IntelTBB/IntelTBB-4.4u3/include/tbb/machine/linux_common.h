@@ -26,6 +26,8 @@
 #define __TBB_Yield()  sched_yield()
 
 #include <unistd.h>
+#define __TBB_Sleep(v) usleep((v)*1000)
+
 /* Futex definitions */
 #include <sys/syscall.h>
 

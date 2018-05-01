@@ -858,7 +858,7 @@ void SMaterialLayersFunctionsInstanceTree::RefreshOnAssetChange(const struct FAs
 void SMaterialLayersFunctionsInstanceTree::ResetAssetToDefault(TSharedPtr<IPropertyHandle> InHandle, TSharedPtr<FStackSortedData> InData)
 {
 	FMaterialPropertyHelpers::ResetLayerAssetToDefault(FunctionInstanceHandle.ToSharedRef(), InData->Parameter, InData->ParameterInfo.Association, InData->ParameterInfo.Index, MaterialEditorInstance);
-	UpdateThumbnailMaterial(InData->ParameterInfo.Association, InData->ParameterInfo.Index, true);
+	UpdateThumbnailMaterial(InData->ParameterInfo.Association, InData->ParameterInfo.Index, false);
 	CreateGroupsWidget();
 	RequestTreeRefresh();
 }
