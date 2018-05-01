@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -11,7 +11,6 @@
 #include "Materials/MaterialInterface.h"
 #include "Particles/ParticleSystem.h"
 #include "Particles/Emitter.h"
-#include "Runtime/Launch/Resources/Version.h"
 #include "ParticleSystemComponent.generated.h"
 
 class FParticleDynamicData;

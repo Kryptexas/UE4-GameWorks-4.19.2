@@ -1790,7 +1790,7 @@ void FAudioDevice::UpdateSoundMix(USoundMix* SoundMix, FSoundMixState* SoundMixS
 					SoundMixState->EndTime = SoundMixState->FadeOutStartTime + SoundMix->FadeOutTime;
 
 				}
-				else if (SoundMixState->CurrentState == ESoundMixState::FadingOut)
+				else if (SoundMixState->CurrentState == ESoundMixState::FadingOut || SoundMixState->CurrentState == ESoundMixState::AwaitingRemoval)
 				{
 					// Flip the state to fade in
 					SoundMixState->CurrentState = ESoundMixState::FadingIn;
@@ -2246,7 +2246,7 @@ void FAudioDevice::UpdateSoundClassProperties(float DeltaTime)
 
 		ApplyClassAdjusters(It.Key(), SoundMixState->InterpValue, DeltaTime);
 
-		if (SoundMixState->CurrentState == ESoundMixState::AwaitingRemoval)
+		if (SoundMixState->CurrentState == ESoundMixState::AwaitingRemoval && SoundMixState->PassiveRefCount == 0)
 		{
 			ClearSoundMix(It.Key());
 		}

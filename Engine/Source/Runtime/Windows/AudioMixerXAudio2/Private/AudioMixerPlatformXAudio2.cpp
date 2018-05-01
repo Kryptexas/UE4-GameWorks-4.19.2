@@ -475,9 +475,10 @@ namespace Audio
 		return true;
 	}
 
-
 	bool FMixerPlatformXAudio2::CheckAudioDeviceChange()
 	{
+		FScopeLock Lock(&AudioDeviceSwapCriticalSection);
+
 		if (bMoveAudioStreamToNewAudioDevice)
 		{
 			bMoveAudioStreamToNewAudioDevice = false;

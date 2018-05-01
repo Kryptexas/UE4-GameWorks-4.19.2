@@ -27,6 +27,9 @@
 #include <sched.h>
 #define __TBB_Yield()  sched_yield()
 
+#include <unistd.h>
+#define __TBB_Sleep(v) usleep((v)*1000)
+
 // __TBB_HardwareConcurrency
 
 #include <sys/types.h>

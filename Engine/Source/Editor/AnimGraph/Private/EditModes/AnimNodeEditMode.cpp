@@ -511,11 +511,14 @@ FVector FAnimNodeEditMode::ConvertCSVectorToBoneSpace(const USkeletalMeshCompone
 
 		case BCS_ParentBoneSpace:
 		{
-			const FCompactPoseBoneIndex ParentIndex = MeshBases.GetPose().GetParentBoneIndex(BoneIndex);
-			if (ParentIndex != INDEX_NONE)
+			if (BoneIndex != INDEX_NONE)
 			{
-				const FTransform& ParentTM = MeshBases.GetComponentSpaceTransform(ParentIndex);
-				OutVector = ParentTM.InverseTransformVector(InCSVector);
+				const FCompactPoseBoneIndex ParentIndex = MeshBases.GetPose().GetParentBoneIndex(BoneIndex);
+				if (ParentIndex != INDEX_NONE)
+				{
+					const FTransform& ParentTM = MeshBases.GetComponentSpaceTransform(ParentIndex);
+					OutVector = ParentTM.InverseTransformVector(InCSVector);
+				}
 			}
 		}
 		break;
@@ -649,13 +652,22 @@ FVector FAnimNodeEditMode::ConvertWidgetLocation(const USkeletalMeshComponent* I
 	case BCS_ParentBoneSpace:
 	{
 		const FCompactPoseBoneIndex CompactBoneIndex = Target.GetCompactPoseBoneIndex();
+		
 		if (CompactBoneIndex != INDEX_NONE)
 		{
-			const FCompactPoseBoneIndex CompactParentIndex = InMeshBases.GetPose().GetParentBoneIndex(CompactBoneIndex);
-			if (CompactParentIndex != INDEX_NONE)
+			if (ensure(InMeshBases.GetPose().IsValidIndex(CompactBoneIndex)))
 			{
-				const FTransform& ParentTM = InMeshBases.GetComponentSpaceTransform(CompactParentIndex);
-				WidgetLoc = ParentTM.TransformPosition(InLocation);
+				const FCompactPoseBoneIndex CompactParentIndex = InMeshBases.GetPose().GetParentBoneIndex(CompactBoneIndex);
+				if (CompactParentIndex != INDEX_NONE)
+				{
+					const FTransform& ParentTM = InMeshBases.GetComponentSpaceTransform(CompactParentIndex);
+					WidgetLoc = ParentTM.TransformPosition(InLocation);
+				}
+			}
+			else
+			{
+				UE_LOG(LogAnimation, Warning, TEXT("Using socket(%d), Socket name(%s), Bone name(%s)"), 
+					Target.bUseSocket, *Target.SocketReference.SocketName.ToString(), *Target.BoneReference.BoneName.ToString());
 			}
 		}
 	}
@@ -680,8 +692,11 @@ FVector FAnimNodeEditMode::ConvertWidgetLocation(const USkeletalMeshComponent* S
 		if (InMeshBases.GetPose().IsValid())
 		{
 			USkeleton* Skeleton = InSkelComp->SkeletalMesh->Skeleton;
-			const FMeshPoseBoneIndex MeshBoneIndex(InSkelComp->GetBoneIndex(InBoneName));
-			return InMeshBases.GetPose().GetBoneContainer().MakeCompactPoseIndex(MeshBoneIndex);
+			const int32 MeshBoneIndex = InSkelComp->GetBoneIndex(InBoneName);
+			if (MeshBoneIndex != INDEX_NONE)
+			{
+				return InMeshBases.GetPose().GetBoneContainer().MakeCompactPoseIndex(FMeshPoseBoneIndex(MeshBoneIndex));
+			}
 		}
 
 		return FCompactPoseBoneIndex(INDEX_NONE);

@@ -45,6 +45,9 @@
 #include <sched.h>
 #define __TBB_Yield() sched_yield()
 
+#include <unistd.h>
+#define __TBB_Sleep(v) usleep((v)*1000)
+
 /** Specifics **/
 #define __TBB_STEALING_ABORT_ON_CONTENTION 1
 #define __TBB_YIELD2P 1

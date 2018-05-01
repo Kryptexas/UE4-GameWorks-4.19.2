@@ -102,6 +102,7 @@
 			__pragma(warning(disable: 28251)) /* Inconsistent annotation for '<func>': this instance has no annotations. */ \
 			__pragma(warning(disable: 28252)) /* Inconsistent annotation for '<func>': return/function has '<annotation>' on the prior instance. */ \
 			__pragma(warning(disable: 28253)) /* Inconsistent annotation for '<func>': _Param_(<num>) has '<annotation>' on the prior instance. */ \
+			__pragma(warning(disable: 28301)) /* No annotations for first declaration of '<func>'. */ \
 			PRAGMA_DISABLE_UNDEFINED_IDENTIFIER_WARNINGS \
 			PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS \
 			PRAGMA_DISABLE_MISSING_VIRTUAL_DESTRUCTOR_WARNINGS

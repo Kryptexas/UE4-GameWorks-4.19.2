@@ -706,7 +706,7 @@ void FSequencer::UpdateSubSequenceData()
 	RootToLocalTransform = FMovieSceneSequenceTransform();
 
 	// Find the parent sub section and set up the sub sequence range, if necessary
-	if (ActiveTemplateIDs.Num() <= 1 || Settings->ShouldEvaluateSubSequencesInIsolation())
+	if (ActiveTemplateIDs.Num() <= 1)
 	{
 		return;
 	}
@@ -1232,6 +1232,18 @@ void FSequencer::NotifyMovieSceneDataChangedInternal()
 
 void FSequencer::NotifyMovieSceneDataChanged( EMovieSceneDataChangeType DataChangeType )
 {
+	if (!GetFocusedMovieSceneSequence()->GetMovieScene())
+	{
+		if (RootSequence.IsValid())
+		{
+			ResetToNewRootSequence(*RootSequence.Get());
+		}
+		else
+		{
+			UE_LOG(LogSequencer, Error, TEXT("Fatal error, focused movie scene no longer valid and there is no root sequence to default to."));
+		}
+	}
+
 	if ( DataChangeType == EMovieSceneDataChangeType::ActiveMovieSceneChanged ||
 		DataChangeType == EMovieSceneDataChangeType::Unknown )
 	{
@@ -4778,6 +4790,7 @@ FGuid FSequencer::DoAssignActor(AActor*const* InActors, int32 NumActors, FGuid I
 
 		// Replace
 		OwnerMovieScene->ReplacePossessable( OldComponentGuid, NewPossessable );
+		OwnerSequence->UnbindPossessableObjects( OldComponentGuid );
 		State.Invalidate(OldComponentGuid, ActiveTemplateIDs.Top());
 
 		FMovieScenePossessable* ThisPossessable = OwnerMovieScene->FindPossessable( NewPossessable.GetGuid() );
@@ -4832,6 +4845,7 @@ FGuid FSequencer::DoAssignActor(AActor*const* InActors, int32 NumActors, FGuid I
 
 	// Replace the actor itself after components have been updated
 	OwnerMovieScene->ReplacePossessable(InObjectBinding, NewPossessableActor);
+	OwnerSequence->UnbindPossessableObjects(InObjectBinding);
 
 	State.Invalidate(InObjectBinding, ActiveTemplateIDs.Top());
 

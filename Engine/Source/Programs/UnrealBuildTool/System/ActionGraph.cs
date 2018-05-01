@@ -947,13 +947,6 @@ namespace UnrealBuildTool
 					// legitimate output to always be considered outdated.
 					if (ProducedItem.bExists && (ProducedItem.bIsRemoteFile || ProducedItem.Length > 0 || ProducedItem.IsDirectory))
 					{
-						// VS 15.3+ does not touch lib files if they do not contain any modifications, so ignore any timestamps on them.
-						String ProducedItemExtension = Path.GetExtension(ProducedItem.AbsolutePath).ToUpperInvariant();
-						if (ProducedItemExtension == ".LIB" || ProducedItemExtension == ".EXP" || ProducedItemExtension == ".PDB")
-						{
-							continue;
-						}
-
 						// Use the oldest produced item's time as the last execution time.
 						if (ProducedItem.LastWriteTime < LastExecutionTime)
 						{
@@ -1195,7 +1188,7 @@ namespace UnrealBuildTool
 					{
 						if (ProducedItem.bExists && (bShouldDeleteAllFiles || OutdatedAction.bShouldDeleteProducedItems))
 						{
-							Log.TraceVerbose("Deleting outdated item: {0}", ProducedItem.AbsolutePath);
+							Log.TraceLog("Deleting outdated item: {0}", ProducedItem.AbsolutePath);
 							ProducedItem.Delete();
 						}
 					}

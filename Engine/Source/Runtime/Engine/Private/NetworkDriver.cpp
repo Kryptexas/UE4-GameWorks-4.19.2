@@ -2735,7 +2735,26 @@ int32 UNetDriver::ServerReplicateActors_PrepConnections( const float DeltaSecond
 			bFoundReadyConnection = true;
 
 			// the view target is what the player controller is looking at OR the owning actor itself when using beacons
-			Connection->ViewTarget = Connection->PlayerController ? Connection->PlayerController->GetViewTarget() : OwningActor;
+			AActor* DesiredViewTarget = OwningActor;
+			if (Connection->PlayerController)
+			{
+				if (AActor* ViewTarget = Connection->PlayerController->GetViewTarget())
+				{
+					if (ViewTarget->GetWorld())
+					{
+						// It is safe to use the player controller's view target.
+						DesiredViewTarget = ViewTarget;
+					}
+					else
+					{
+						// Log an error, since this means the view target for the player controller no longer has a valid world (this can happen
+						// if the player controller's view target was in a sublevel instance that has been unloaded).
+						UE_LOG(LogNet, Warning, TEXT("Player controller %s's view target (%s) no longer has a valid world! Was it unloaded as part a level instance?"),
+							*Connection->PlayerController->GetName(), *ViewTarget->GetName());
+					}
+				}
+			}
+			Connection->ViewTarget = DesiredViewTarget;
 
 			for ( int32 ChildIdx = 0; ChildIdx < Connection->Children.Num(); ChildIdx++ )
 			{

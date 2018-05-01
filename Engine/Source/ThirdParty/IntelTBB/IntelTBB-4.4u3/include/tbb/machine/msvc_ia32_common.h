@@ -248,9 +248,21 @@ public:
 #if !__TBB_WIN8UI_SUPPORT
 extern "C" __declspec(dllimport) int __stdcall SwitchToThread( void );
 #define __TBB_Yield()  SwitchToThread()
+// Epic divergence BEGIN
+// Sleep declaration must have consistent static analysis annotations with Windows headers.
+// Inconsistent annotations result in C28301 warning.
+#ifdef _In_
+extern "C" __declspec(dllimport) void __stdcall Sleep(_In_ unsigned long);
+#else
+extern "C" __declspec(dllimport) void __stdcall Sleep(unsigned long);
+#endif
+// Epic divergence END
+#define __TBB_Sleep(v) Sleep( v )
 #else
 #include<thread>
+#include<chrono>
 #define __TBB_Yield()  std::this_thread::yield()
+#define __TBB_Sleep(v) std::this_thread::sleep_for( std::chrono::milliseconds(v) )
 #endif
 
 #undef __TBB_r

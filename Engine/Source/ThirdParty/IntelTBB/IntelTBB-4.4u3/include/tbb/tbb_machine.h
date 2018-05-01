@@ -76,6 +76,11 @@
         Signals OS that the current thread is willing to relinquish the remainder
         of its time quantum.
 
+    __TBB_Sleep()
+        Signals OS that the current thread is willing to sleep for specified amount
+        of time. Use primarily to give chance to low priority threads to overcome
+        priority inversion problem.
+
     __TBB_full_memory_fence()
         Must prevent all memory operations from being reordered across it (both
         by hardware and compiler). All such fences must be totally ordered (or
@@ -197,6 +202,7 @@ template<> struct atomic_selector<8> {
     #if __MINGW64__ || __MINGW32__
         extern "C" __declspec(dllimport) int __stdcall SwitchToThread( void );
         #define __TBB_Yield()  SwitchToThread()
+        #define __TBB_Sleep(V) Sleep( V )
         #if (TBB_USE_GCC_BUILTINS && __TBB_GCC_BUILTIN_ATOMICS_PRESENT)
             #include "machine/gcc_generic.h"
         #elif __MINGW64__
@@ -280,8 +286,10 @@ template<> struct atomic_selector<8> {
         #include "machine/sunos_sparc.h"
     #endif
     #include <sched.h>
-
     #define __TBB_Yield() sched_yield()
+    #include <unistd.h>
+    #define __TBB_Sleep(v) usleep((v)*1000)
+
 
 #endif /* OS selection */
 
@@ -353,6 +361,7 @@ class atomic_backoff : no_copy {
     /** Should be equal to approximately the number of "pause" instructions
         that take the same time as an context switch. Must be a power of two.*/
     static const int32_t LOOPS_BEFORE_YIELD = 16;
+    static const int32_t LOOPS_BEFORE_SLEEP = 64;
     int32_t count;
 public:
     // In many cases, an object of this type is initialized eagerly on hot path,
@@ -368,9 +377,14 @@ public:
             __TBB_Pause(count);
             // Pause twice as long the next time.
             count*=2;
-        } else {
+        } else if( count<=LOOPS_BEFORE_SLEEP ) {
             // Pause is so long that we might as well yield CPU to scheduler.
             __TBB_Yield();
+            count*=2;
+        } else  {
+            // Give low priority threads a chance to overcome priority inversion
+            __TBB_Sleep( 1 );
+            reset();
         }
     }
 

@@ -204,12 +204,16 @@ namespace Audio
 
 	void FMixerPlatformXAudio2::OnDefaultRenderDeviceChanged(const EAudioDeviceRole InAudioDeviceRole, const FString& DeviceId)
 	{
+		FScopeLock Lock(&AudioDeviceSwapCriticalSection);
+
 		NewAudioDeviceId = "";
 		bMoveAudioStreamToNewAudioDevice = true;
 	}
 
 	void FMixerPlatformXAudio2::OnDeviceAdded(const FString& DeviceId)
 	{
+		FScopeLock Lock(&AudioDeviceSwapCriticalSection);
+
 		// If the device that was added is our original device and our current device is NOT our original device, 
 		// move our audio stream to this newly added device.
 		if (AudioStreamInfo.DeviceInfo.DeviceId != OriginalAudioDeviceId && DeviceId == OriginalAudioDeviceId)
@@ -221,6 +225,8 @@ namespace Audio
 
 	void FMixerPlatformXAudio2::OnDeviceRemoved(const FString& DeviceId)
 	{
+		FScopeLock Lock(&AudioDeviceSwapCriticalSection);
+
 		// If the device we're currently using was removed... then switch to the new default audio device.
 		if (AudioStreamInfo.DeviceInfo.DeviceId == DeviceId)
 		{

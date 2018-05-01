@@ -15,10 +15,33 @@ FAssetTypeActions_SoundEffectPreset::FAssetTypeActions_SoundEffectPreset(USoundE
 
 FText FAssetTypeActions_SoundEffectPreset::GetName() const
 {
-	return EffectPreset->GetAssetActionName();
+	FText AssetActionName = EffectPreset->GetAssetActionName();
+	if (AssetActionName.IsEmpty())
+	{
+		FString ClassName;
+		EffectPreset->GetClass()->GetName(ClassName);
+		ensureMsgf(false, TEXT("U%sGetAssetActionName not implemented. Please check that EFFECT_PRESET_METHODS(EffectClassName) is at the top of the declaration of %s."), *ClassName, *ClassName);
+		FString DefaultName = ClassName + FString(TEXT(" (Error: EFFECT_PRESET_METHODS() Not Used in Class Declaration)"));
+		return FText::FromString(DefaultName);
+	}
+	else
+	{
+		return EffectPreset->GetAssetActionName();
+	}
 }
 
 UClass* FAssetTypeActions_SoundEffectPreset::GetSupportedClass() const
 {
-	return EffectPreset->GetSupportedClass();
+	UClass* SupportedClass = EffectPreset->GetSupportedClass();
+	if (SupportedClass == nullptr)
+	{
+		FString ClassName;
+		EffectPreset->GetClass()->GetName(ClassName);
+		ensureMsgf(false, TEXT("U%s::GetSupportedClass not implemented. Please check that EFFECT_PRESET_METHODS(EffectClassName) is at the top of the declaration of %s."), *ClassName, *ClassName);
+		return EffectPreset->GetClass();
+	}
+	else
+	{
+		return SupportedClass;
+	}
 }

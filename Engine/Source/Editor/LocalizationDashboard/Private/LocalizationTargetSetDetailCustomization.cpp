@@ -680,8 +680,8 @@ FReply FLocalizationTargetSetDetailCustomization::OnNewTargetButtonClicked()
 	{
 		uint32 NewElementIndex;
 		TargetObjectsPropertyHandle->AsArray()->GetNumElements(NewElementIndex);
-		TargetObjectsPropertyHandle->AsArray()->AddItem();
 		NewEntryIndexToBeInitialized = NewElementIndex;
+		TargetObjectsPropertyHandle->AsArray()->AddItem();
 	}
 
 	return FReply::Handled();

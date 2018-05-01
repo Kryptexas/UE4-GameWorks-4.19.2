@@ -46,6 +46,8 @@ void __TBB_machine_isync ();
 #define __TBB_machine_cmpswp8 __TBB_machine_cas_64
 
 #define __TBB_Yield() sched_yield()
+#define __TBB_Sleep(v) usleep((v)*1000)
+
 
 #define __TBB_USE_GENERIC_PART_WORD_CAS                     1
 #define __TBB_USE_GENERIC_FETCH_ADD                         1

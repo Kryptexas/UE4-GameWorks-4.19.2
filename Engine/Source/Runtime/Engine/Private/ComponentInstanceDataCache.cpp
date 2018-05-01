@@ -268,7 +268,10 @@ void FActorComponentInstanceData::ApplyToComponent(UActorComponent* Component, c
 
 		for (UObject* InstancedObject : InstancedObjects)
 		{
-			InstancedObject->Rename(nullptr, Component);
+			if (InstancedObject)
+			{
+				InstancedObject->Rename(nullptr, Component);
+			}
 		}
 
 		FComponentPropertyReader ComponentPropertyReader(Component, SavedProperties);

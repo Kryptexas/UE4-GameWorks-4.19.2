@@ -868,8 +868,10 @@ void USceneComponent::DestroyComponent(bool bPromoteChildren/*= false*/)
 						else
 						{
 							// Default to first child node
-							check(AttachedChildren[0] != nullptr);
-							ChildToPromote = AttachedChildren[0];
+							if(ensureMsgf(AttachedChildren[0] != nullptr, TEXT("Deleting a non-root scene component with no promotable AttachChildren: %s"), *GetFullName()))
+							{
+								ChildToPromote = AttachedChildren[0];
+							}
 						}
 					}
 
