@@ -441,7 +441,8 @@ public:
 	virtual VXGI::IGlobalIllumination* RHIVXGIGetInterface() final override;
 	virtual NVRHI::IRendererInterface* RHIVXGIGetRendererInterface() final override;
     virtual bool RHIVXGIIsInitialized() final override;
-    virtual void RHIVXGISetVoxelizationParameters(const VXGI::VoxelizationParameters& Parameters) final override;
+	virtual EVxgiTier RHIGetVXGITier() final override;
+	virtual void RHIVXGISetVoxelizationParameters(const VXGI::VoxelizationParameters& Parameters) final override;
 	virtual void RHIVXGISetPixelShaderResourceAttributes(NVRHI::ShaderHandle PixelShader, const TArray<uint8>& ShaderResourceTable, bool bUsesGlobalCB) final override;
 	virtual void RHIVXGIApplyDrawStateOverrideShaders(const NVRHI::DrawCallState& DrawCallState, const FBoundShaderStateInput* BoundShaderStateInput, EPrimitiveType PrimitiveTypeOverride) final override;
 	virtual void RHIVXGIApplyShaderResources(const NVRHI::DrawCallState& DrawCallState) final override;
@@ -455,6 +456,7 @@ private:
 	VXGI::IGlobalIllumination* VxgiInterface;
 	VXGI::VoxelizationParameters VxgiVoxelizationParameters;
 	bool bVxgiVoxelizationParametersSet;
+	EVxgiTier VxgiTier;
 	void CreateVxgiInterface();
 	void ReleaseVxgiInterface();
 public:

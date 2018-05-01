@@ -1631,7 +1631,8 @@ protected:
 	void RenderVxgiVoxelization(FRHICommandList& RHICmdList);
 	void RenderVxgiVoxelizationPass(FRHICommandList& RHICmdList, int32 VoxelizationPass, const FVxgiVoxelizationArgs& Args);
 	void RenderVxgiTracing(FRHICommandListImmediate& RHICmdList);
-	void EndVxgiFinalPostProcessSettings(FFinalPostProcessSettings& FinalPostProcessSettings, const VXGI::VoxelizationParameters& VParams);
+	void EndVxgiFinalPostProcessSettings(FFinalPostProcessSettings& FinalPostProcessSettings);
+	void EndVxgiFinalPostProcessSettingsForAllViews();
 
 	void CompositeVxgiDiffuseTracing(FRHICommandListImmediate& RHICmdList, const FViewInfo& View);
 	void RenderVxgiDebug(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, int ViewIndex);

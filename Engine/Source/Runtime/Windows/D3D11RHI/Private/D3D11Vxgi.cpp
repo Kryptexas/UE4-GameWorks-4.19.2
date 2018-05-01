@@ -29,6 +29,11 @@ bool FD3D11DynamicRHI::RHIVXGIIsInitialized()
     return bVxgiVoxelizationParametersSet;
 }
 
+EVxgiTier FD3D11DynamicRHI::RHIGetVXGITier()
+{
+	return VxgiTier;
+}
+
 void FD3D11DynamicRHI::CreateVxgiInterface()
 {
 	check(!VxgiRendererD3D11);
@@ -55,6 +60,18 @@ void FD3D11DynamicRHI::CreateVxgiInterface()
 	DefaultParams.persistentVoxelData = false;
 	DefaultParams.ambientOcclusionMode = true;
 	RHIVXGISetVoxelizationParameters(DefaultParams);
+
+	// See if we're running on a GPU which only supports AO mode, set VxgiTier accordingly
+	VxgiRendererD3D11->setTreatErrorsAsFatal(false);
+	DefaultParams.ambientOcclusionMode = false;
+	if (VXGI_FAILED(VxgiInterface->validateVoxelizationParameters(DefaultParams)))
+	{
+		VxgiTier = EVxgiTier::OcclusionOnly;
+		UE_LOG(LogD3D11RHI, Warning, TEXT("VXGI support is limited to occlusion-only mode on this GPU."));
+	}
+	else
+		VxgiTier = EVxgiTier::Full;
+	VxgiRendererD3D11->setTreatErrorsAsFatal(true);
 }
 
 void FD3D11DynamicRHI::ReleaseVxgiInterface()

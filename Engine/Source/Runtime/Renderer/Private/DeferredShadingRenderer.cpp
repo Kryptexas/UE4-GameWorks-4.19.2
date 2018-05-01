@@ -655,6 +655,8 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 
 	ViewFamily.bVxgiEnabled = bVxgiEnabled;
 	ViewFamily.bVxgiAmbientOcclusionMode = bVxgiAmbientOcclusionMode;
+
+	EndVxgiFinalPostProcessSettingsForAllViews();
 #endif
 	// NVCHANGE_END: Add VXGI
 

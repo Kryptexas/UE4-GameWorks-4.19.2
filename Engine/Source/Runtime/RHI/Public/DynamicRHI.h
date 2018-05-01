@@ -31,6 +31,14 @@ namespace VXGI
 {
 	struct VoxelizationParameters;
 }
+
+enum class EVxgiTier
+{
+	None,
+	OcclusionOnly,
+	Full
+};
+
 #endif
 // NVCHANGE_END: Add VXGI
 
@@ -968,6 +976,7 @@ public:
 	virtual VXGI::IGlobalIllumination* RHIVXGIGetInterface() { return nullptr; }
 	virtual NVRHI::IRendererInterface* RHIVXGIGetRendererInterface() { return nullptr; }
     virtual bool RHIVXGIIsInitialized() { return false; }
+	virtual EVxgiTier RHIGetVXGITier() { return EVxgiTier::None; }
 	virtual void RHIVXGIGetGPUTime(float& OutWorldSpaceTime, float& OutScreenSpaceTime) { }
 	virtual void RHIVXGISetVoxelizationParameters(const VXGI::VoxelizationParameters& Parameters) { }
 	virtual void RHIVXGISetPixelShaderResourceAttributes(NVRHI::ShaderHandle PixelShader, const TArray<uint8>& ShaderResourceTable, bool bUsesGlobalCB) { }
