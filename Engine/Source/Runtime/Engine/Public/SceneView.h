@@ -1586,6 +1586,10 @@ public:
 #if WITH_GFSDK_VXGI
 	// Indicates that VXGI voxelization is enabled and has been performed for the view family.
 	bool bVxgiAvailable;
+	// Indicates that VXGI voxelization is enabled for the view family.
+	bool bVxgiEnabled;
+	// Tells if VXGI is in occlusion-only mode (true) or full mode (false).
+	bool bVxgiAmbientOcclusionMode;
 #endif
 	// NVCHANGE_END: Add VXGI
 

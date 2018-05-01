@@ -904,7 +904,7 @@ void FProjectedShadowInfo::AddSubjectPrimitive(FPrimitiveSceneInfo* PrimitiveSce
 	// NVCHANGE_BEGIN: Add VXGI
 #if WITH_GFSDK_VXGI
 	// But VXGI still needs a regular shadow map
-	check(!bRayTracedDistanceField || LightSceneInfo->Proxy->CastVxgiIndirectLighting());
+	check(!bRayTracedDistanceField || LightSceneInfo->Proxy->CastVxgiIndirectLighting(nullptr));
 #else
 	check(!bRayTracedDistanceField);
 #endif
@@ -2285,7 +2285,7 @@ void FSceneRenderer::CreateWholeSceneProjectedShadow(
 					// Ray traced shadows use the GPU managed distance field object buffers, no CPU culling should be used
 					// NVCHANGE_BEGIN: Add VXGI
 #if WITH_GFSDK_VXGI
-					if (!ProjectedShadowInfo->bRayTracedDistanceField || LightSceneInfo->Proxy->CastVxgiIndirectLighting())
+					if (!ProjectedShadowInfo->bRayTracedDistanceField || LightSceneInfo->Proxy->CastVxgiIndirectLighting(&ViewFamily))
 #else
 					if (!ProjectedShadowInfo->bRayTracedDistanceField)
 #endif
@@ -3032,7 +3032,7 @@ void FSceneRenderer::AddViewDependentWholeSceneShadowsForView(
 					// Ray traced shadows use the GPU managed distance field object buffers, no CPU culling needed
 					// NVCHANGE_BEGIN: Add VXGI
 #if WITH_GFSDK_VXGI
-					if (!ProjectedShadowInfo->bRayTracedDistanceField || LightSceneInfo.Proxy->CastVxgiIndirectLighting())
+					if (!ProjectedShadowInfo->bRayTracedDistanceField || LightSceneInfo.Proxy->CastVxgiIndirectLighting(&ViewFamily))
 #else
 					if (!ProjectedShadowInfo->bRayTracedDistanceField)
 #endif
@@ -3089,7 +3089,7 @@ void FSceneRenderer::AddViewDependentWholeSceneShadowsForView(
 						// Ray traced shadows use the GPU managed distance field object buffers, no CPU culling needed
 						// NVCHANGE_BEGIN: Add VXGI
 #if WITH_GFSDK_VXGI
-						if (!ProjectedShadowInfo->bRayTracedDistanceField || LightSceneInfo.Proxy->CastVxgiIndirectLighting())
+						if (!ProjectedShadowInfo->bRayTracedDistanceField || LightSceneInfo.Proxy->CastVxgiIndirectLighting(&ViewFamily))
 #else
 						if (!ProjectedShadowInfo->bRayTracedDistanceField)
 #endif
@@ -3225,7 +3225,7 @@ void FSceneRenderer::AllocateShadowDepthTargets(FRHICommandListImmediate& RHICmd
 				}
 				// NVCHANGE_BEGIN: Add VXGI
 #if WITH_GFSDK_VXGI
-				const bool bNeedsShadowmapSetup = !ProjectedShadowInfo->bCapsuleShadow && (!ProjectedShadowInfo->bRayTracedDistanceField || LightSceneInfo->Proxy->CastVxgiIndirectLighting());
+				const bool bNeedsShadowmapSetup = !ProjectedShadowInfo->bCapsuleShadow && (!ProjectedShadowInfo->bRayTracedDistanceField || LightSceneInfo->Proxy->CastVxgiIndirectLighting(&ViewFamily));
 #else
 				const bool bNeedsShadowmapSetup = !ProjectedShadowInfo->bCapsuleShadow && !ProjectedShadowInfo->bRayTracedDistanceField;
 #endif

@@ -699,7 +699,7 @@ void FSceneRenderer::RenderVxgiVoxelization(FRHICommandList& RHICmdList)
 			const FLightSceneInfo* const LightSceneInfo = LightSceneInfoCompact.LightSceneInfo;
 
 			if (LightSceneInfo->ShouldRenderLightViewIndependent() &&
-				LightSceneInfo->Proxy->CastVxgiIndirectLighting() &&
+				LightSceneInfo->Proxy->CastVxgiIndirectLighting(nullptr) &&
 				LightSceneInfo->Proxy->AffectsBounds(VxgiClipmapBounds))
 			{
 				FVisibleLightInfo& VisibleLightInfo = VisibleLightInfos[LightSceneInfo->Id];
@@ -1204,7 +1204,7 @@ void FSceneRenderer::RenderVxgiVoxelizationPass(
 	int32 VoxelizationPass,
 	const FVxgiVoxelizationArgs& Args)
 {
-	if (Args.LightSceneInfo && !Args.LightSceneInfo->Proxy->CastVxgiIndirectLighting())
+	if (Args.LightSceneInfo && !Args.LightSceneInfo->Proxy->CastVxgiIndirectLighting(nullptr))
 	{
 		return;
 	}

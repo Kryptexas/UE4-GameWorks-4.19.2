@@ -1080,7 +1080,7 @@ public:
 	inline float GetRayStartOffsetDepthScale() const { return RayStartOffsetDepthScale; }
 	// NVCHANGE_BEGIN: Add VXGI
 #if WITH_GFSDK_VXGI
-	inline bool CastVxgiIndirectLighting() const { return bCastVxgiIndirectLighting; }
+	inline bool CastVxgiIndirectLighting(const FSceneViewFamily* ViewFamily) const { return bCastVxgiIndirectLighting && (ViewFamily == nullptr || ViewFamily->bVxgiEnabled && !ViewFamily->bVxgiAmbientOcclusionMode); }
 #endif
 	// NVCHANGE_END: Add VXGI
 	inline uint8 GetLightType() const { return LightType; }

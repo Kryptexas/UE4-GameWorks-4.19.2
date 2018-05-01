@@ -641,6 +641,23 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	}
 	SceneContext.AllocDummyGBufferTargets(RHICmdList);
 
+	// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+	ViewFamily.bVxgiAvailable = false;
+
+	// This needs to happen before RenderHzb because that function looks at View.bVxgiAmbientOcclusionMode,
+	// and if that's set to None, HZB rendering might be skipped. But the HZB is later required for the SSAO pass.
+	// This also needs to happen before InitViews because shadow map setup depends on bVxgiEnabled and bVxgiAmbientOcclusionMode flags.
+	bool bVxgiEnabled = InitializeVxgiVoxelizationParameters();
+
+	if (!VxgiView)
+		bVxgiEnabled = false;
+
+	ViewFamily.bVxgiEnabled = bVxgiEnabled;
+	ViewFamily.bVxgiAmbientOcclusionMode = bVxgiAmbientOcclusionMode;
+#endif
+	// NVCHANGE_END: Add VXGI
+
 	FGraphEventArray SortEvents;
 	FGraphEventArray UpdateViewCustomDataEvents;
 	FILCUpdatePrimTaskData ILCTaskData;
@@ -945,19 +962,6 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		SceneContext.PreallocGBufferTargets(); // Even if !bShouldRenderVelocities, the velocity buffer must be bound because it's a compile time option for the shader.
 		SceneContext.AllocGBufferTargets(RHICmdList);
 	}	
-
-	// NVCHANGE_BEGIN: Add VXGI
-#if WITH_GFSDK_VXGI
-	ViewFamily.bVxgiAvailable = false;
-
-	// This needs to happen before RenderHzb because that function looks at View.bVxgiAmbientOcclusionMode,
-	// and if that's set to None, HZB rendering might be skipped. But the HZB is later required for the SSAO pass.
-	bool bVxgiEnabled = InitializeVxgiVoxelizationParameters();
-
-	if (!VxgiView)
-		bVxgiEnabled = false;
-#endif
-	// NVCHANGE_END: Add VXGI
 
 	const bool bOcclusionBeforeBasePass = (EarlyZPassMode == EDepthDrawingMode::DDM_AllOccluders) || (EarlyZPassMode == EDepthDrawingMode::DDM_AllOpaque);
 
