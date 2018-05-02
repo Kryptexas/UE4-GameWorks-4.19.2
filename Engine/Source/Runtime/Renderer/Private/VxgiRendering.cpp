@@ -434,6 +434,15 @@ VXGI::float3 ColorToVxgi(const FLinearColor& C)
 	return VXGI::float3(C.R, C.G, C.B);
 }
 
+uint32 NormalizeVxgiMapSize(uint32 Size)
+{
+	// Round down to the nearest power of 2, keep the result within [32-256] range
+	if (Size < 64) return 32;
+	if (Size < 128) return 64;
+	if (Size < 256) return 128;
+	return 256;
+}
+
 void FSceneRenderer::InitVxgiRenderingState(const FSceneViewFamily* InViewFamily)
 {
 	bVxgiPerformOpacityVoxelization = false;
@@ -444,10 +453,12 @@ void FSceneRenderer::InitVxgiRenderingState(const FSceneViewFamily* InViewFamily
 	bVxgiDebugRendering = ViewFamily.EngineShowFlags.VxgiOpacityVoxels || ViewFamily.EngineShowFlags.VxgiEmittanceVoxels || ViewFamily.EngineShowFlags.VxgiIrradianceVoxels;
 	VxgiVoxelSize = CVarVxgiVoxelSize.GetValueOnGameThread();
 
+	VxgiVoxelSize = FMath::Max(VxgiVoxelSize, 0.1f);
+
 	float FinestLevelSize = VxgiVoxelSize * FMath::Min3(
-		CVarVxgiMapSizeX.GetValueOnGameThread(), 
-		CVarVxgiMapSizeY.GetValueOnGameThread(), 
-		CVarVxgiMapSizeZ.GetValueOnGameThread());
+		NormalizeVxgiMapSize(CVarVxgiMapSizeX.GetValueOnGameThread()),
+		NormalizeVxgiMapSize(CVarVxgiMapSizeY.GetValueOnGameThread()),
+		NormalizeVxgiMapSize(CVarVxgiMapSizeZ.GetValueOnGameThread()));
 
 	VxgiAnchorPoint = PrimaryView.ViewMatrices.GetViewOrigin() + PrimaryView.GetViewDirection() * FinestLevelSize * CVarVxgiViewOffsetScale.GetValueOnGameThread() * 0.5f;
 	
@@ -577,14 +588,20 @@ bool FSceneRenderer::IsVxgiEnabled()
 
 void FSceneRenderer::SetVxgiVoxelizationParameters(VXGI::VoxelizationParameters& Params)
 {
-	Params.mapSize = VXGI::uint3(CVarVxgiMapSizeX.GetValueOnAnyThread(), CVarVxgiMapSizeY.GetValueOnAnyThread(), CVarVxgiMapSizeZ.GetValueOnAnyThread());
+	Params.mapSize = VXGI::uint3(
+		NormalizeVxgiMapSize(CVarVxgiMapSizeX.GetValueOnAnyThread()), 
+		NormalizeVxgiMapSize(CVarVxgiMapSizeY.GetValueOnAnyThread()),
+		NormalizeVxgiMapSize(CVarVxgiMapSizeZ.GetValueOnAnyThread()));
+	
 	Params.stackLevels = CVarVxgiStackLevels.GetValueOnAnyThread();
+	Params.stackLevels = FMath::Max(1u, FMath::Min(5u, Params.stackLevels));
+
 	Params.allocationMapLodBias = uint32(FMath::Max(2 - int(Params.stackLevels), (Params.mapSize.vmax() == 256) ? 1 : 0));
 	Params.indirectIrradianceMapLodBias = Params.allocationMapLodBias;
 	Params.mipLevels = log2(Params.mapSize.vmin()) - 2;
 	Params.persistentVoxelData = false;
     Params.ambientOcclusionMode = bVxgiAmbientOcclusionMode;
-	Params.emittanceStorageScale = CVarVxgiEmittanceStorageScale.GetValueOnAnyThread();
+	Params.emittanceStorageScale = FMath::Max(1e-10f, CVarVxgiEmittanceStorageScale.GetValueOnAnyThread());
 	Params.useEmittanceInterpolation = true;
 	Params.useHighQualityEmittanceDownsampling = !!CVarVxgiHighQualityEmittanceDownsamplingEnable.GetValueOnAnyThread();
 	Params.enableMultiBounce = bVxgiMultiBounceEnable;
@@ -984,8 +1001,7 @@ void FSceneRenderer::RenderVxgiTracing(FRHICommandListImmediate& RHICmdList)
 		if (View.ViewState != NULL)
 		{
 			float CameraOffset = FMath::Sqrt((Constants.g_GBuffer[ViewIndex].cameraPosition - Constants.g_PreviousGBuffer[ViewIndex].cameraPosition).SizeSquared3());
-			float VoxelSize = CVarVxgiVoxelSize.GetValueOnRenderThread();
-			float Similarity = FMath::Max(0.f, 1.0f - 0.5f * CameraOffset / VoxelSize);
+			float Similarity = FMath::Max(0.f, 1.0f - 0.5f * CameraOffset / VxgiVoxelSize);
 			ViewSimilarity = FMath::Min(ViewSimilarity, Similarity);
 		}
 
