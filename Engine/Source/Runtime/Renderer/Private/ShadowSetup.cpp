@@ -1178,10 +1178,24 @@ void FProjectedShadowInfo::GatherDynamicMeshElements(FSceneRenderer& Renderer, F
 
 		if (IsWholeSceneDirectionalShadow())
 		{
-			ShadowDepthView->SetPreShadowTranslation(FVector(0, 0, 0));
-			ShadowDepthView->SetDynamicMeshElementsShadowCullFrustum((Disable & 1) ? &NoCull : &CascadeSettings.ShadowBoundsAccurate);
-			GatherDynamicMeshElementsArray(ShadowDepthView, Renderer, DynamicSubjectPrimitives, DynamicSubjectMeshElements, ReusedViewsArray);
-			ShadowDepthView->SetPreShadowTranslation(PreShadowTranslation);
+			// NVCHANGE_BEGIN: Add VXGI
+			if ((Disable & 1) || CascadeSettings.ShadowBoundsAccurate.Planes.Num())
+			{
+				ShadowDepthView->SetPreShadowTranslation(FVector(0, 0, 0));
+				ShadowDepthView->SetDynamicMeshElementsShadowCullFrustum((Disable & 1) ? &NoCull : &CascadeSettings.ShadowBoundsAccurate);
+				GatherDynamicMeshElementsArray(ShadowDepthView, Renderer, DynamicSubjectPrimitives, DynamicSubjectMeshElements, ReusedViewsArray);
+				ShadowDepthView->SetPreShadowTranslation(PreShadowTranslation);
+			}
+			else
+			{
+				// If the light has VXGI enabled, its ShadowBoundsAccurate is empty. But we still want to cull dynamic meshes
+				// against the cascade projection frustum. So use CasterFrustum instead, and don't reset PreShadowTranslation to 0.
+
+				ShadowDepthView->SetPreShadowTranslation(PreShadowTranslation);
+				ShadowDepthView->SetDynamicMeshElementsShadowCullFrustum(&CasterFrustum);
+				GatherDynamicMeshElementsArray(ShadowDepthView, Renderer, DynamicSubjectPrimitives, DynamicSubjectMeshElements, ReusedViewsArray);
+			}
+			// NVCHANGE_END: Add VXGI
 		}
 		else
 		{
@@ -2285,7 +2299,7 @@ void FSceneRenderer::CreateWholeSceneProjectedShadow(
 					// Ray traced shadows use the GPU managed distance field object buffers, no CPU culling should be used
 					// NVCHANGE_BEGIN: Add VXGI
 #if WITH_GFSDK_VXGI
-					if (!ProjectedShadowInfo->bRayTracedDistanceField || LightSceneInfo->Proxy->CastVxgiIndirectLighting(&ViewFamily))
+					if (!ProjectedShadowInfo->bRayTracedDistanceField || LightSceneInfo->Proxy->CastVxgiIndirectLighting(&ViewFamily) && !ProjectedShadowInfo->bDirectionalLight)
 #else
 					if (!ProjectedShadowInfo->bRayTracedDistanceField)
 #endif
@@ -2705,23 +2719,40 @@ struct FGatherShadowPrimitivesPacket
 			const FLightSceneInfo& RESTRICT LightSceneInfo = ProjectedShadowInfo->GetLightSceneInfo();
 			const FLightSceneProxy& RESTRICT LightProxy = *LightSceneInfo.Proxy;
 
-			const FVector LightDirection = LightProxy.GetDirection();
-			const FVector PrimitiveToShadowCenter = ProjectedShadowInfo->ShadowBounds.Center - PrimitiveBounds.Origin;
-			// Project the primitive's bounds origin onto the light vector
-			const float ProjectedDistanceFromShadowOriginAlongLightDir = PrimitiveToShadowCenter | LightDirection;
-			// Calculate the primitive's squared distance to the cylinder's axis
-			const float PrimitiveDistanceFromCylinderAxisSq = (-LightDirection * ProjectedDistanceFromShadowOriginAlongLightDir + PrimitiveToShadowCenter).SizeSquared();
-			const float CombinedRadiusSq = FMath::Square(ProjectedShadowInfo->ShadowBounds.W + PrimitiveBounds.SphereRadius);
-
 			// Note: Culling based on the primitive's bounds BEFORE dereferencing PrimitiveSceneInfo / PrimitiveProxy
 
-			// Check if this primitive is in the shadow's cylinder
-			if (PrimitiveDistanceFromCylinderAxisSq < CombinedRadiusSq
-				// If the primitive is further along the cone axis than the shadow bounds origin, 
-				// Check if the primitive is inside the spherical cap of the cascade's bounds
-				&& !(ProjectedDistanceFromShadowOriginAlongLightDir < 0 && PrimitiveToShadowCenter.SizeSquared() > CombinedRadiusSq)
-				// Test against the convex hull containing the extruded shadow bounds
-				&& ProjectedShadowInfo->CascadeSettings.ShadowBoundsAccurate.IntersectBox(PrimitiveBounds.Origin, PrimitiveBounds.BoxExtent))
+			// NVCHANGE_BEGIN: Add VXGI
+			bool bPassedBoundsTest;
+
+			if (ProjectedShadowInfo->CascadeSettings.ShadowBoundsAccurate.Planes.Num() == 0)
+			{
+				// If the light has VXGI enabled, its ShadowBoundsAccurate is empty. We want to cull only against the cascade frustum, no cylinder.
+				
+				bPassedBoundsTest = ProjectedShadowInfo->CasterFrustum.IntersectBox(PrimitiveBounds.Origin + ProjectedShadowInfo->PreShadowTranslation, PrimitiveBounds.BoxExtent);
+			}
+			else
+			{
+				const FVector LightDirection = LightProxy.GetDirection();
+				const FVector PrimitiveToShadowCenter = ProjectedShadowInfo->ShadowBounds.Center - PrimitiveBounds.Origin;
+
+				// Project the primitive's bounds origin onto the light vector
+				const float ProjectedDistanceFromShadowOriginAlongLightDir = PrimitiveToShadowCenter | LightDirection;
+
+				// Calculate the primitive's squared distance to the cylinder's axis
+				const float PrimitiveDistanceFromCylinderAxisSq = (-LightDirection * ProjectedDistanceFromShadowOriginAlongLightDir + PrimitiveToShadowCenter).SizeSquared();
+				const float CombinedRadiusSq = FMath::Square(ProjectedShadowInfo->ShadowBounds.W + PrimitiveBounds.SphereRadius);
+
+				// Check if this primitive is in the shadow's cylinder
+				bPassedBoundsTest = PrimitiveDistanceFromCylinderAxisSq < CombinedRadiusSq
+					// If the primitive is further along the cone axis than the shadow bounds origin, 
+					// Check if the primitive is inside the spherical cap of the cascade's bounds
+					&& !(ProjectedDistanceFromShadowOriginAlongLightDir < 0 && PrimitiveToShadowCenter.SizeSquared() > CombinedRadiusSq)
+					// Test against the convex hull containing the extruded shadow bounds
+					&& ProjectedShadowInfo->CascadeSettings.ShadowBoundsAccurate.IntersectBox(PrimitiveBounds.Origin, PrimitiveBounds.BoxExtent);
+			}
+
+			if (bPassedBoundsTest)
+			// NVCHANGE_END: Add VXGI
 			{
 				// Distance culling for RSMs
 				const float MinScreenRadiusForShadowCaster = ProjectedShadowInfo->bReflectiveShadowmap ? GMinScreenRadiusForShadowCasterRSM : GMinScreenRadiusForShadowCaster;
@@ -3032,7 +3063,7 @@ void FSceneRenderer::AddViewDependentWholeSceneShadowsForView(
 					// Ray traced shadows use the GPU managed distance field object buffers, no CPU culling needed
 					// NVCHANGE_BEGIN: Add VXGI
 #if WITH_GFSDK_VXGI
-					if (!ProjectedShadowInfo->bRayTracedDistanceField || LightSceneInfo.Proxy->CastVxgiIndirectLighting(&ViewFamily))
+					if (!ProjectedShadowInfo->bRayTracedDistanceField || LightSceneInfo.Proxy->CastVxgiIndirectLighting(&ViewFamily) && !ProjectedShadowInfo->bDirectionalLight)
 #else
 					if (!ProjectedShadowInfo->bRayTracedDistanceField)
 #endif
@@ -3089,7 +3120,7 @@ void FSceneRenderer::AddViewDependentWholeSceneShadowsForView(
 						// Ray traced shadows use the GPU managed distance field object buffers, no CPU culling needed
 						// NVCHANGE_BEGIN: Add VXGI
 #if WITH_GFSDK_VXGI
-						if (!ProjectedShadowInfo->bRayTracedDistanceField || LightSceneInfo.Proxy->CastVxgiIndirectLighting(&ViewFamily))
+						if (!ProjectedShadowInfo->bRayTracedDistanceField || LightSceneInfo.Proxy->CastVxgiIndirectLighting(&ViewFamily) && !ProjectedShadowInfo->bDirectionalLight)
 #else
 						if (!ProjectedShadowInfo->bRayTracedDistanceField)
 #endif
@@ -3225,7 +3256,7 @@ void FSceneRenderer::AllocateShadowDepthTargets(FRHICommandListImmediate& RHICmd
 				}
 				// NVCHANGE_BEGIN: Add VXGI
 #if WITH_GFSDK_VXGI
-				const bool bNeedsShadowmapSetup = !ProjectedShadowInfo->bCapsuleShadow && (!ProjectedShadowInfo->bRayTracedDistanceField || LightSceneInfo->Proxy->CastVxgiIndirectLighting(&ViewFamily));
+				const bool bNeedsShadowmapSetup = !ProjectedShadowInfo->bCapsuleShadow && (!ProjectedShadowInfo->bRayTracedDistanceField || LightSceneInfo->Proxy->CastVxgiIndirectLighting(&ViewFamily) && !ProjectedShadowInfo->bDirectionalLight);
 #else
 				const bool bNeedsShadowmapSetup = !ProjectedShadowInfo->bCapsuleShadow && !ProjectedShadowInfo->bRayTracedDistanceField;
 #endif

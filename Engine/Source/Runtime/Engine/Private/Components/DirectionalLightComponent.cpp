@@ -468,6 +468,16 @@ private:
 		NearPlaneOut = SubFrustumPlanes[0];
 		FarPlaneOut = SubFrustumPlanes[5];
 
+		// NVCHANGE_BEGIN: Add VXGI
+#if WITH_GFSDK_VXGI
+		if (bCastVxgiIndirectLighting && ViewFamily->bVxgiEnabled && !ViewFamily->bVxgiAmbientOcclusionMode)
+		{
+			ConvexVolumeOut = FConvexVolume();
+			return;
+		}
+#endif
+		// NVCHANGE_END: Add VXGI
+
 		// Add the planes from the camera's frustum which form the back face of the frustum when in light space.
 		for (int32 i = 0; i < 6; i++)
 		{
@@ -511,15 +521,6 @@ private:
 			}
 		}
 		ConvexVolumeOut = FConvexVolume(Planes);
-
-		// NVCHANGE_BEGIN: Add VXGI
-#if WITH_GFSDK_VXGI
-		if (bCastVxgiIndirectLighting && ViewFamily->bVxgiEnabled && !ViewFamily->bVxgiAmbientOcclusionMode)
-		{
-			ConvexVolumeOut = FConvexVolume();
-		}
-#endif
-		// NVCHANGE_END: Add VXGI
 	}
 
 	// Useful helper function to compute shadow map cascade distribution
