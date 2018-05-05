@@ -605,6 +605,9 @@ void FSceneRenderer::SetVxgiVoxelizationParameters(VXGI::VoxelizationParameters&
 	Params.useEmittanceInterpolation = true;
 	Params.useHighQualityEmittanceDownsampling = !!CVarVxgiHighQualityEmittanceDownsamplingEnable.GetValueOnAnyThread();
 	Params.enableMultiBounce = bVxgiMultiBounceEnable;
+
+	// Workaround for a voxelization issue on Volta GPUs that incorrectly uses the wave match operation
+	Params.enabledHardwareFeatures = VXGI::HardwareFeatures::Enum(VXGI::HardwareFeatures::ALL & ~VXGI::HardwareFeatures::NVAPI_WAVE_MATCH);
 }
 
 void FSceneRenderer::PrepareForVxgiVoxelization(FRHICommandList& RHICmdList)
