@@ -10,28 +10,10 @@
 #include "Components/StaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
 #include "Materials/Material.h"
-#include "ShaderParameterUtils.h"
-#include "SpeedTreeWind.h"
 
 #if STATS
 DECLARE_CYCLE_STAT(TEXT("Skin Mesh Time (CPU)"), STAT_Flex_RenderMeshTime, STATGROUP_Flex);
 #endif
-
-class FSpeedTreeWindNullUniformBuffer : public TUniformBuffer<FSpeedTreeUniformParameters>
-{
-	typedef TUniformBuffer< FSpeedTreeUniformParameters > Super;
-public:
-	virtual void InitDynamicRHI() override;
-};
-
-void FSpeedTreeWindNullUniformBuffer::InitDynamicRHI()
-{
-	FSpeedTreeUniformParameters Parameters;
-	FMemory::Memzero(Parameters);
-	SetContentsNoUpdate(Parameters);
-
-	Super::InitDynamicRHI();
-}
 
 /* CPU Skinning */
 
@@ -40,7 +22,6 @@ struct FFlexVertex
 	FVector Position;
 	FPackedNormal TangentZ;
 };
-
 
 void FFlexVertexBuffer::Init(int32 Count, int32 MaxCount)
 {
@@ -360,10 +341,7 @@ void FFlexCPUVertexFactory::SkinSoft(const FPositionVertexBuffer& Positions, con
 
 /* GPU Skinning */
 
-// Note: Inheriting from FLocalVertexFactoryShaderParameters requires adding ENGINE_API in the declaration of class FLocalVertexFactoryShaderParameters in LocalVertexFactory.h
-// To avoid this, we copy some codes from FLocalVertexFactoryShaderParameters instead of inheriting from it.
-//class FFlexMeshVertexFactoryShaderParameters : public FLocalVertexFactoryShaderParameters 
-class FFlexMeshVertexFactoryShaderParameters : public FVertexFactoryShaderParameters
+class FFlexMeshVertexFactoryShaderParameters : public FLocalVertexFactoryShaderParameters 
 {
 public:
 	virtual void Bind(const FShaderParameterMap& ParameterMap) override;
@@ -371,25 +349,7 @@ public:
 	void Serialize(FArchive& Ar) override;
 	virtual uint32 GetSize() const override;
 
-	FFlexMeshVertexFactoryShaderParameters()
-		: bAnySpeedTreeParamIsBound(false)
-	{
-	}
-
 private:
-
-	// SpeedTree LOD parameter
-	FShaderParameter LODParameter;
-
-	//Parameters to manually load TexCoords
-	FShaderParameter VertexFetch_VertexFetchParameters;
-	FShaderResourceParameter VertexFetch_PositionBufferParameter;
-	FShaderResourceParameter VertexFetch_TexCoordBufferParameter;
-	FShaderResourceParameter VertexFetch_PackedTangentsBufferParameter;
-	FShaderResourceParameter VertexFetch_ColorComponentsBufferParameter;
-
-	// True if LODParameter is bound, which puts us on the slow path in SetMesh
-	bool bAnySpeedTreeParamIsBound;
 
 	FShaderResourceParameter ClusterTranslationsParameter;
 	FShaderResourceParameter ClusterRotationsParameter;
@@ -510,19 +470,10 @@ void FFlexGPUVertexFactory::SkinSoft(const FPositionVertexBuffer& Positions, con
 }
 
 // factory shader parameter implementation methods
-static TGlobalResource< FSpeedTreeWindNullUniformBuffer > GSpeedTreeWindNullUniformBuffer;
 
 void FFlexMeshVertexFactoryShaderParameters::Bind(const FShaderParameterMap& ParameterMap) 
 {
-	//FLocalVertexFactoryShaderParameters::Bind(ParameterMap);
-	LODParameter.Bind(ParameterMap, TEXT("SpeedTreeLODInfo"));
-	bAnySpeedTreeParamIsBound = LODParameter.IsBound() || ParameterMap.ContainsParameterAllocation(TEXT("SpeedTreeData"));
-
-	VertexFetch_VertexFetchParameters.Bind(ParameterMap, TEXT("VertexFetch_Parameters"));
-	VertexFetch_PositionBufferParameter.Bind(ParameterMap, TEXT("VertexFetch_PositionBuffer"));
-	VertexFetch_TexCoordBufferParameter.Bind(ParameterMap, TEXT("VertexFetch_TexCoordBuffer"));
-	VertexFetch_PackedTangentsBufferParameter.Bind(ParameterMap, TEXT("VertexFetch_PackedTangentsBuffer"));
-	VertexFetch_ColorComponentsBufferParameter.Bind(ParameterMap, TEXT("VertexFetch_ColorComponentsBuffer"));
+	FLocalVertexFactoryShaderParameters::Bind(ParameterMap);
 
 	ClusterTranslationsParameter.Bind(ParameterMap, TEXT("ClusterTranslations"), SPF_Optional);
 	ClusterRotationsParameter.Bind(ParameterMap, TEXT("ClusterRotations"), SPF_Optional);
@@ -530,66 +481,7 @@ void FFlexMeshVertexFactoryShaderParameters::Bind(const FShaderParameterMap& Par
 
 void FFlexMeshVertexFactoryShaderParameters::SetMesh(FRHICommandList& RHICmdList, FShader* Shader, const FVertexFactory* VertexFactory, const FSceneView& View, const FMeshBatchElement& BatchElement, uint32 DataFlags) const 
 {
-	//FLocalVertexFactoryShaderParameters::SetMesh(RHICmdList, Shader, VertexFactory, View, BatchElement, DataFlags);
-	const auto* LocalVertexFactory = static_cast<const FLocalVertexFactory*>(VertexFactory);
-
-	FVertexShaderRHIParamRef VS = Shader->GetVertexShader();
-	if (LocalVertexFactory->SupportsManualVertexFetch(View.GetShaderPlatform()))
-	{
-		SetSRVParameter(RHICmdList, VS, VertexFetch_PositionBufferParameter, LocalVertexFactory->GetPositionsSRV());
-		SetSRVParameter(RHICmdList, VS, VertexFetch_PackedTangentsBufferParameter, LocalVertexFactory->GetTangentsSRV());
-		SetSRVParameter(RHICmdList, VS, VertexFetch_TexCoordBufferParameter, LocalVertexFactory->GetTextureCoordinatesSRV());
-
-		int ColorIndexMask = 0;
-		if (BatchElement.bUserDataIsColorVertexBuffer)
-		{
-			FColorVertexBuffer* OverrideColorVertexBuffer = (FColorVertexBuffer*)BatchElement.UserData;
-			check(OverrideColorVertexBuffer);
-
-			SetSRVParameter(RHICmdList, VS, VertexFetch_ColorComponentsBufferParameter, OverrideColorVertexBuffer->GetColorComponentsSRV());
-			ColorIndexMask = OverrideColorVertexBuffer->GetNumVertices() > 1 ? ~0 : 0;
-		}
-		else
-		{
-			SetSRVParameter(RHICmdList, VS, VertexFetch_ColorComponentsBufferParameter, LocalVertexFactory->GetColorComponentsSRV());
-			ColorIndexMask = (int)LocalVertexFactory->GetColorIndexMask();
-		}
-
-		const int NumTexCoords = LocalVertexFactory->GetNumTexcoords();
-		const int LightMapCoordinateIndex = LocalVertexFactory->GetLightMapCoordinateIndex();
-		FIntVector Parameters = { ColorIndexMask, NumTexCoords, LightMapCoordinateIndex };
-		SetShaderValue(RHICmdList, VS, VertexFetch_VertexFetchParameters, Parameters);
-	}
-
-	if (BatchElement.bUserDataIsColorVertexBuffer)
-	{
-		FColorVertexBuffer* OverrideColorVertexBuffer = (FColorVertexBuffer*)BatchElement.UserData;
-		check(OverrideColorVertexBuffer);
-
-		if (!LocalVertexFactory->SupportsManualVertexFetch(View.GetShaderPlatform()))
-		{
-			LocalVertexFactory->SetColorOverrideStream(RHICmdList, OverrideColorVertexBuffer);
-		}
-	}
-
-	if (bAnySpeedTreeParamIsBound && View.Family != NULL && View.Family->Scene != NULL)
-	{
-		QUICK_SCOPE_CYCLE_COUNTER(STAT_FLocalVertexFactoryShaderParameters_SetMesh_SpeedTree);
-		FUniformBufferRHIParamRef SpeedTreeUniformBuffer = View.Family->Scene->GetSpeedTreeUniformBuffer(VertexFactory);
-		if (SpeedTreeUniformBuffer == NULL)
-		{
-			SpeedTreeUniformBuffer = GSpeedTreeWindNullUniformBuffer.GetUniformBufferRHI();
-		}
-		check(SpeedTreeUniformBuffer != NULL);
-
-		SetUniformBufferParameter(RHICmdList, VS, Shader->GetUniformBufferParameter<FSpeedTreeUniformParameters>(), SpeedTreeUniformBuffer);
-
-		if (LODParameter.IsBound())
-		{
-			FVector LODData(BatchElement.MinScreenSize, BatchElement.MaxScreenSize, BatchElement.MaxScreenSize - BatchElement.MinScreenSize);
-			SetShaderValue(RHICmdList, VS, LODParameter, LODData);
-		}
-	}
+	FLocalVertexFactoryShaderParameters::SetMesh(RHICmdList, Shader, VertexFactory, View, BatchElement, DataFlags);
 
 	if (Shader->GetVertexShader())
 	{
@@ -609,14 +501,7 @@ void FFlexMeshVertexFactoryShaderParameters::SetMesh(FRHICommandList& RHICmdList
 
 void FFlexMeshVertexFactoryShaderParameters::Serialize(FArchive& Ar) 
 {
-	//FLocalVertexFactoryShaderParameters::Serialize(Ar);
-	Ar << bAnySpeedTreeParamIsBound;
-	Ar << LODParameter;
-	Ar << VertexFetch_VertexFetchParameters;
-	Ar << VertexFetch_PositionBufferParameter;
-	Ar << VertexFetch_TexCoordBufferParameter;
-	Ar << VertexFetch_PackedTangentsBufferParameter;
-	Ar << VertexFetch_ColorComponentsBufferParameter;
+	FLocalVertexFactoryShaderParameters::Serialize(Ar);
 
 	Ar << ClusterTranslationsParameter;
 	Ar << ClusterRotationsParameter;

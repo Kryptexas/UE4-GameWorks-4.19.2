@@ -11,18 +11,94 @@
 
 #include "FlexManager.h"
 
+struct FlexRopeVertexData
+{
+	TArray<FVector> VertexPositions;
+	TArray<FVector2D> VertexTextureCoordinates;
+	TArray<FPackedNormal> VertexTangentXZ;
+	TArray<FColor> VertexColors;
+};
+
 /** Vertex Buffer */
 class FFlexRopeVertexBuffer : public FVertexBuffer 
 {
 public:
-	virtual void InitRHI() override
-	{
-		FRHIResourceCreateInfo CreateInfo;
-		VertexBufferRHI = RHICreateVertexBuffer(NumVerts * sizeof(FDynamicMeshVertex), BUF_Dynamic, CreateInfo);
-	}
+
+	// Begin FRenderResource interface.
+	virtual void InitRHI() override;
+	virtual void ReleaseRHI() override;
+	// End FRenderResource interface.
 
 	int32 NumVerts;
+
+	FVertexBuffer PositionBuffer;
+	FVertexBuffer TangentBuffer;
+	FVertexBuffer TexCoordBuffer;
+	FVertexBuffer ColorBuffer;
+
+	FShaderResourceViewRHIRef PositionComponentSRV;
+	FShaderResourceViewRHIRef TangentsSRV;
+	FShaderResourceViewRHIRef TextureCoordinatesSRV;
+	FShaderResourceViewRHIRef ColorComponentsSRV;
 };
+
+void FFlexRopeVertexBuffer::InitRHI()
+{
+	// Create vertex position buffer
+	{
+		FRHIResourceCreateInfo CreateInfo;
+		PositionBuffer.VertexBufferRHI = RHICreateVertexBuffer(NumVerts * sizeof(FVector), BUF_Dynamic | BUF_ShaderResource, CreateInfo);
+		if (RHISupportsManualVertexFetch(GMaxRHIShaderPlatform))
+		{
+			PositionComponentSRV = RHICreateShaderResourceView(PositionBuffer.VertexBufferRHI, sizeof(FVector), VET_Float3);
+		}
+	}
+
+	// Create vertex tangent buffer
+	{
+		FRHIResourceCreateInfo CreateInfo;
+		TangentBuffer.VertexBufferRHI = RHICreateVertexBuffer(NumVerts * 2 * sizeof(FPackedNormal), BUF_Dynamic | BUF_ShaderResource, CreateInfo);
+		if (RHISupportsManualVertexFetch(GMaxRHIShaderPlatform))
+		{
+			TangentsSRV = RHICreateShaderResourceView(TangentBuffer.VertexBufferRHI, sizeof(FPackedNormal), PF_R8G8B8A8);
+		}
+	}
+
+	// Create vertex texture coordinate buffer
+	{
+		FRHIResourceCreateInfo CreateInfo;
+		TexCoordBuffer.VertexBufferRHI = RHICreateVertexBuffer(NumVerts * sizeof(FVector2D), BUF_Dynamic | BUF_ShaderResource, CreateInfo);
+		if (RHISupportsManualVertexFetch(GMaxRHIShaderPlatform))
+		{
+			TextureCoordinatesSRV = RHICreateShaderResourceView(TexCoordBuffer.VertexBufferRHI, sizeof(FVector2D), PF_G32R32F);
+		}
+	}
+
+	// Create vertex color buffer
+	{
+		FRHIResourceCreateInfo CreateInfo;
+		ColorBuffer.VertexBufferRHI = RHICreateVertexBuffer(NumVerts * sizeof(FColor), BUF_Dynamic | BUF_ShaderResource, CreateInfo);
+		if (RHISupportsManualVertexFetch(GMaxRHIShaderPlatform))
+		{
+			ColorComponentsSRV = RHICreateShaderResourceView(ColorBuffer.VertexBufferRHI, sizeof(FColor), PF_R8G8B8A8);
+		}
+	}
+}
+
+void FFlexRopeVertexBuffer::ReleaseRHI()
+{
+	PositionBuffer.ReleaseRHI();
+	TangentBuffer.ReleaseRHI();
+	TexCoordBuffer.ReleaseRHI();
+	ColorBuffer.ReleaseRHI();
+
+	PositionComponentSRV.SafeRelease();
+	TangentsSRV.SafeRelease();
+	TextureCoordinatesSRV.SafeRelease();
+	ColorComponentsSRV.SafeRelease();
+
+	FVertexBuffer::ReleaseRHI();
+}
 
 /** Index Buffer */
 class FFlexRopeIndexBuffer : public FIndexBuffer 
@@ -48,18 +124,29 @@ public:
 
 
 	/** Initialization */
-	void Init(const FFlexRopeVertexBuffer* VertexBuffer)
+	void Init(FFlexRopeVertexBuffer* VertexBuffer)
 	{
+		if (VertexBuffer == nullptr)
+			return;
+
+		VertexBuffer->InitRHI();
+
 		if(IsInRenderingThread())
 		{
 			// Initialize the vertex factory's stream components.
 			FDataType NewData;
-			NewData.PositionComponent = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(VertexBuffer,FDynamicMeshVertex,Position,VET_Float3);
-			NewData.TextureCoordinates.Add(
-				FVertexStreamComponent(VertexBuffer,STRUCT_OFFSET(FDynamicMeshVertex,TextureCoordinate),sizeof(FDynamicMeshVertex),VET_Float2)
-				);
-			NewData.TangentBasisComponents[0] = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(VertexBuffer,FDynamicMeshVertex,TangentX,VET_PackedNormal);
-			NewData.TangentBasisComponents[1] = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(VertexBuffer,FDynamicMeshVertex,TangentZ,VET_PackedNormal);
+			NewData.NumTexCoords = 1;
+			NewData.PositionComponentSRV = VertexBuffer->PositionComponentSRV;
+			NewData.TangentsSRV = VertexBuffer->TangentsSRV;
+			NewData.TextureCoordinatesSRV = VertexBuffer->TextureCoordinatesSRV;
+			NewData.ColorComponentsSRV = VertexBuffer->ColorComponentsSRV;
+
+			NewData.PositionComponent = FVertexStreamComponent(&VertexBuffer->PositionBuffer, 0, sizeof(FVector), VET_Float3, EVertexStreamUsage::Default);
+			NewData.TangentBasisComponents[0] = FVertexStreamComponent(&VertexBuffer->TangentBuffer, 0, 2 * sizeof(FPackedNormal), VET_PackedNormal, EVertexStreamUsage::ManualFetch);
+			NewData.TangentBasisComponents[1] = FVertexStreamComponent(&VertexBuffer->TangentBuffer, sizeof(FPackedNormal), 2 * sizeof(FPackedNormal), VET_PackedNormal, EVertexStreamUsage::ManualFetch);
+			NewData.TextureCoordinates.Add(FVertexStreamComponent(&VertexBuffer->TexCoordBuffer, 0, sizeof(FVector2D),VET_Float2, EVertexStreamUsage::ManualFetch));
+			NewData.ColorComponent = FVertexStreamComponent(&VertexBuffer->ColorBuffer, 0, sizeof(FColor), VET_Color, EVertexStreamUsage::ManualFetch);
+
 			SetData(NewData);
 		}
 		else
@@ -71,12 +158,18 @@ public:
 			{
 				// Initialize the vertex factory's stream components.
 				FDataType NewData;
-				NewData.PositionComponent = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(VertexBuffer,FDynamicMeshVertex,Position,VET_Float3);
-				NewData.TextureCoordinates.Add(
-					FVertexStreamComponent(VertexBuffer,STRUCT_OFFSET(FDynamicMeshVertex,TextureCoordinate),sizeof(FDynamicMeshVertex),VET_Float2)
-					);
-				NewData.TangentBasisComponents[0] = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(VertexBuffer,FDynamicMeshVertex,TangentX,VET_PackedNormal);
-				NewData.TangentBasisComponents[1] = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(VertexBuffer,FDynamicMeshVertex,TangentZ,VET_PackedNormal);
+				NewData.NumTexCoords = 1;
+				NewData.PositionComponentSRV = VertexBuffer->PositionComponentSRV;
+				NewData.TangentsSRV = VertexBuffer->TangentsSRV;
+				NewData.TextureCoordinatesSRV = VertexBuffer->TextureCoordinatesSRV;
+				NewData.ColorComponentsSRV = VertexBuffer->ColorComponentsSRV;
+
+				NewData.PositionComponent = FVertexStreamComponent(&VertexBuffer->PositionBuffer, 0, sizeof(FVector), VET_Float3, EVertexStreamUsage::Default);
+				NewData.TangentBasisComponents[0] = FVertexStreamComponent(&VertexBuffer->TangentBuffer, 0, 2 * sizeof(FPackedNormal), VET_PackedNormal, EVertexStreamUsage::ManualFetch);
+				NewData.TangentBasisComponents[1] = FVertexStreamComponent(&VertexBuffer->TangentBuffer, sizeof(FPackedNormal), 2 * sizeof(FPackedNormal), VET_PackedNormal, EVertexStreamUsage::ManualFetch);
+				NewData.TextureCoordinates.Add(FVertexStreamComponent(&VertexBuffer->TexCoordBuffer, 0, sizeof(FVector2D), VET_Float2, EVertexStreamUsage::ManualFetch));
+				NewData.ColorComponent = FVertexStreamComponent(&VertexBuffer->ColorBuffer, 0, sizeof(FColor), VET_Color, EVertexStreamUsage::ManualFetch);
+
 				VertexFactory->SetData(NewData);
 			});
 		}
@@ -120,7 +213,10 @@ public:
 		VertexFactory.Init(&VertexBuffer);
 
 		// Enqueue initialization of render resource
-		BeginInitResource(&VertexBuffer);
+		BeginInitResource(&VertexBuffer.PositionBuffer);
+		BeginInitResource(&VertexBuffer.TangentBuffer);
+		BeginInitResource(&VertexBuffer.TexCoordBuffer);
+		BeginInitResource(&VertexBuffer.ColorBuffer);
 		BeginInitResource(&IndexBuffer);
 		BeginInitResource(&VertexFactory);
 
@@ -134,13 +230,17 @@ public:
 
 	virtual ~FFlexRopeSceneProxy()
 	{
-		VertexBuffer.ReleaseResource();
+		VertexBuffer.PositionBuffer.ReleaseResource();
+		VertexBuffer.TangentBuffer.ReleaseResource();
+		VertexBuffer.TexCoordBuffer.ReleaseResource();
+		VertexBuffer.ColorBuffer.ReleaseResource();
 		IndexBuffer.ReleaseResource();
 		VertexFactory.ReleaseResource();
 
 		if(DynamicData != NULL)
 		{
 			delete DynamicData;
+			DynamicData = NULL;
 		}
 	}
 
@@ -159,7 +259,7 @@ public:
 		return (AlongIdx * (NumSides+1)) + AroundIdx;
 	}
 
-	void BuildRopeMesh(const TArray<FVector>& InPoints, TArray<FDynamicMeshVertex>& OutVertices, TArray<int32>& OutIndices)
+	void BuildRopeMesh(const TArray<FVector>& InPoints, FlexRopeVertexData& OutRopeVertexData, TArray<int32>& OutIndices)
 	{
 		const FColor VertexColor(255,255,255);
 		const int32 NumPoints = InPoints.Num();
@@ -211,12 +311,20 @@ public:
 				// Find direction from center of FlexRope to this vertex
 				const FVector OutDir = (FMath::Cos(RadAngle) * BasisY) + (FMath::Sin(RadAngle) * BasisZ);
 
-				FDynamicMeshVertex Vert;
-				Vert.Position = InPoints[PointIdx] + (OutDir * 0.5f * Width);
-				Vert.TextureCoordinate[0] = FVector2D(AlongFrac * TileMaterial, AroundFrac);
-				Vert.Color = VertexColor;
-				Vert.SetTangents(ForwardDir, OutDir ^ ForwardDir, OutDir);
-				OutVertices.Add(Vert);
+				FVector Position = InPoints[PointIdx] + (OutDir * 0.5f * Width);
+				FVector2D TextureCoordinate = FVector2D(AlongFrac * TileMaterial, AroundFrac);
+				//Vert.SetTangents(ForwardDir, OutDir ^ ForwardDir, OutDir);
+				FPackedNormal TangentX = ForwardDir;
+				FPackedNormal TangentZ = OutDir;
+				// store determinant of basis in w component of normal vector
+				TangentZ.Vector.W = GetBasisDeterminantSign(ForwardDir, OutDir ^ ForwardDir, OutDir) < 0.0f ? 0 : 255;
+				FColor Color = VertexColor;
+				
+				OutRopeVertexData.VertexPositions.Add(Position);
+				OutRopeVertexData.VertexTextureCoordinates.Add(TextureCoordinate);
+				OutRopeVertexData.VertexTangentXZ.Add(TangentX);
+				OutRopeVertexData.VertexTangentXZ.Add(TangentZ);
+				OutRopeVertexData.VertexColors.Add(Color);			
 			}
 		}
 
@@ -255,16 +363,28 @@ public:
 		DynamicData = NewDynamicData;
 
 		// Build mesh from FlexRope points
-		TArray<FDynamicMeshVertex> Vertices;
+		FlexRopeVertexData RopeVertices;
 		TArray<int32> Indices;
-		BuildRopeMesh(NewDynamicData->FlexRopePoints, Vertices, Indices);
+		BuildRopeMesh(NewDynamicData->FlexRopePoints, RopeVertices, Indices);
 
-		check(Vertices.Num() == GetRequiredVertexCount());
+		check(RopeVertices.VertexPositions.Num() == GetRequiredVertexCount());
 		check(Indices.Num() == GetRequiredIndexCount());
 
-		void* VertexBufferData = RHILockVertexBuffer(VertexBuffer.VertexBufferRHI, 0, Vertices.Num() * sizeof(FDynamicMeshVertex), RLM_WriteOnly);
-		FMemory::Memcpy(VertexBufferData, &Vertices[0], Vertices.Num() * sizeof(FDynamicMeshVertex));
-		RHIUnlockVertexBuffer(VertexBuffer.VertexBufferRHI);
+		void* VertexPositionBufferData = RHILockVertexBuffer(VertexBuffer.PositionBuffer.VertexBufferRHI, 0, RopeVertices.VertexPositions.Num() * sizeof(FVector), RLM_WriteOnly);
+		FMemory::Memcpy(VertexPositionBufferData, &RopeVertices.VertexPositions[0], RopeVertices.VertexPositions.Num() * sizeof(FVector));
+		RHIUnlockVertexBuffer(VertexBuffer.PositionBuffer.VertexBufferRHI);
+
+		void* VertexTangentBufferData = RHILockVertexBuffer(VertexBuffer.TangentBuffer.VertexBufferRHI, 0, RopeVertices.VertexTangentXZ.Num() * sizeof(FPackedNormal), RLM_WriteOnly);
+		FMemory::Memcpy(VertexTangentBufferData, &RopeVertices.VertexTangentXZ[0], RopeVertices.VertexTangentXZ.Num() * sizeof(FPackedNormal));
+		RHIUnlockVertexBuffer(VertexBuffer.TangentBuffer.VertexBufferRHI);
+
+		void* VertexTexCoordBufferData = RHILockVertexBuffer(VertexBuffer.TexCoordBuffer.VertexBufferRHI, 0, RopeVertices.VertexTextureCoordinates.Num() * sizeof(FVector2D), RLM_WriteOnly);
+		FMemory::Memcpy(VertexTexCoordBufferData, &RopeVertices.VertexTextureCoordinates[0], RopeVertices.VertexTextureCoordinates.Num() * sizeof(FVector2D));
+		RHIUnlockVertexBuffer(VertexBuffer.TexCoordBuffer.VertexBufferRHI);
+
+		void* VertexColorBufferData = RHILockVertexBuffer(VertexBuffer.ColorBuffer.VertexBufferRHI, 0, RopeVertices.VertexColors.Num() * sizeof(FColor), RLM_WriteOnly);
+		FMemory::Memcmp(VertexColorBufferData, &RopeVertices.VertexColors[0], RopeVertices.VertexColors.Num() * sizeof(FColor));
+		RHIUnlockVertexBuffer(VertexBuffer.ColorBuffer.VertexBufferRHI);
 
 		void* IndexBufferData = RHILockIndexBuffer(IndexBuffer.IndexBufferRHI, 0, Indices.Num() * sizeof(int32), RLM_WriteOnly);
 		FMemory::Memcpy(IndexBufferData, &Indices[0], Indices.Num() * sizeof(int32));

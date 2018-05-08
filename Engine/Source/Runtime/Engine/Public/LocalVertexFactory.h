@@ -155,7 +155,9 @@ protected:
 /**
  * Shader parameters for LocalVertexFactory.
  */
-class FLocalVertexFactoryShaderParameters : public FVertexFactoryShaderParameters
+//#nv begin #flex
+class ENGINE_API FLocalVertexFactoryShaderParameters : public FVertexFactoryShaderParameters
+//#nv end
 {
 public:
 	virtual void Bind(const FShaderParameterMap& ParameterMap) override;
