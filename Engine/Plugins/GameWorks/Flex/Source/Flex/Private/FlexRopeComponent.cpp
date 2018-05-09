@@ -47,7 +47,7 @@ void FFlexRopeVertexBuffer::InitRHI()
 	// Create vertex position buffer
 	{
 		FRHIResourceCreateInfo CreateInfo;
-		PositionBuffer.VertexBufferRHI = RHICreateVertexBuffer(NumVerts * sizeof(FVector), BUF_Dynamic | BUF_ShaderResource, CreateInfo);
+		PositionBuffer.VertexBufferRHI = RHICreateVertexBuffer(NumVerts * sizeof(FVector), BUF_Static | BUF_ShaderResource, CreateInfo);
 		if (RHISupportsManualVertexFetch(GMaxRHIShaderPlatform))
 		{
 			PositionComponentSRV = RHICreateShaderResourceView(PositionBuffer.VertexBufferRHI, sizeof(FVector), VET_Float3);
@@ -57,7 +57,7 @@ void FFlexRopeVertexBuffer::InitRHI()
 	// Create vertex tangent buffer
 	{
 		FRHIResourceCreateInfo CreateInfo;
-		TangentBuffer.VertexBufferRHI = RHICreateVertexBuffer(NumVerts * 2 * sizeof(FPackedNormal), BUF_Dynamic | BUF_ShaderResource, CreateInfo);
+		TangentBuffer.VertexBufferRHI = RHICreateVertexBuffer(NumVerts * 2 * sizeof(FPackedNormal), BUF_Static | BUF_ShaderResource, CreateInfo);
 		if (RHISupportsManualVertexFetch(GMaxRHIShaderPlatform))
 		{
 			TangentsSRV = RHICreateShaderResourceView(TangentBuffer.VertexBufferRHI, sizeof(FPackedNormal), PF_R8G8B8A8);
@@ -67,7 +67,7 @@ void FFlexRopeVertexBuffer::InitRHI()
 	// Create vertex texture coordinate buffer
 	{
 		FRHIResourceCreateInfo CreateInfo;
-		TexCoordBuffer.VertexBufferRHI = RHICreateVertexBuffer(NumVerts * sizeof(FVector2D), BUF_Dynamic | BUF_ShaderResource, CreateInfo);
+		TexCoordBuffer.VertexBufferRHI = RHICreateVertexBuffer(NumVerts * sizeof(FVector2D), BUF_Static | BUF_ShaderResource, CreateInfo);
 		if (RHISupportsManualVertexFetch(GMaxRHIShaderPlatform))
 		{
 			TextureCoordinatesSRV = RHICreateShaderResourceView(TexCoordBuffer.VertexBufferRHI, sizeof(FVector2D), PF_G32R32F);
@@ -77,7 +77,7 @@ void FFlexRopeVertexBuffer::InitRHI()
 	// Create vertex color buffer
 	{
 		FRHIResourceCreateInfo CreateInfo;
-		ColorBuffer.VertexBufferRHI = RHICreateVertexBuffer(NumVerts * sizeof(FColor), BUF_Dynamic | BUF_ShaderResource, CreateInfo);
+		ColorBuffer.VertexBufferRHI = RHICreateVertexBuffer(NumVerts * sizeof(FColor), BUF_Static | BUF_ShaderResource, CreateInfo);
 		if (RHISupportsManualVertexFetch(GMaxRHIShaderPlatform))
 		{
 			ColorComponentsSRV = RHICreateShaderResourceView(ColorBuffer.VertexBufferRHI, sizeof(FColor), PF_R8G8B8A8);
@@ -107,7 +107,7 @@ public:
 	virtual void InitRHI() override
 	{
 		FRHIResourceCreateInfo CreateInfo;
-		IndexBufferRHI = RHICreateIndexBuffer(sizeof(int32), NumIndices * sizeof(int32), BUF_Dynamic, CreateInfo);
+		IndexBufferRHI = RHICreateIndexBuffer(sizeof(int32), NumIndices * sizeof(int32), BUF_Static, CreateInfo);
 	}
 
 	int32 NumIndices;
