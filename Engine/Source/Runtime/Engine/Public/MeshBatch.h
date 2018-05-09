@@ -147,6 +147,13 @@ struct FMeshBatch
 	// can be NULL
 	const FLightCacheInterface* LCI;
 
+	//#nv begin #flex
+#if WITH_FLEX
+	/** Whether the mesh batch should be rendered. */
+	uint32 bRenderable : 1;
+#endif
+	//#nv end
+
 	/** Vertex factory for rendering, required. */
 	const FVertexFactory* VertexFactory;
 
@@ -243,6 +250,11 @@ struct FMeshBatch
 	,	VertexFactory(NULL)
 	,	MaterialRenderProxy(NULL)
 	,	TessellationDisablingShadowMapMeshSize(0.0f)
+	//#nv begin #flex
+#if WITH_FLEX
+	,	bRenderable(true)
+#endif
+	//#nv end
 	{
 		// By default always add the first element.
 		new(Elements) FMeshBatchElement;

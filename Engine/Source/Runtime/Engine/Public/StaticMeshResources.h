@@ -289,7 +289,7 @@ struct FStaticMeshLODResources
 	/** Default constructor. */
 	FStaticMeshLODResources();
 
-	~FStaticMeshLODResources();
+	ENGINE_API ~FStaticMeshLODResources();
 
 	/** Initializes all rendering resources. */
 	void InitResources(UStaticMesh* Parent);

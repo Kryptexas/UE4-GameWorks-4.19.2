@@ -47,6 +47,12 @@
 #include "DerivedDataCacheInterface.h"
 #endif // #if WITH_EDITOR
 
+//#nv begin #flex
+#if WITH_FLEX
+#include "GameWorks/IFlexPluginBridge.h"
+#endif
+//#nv end
+
 #include "Engine/StaticMeshSocket.h"
 #include "EditorFramework/AssetImportData.h"
 #include "AI/Navigation/NavCollision.h"
@@ -138,6 +144,17 @@ void FStaticMeshLODResources::Serialize(FArchive& Ar, UObject* Owner, int32 Inde
 	// On cooked platforms we never need the resource data.
 	// TODO: Not needed in uncooked games either after PostLoad!
 	bool bNeedsCPUAccess = !FPlatformProperties::RequiresCookedData() || bMeshCPUAcces;
+
+	//#nv begin #flex
+#if WITH_FLEX
+	// cloth and soft bodies currently need access to data on the CPU
+	UStaticMesh* StaticMesh = Cast<UStaticMesh>(Owner);
+	if (GFlexPluginBridge && GFlexPluginBridge->HasFlexAsset(StaticMesh))
+	{
+		bNeedsCPUAccess = true;
+	}
+#endif
+	//#nv end
 
 	bHasAdjacencyInfo = false;
 	bHasDepthOnlyIndices = false;
@@ -1530,6 +1547,12 @@ UStaticMesh::UStaticMesh(const FObjectInitializer& ObjectInitializer)
 	MinLOD = 0;
 
 	bSupportUniformlyDistributedSampling = false;
+
+	//#nv begin #flex
+#if WITH_FLEX
+	FlexAsset_DEPRECATED = nullptr;
+#endif
+	//#nv end
 }
 
 void UStaticMesh::PostInitProperties()
@@ -1832,6 +1855,23 @@ void UStaticMesh::ReleaseResources()
 	ReleaseResourcesFence.BeginFence();
 }
 
+//#nv begin #flex
+#if WITH_FLEX
+/**
+ * Callback used to allow object register its direct object references that are not already covered by
+ * the token stream.
+ *
+ * @param ObjectArray	array to add referenced objects to via AddReferencedObject
+ */
+void UStaticMesh::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
+{
+	UStaticMesh* This = CastChecked<UStaticMesh>(InThis);
+
+	Super::AddReferencedObjects( This, Collector );
+}
+#endif
+//#nv end
+
 #if WITH_EDITOR
 void UStaticMesh::PreEditChange(UProperty* PropertyAboutToChange)
 {
@@ -1889,6 +1929,15 @@ void UStaticMesh::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedE
 		// of NavCollision. We need to let related StaticMeshComponents know
 		BroadcastNavCollisionChange();
 	}
+
+	//#nv begin #flex
+#if WITH_FLEX
+	if (GFlexPluginBridge)
+	{
+		GFlexPluginBridge->ReImportFlexAsset(this);
+	}
+#endif
+	//#nv end
 
 	// Only unbuild lighting for properties which affect static lighting
 	if (PropertyName == GET_MEMBER_NAME_CHECKED(UStaticMesh, LightMapResolution)
@@ -2416,6 +2465,19 @@ void UStaticMesh::Serialize(FArchive& Ar)
 	{
 		BodySetup->DefaultInstance.SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
 	}
+
+	//#nv begin #flex
+#if WITH_FLEX
+#if 0
+	// make old static meshs load until they can be resaved
+	if (Ar.UE4Ver() == VER_UE4_INTERPCURVE_SUPPORTS_LOOPING)
+	{
+		UFlexAsset* Dummy;
+		Ar << Dummy;
+	}
+#endif
+#endif
+	//#nv end
 
 #if WITH_EDITORONLY_DATA
 	if( !StripFlags.IsEditorDataStripped() )

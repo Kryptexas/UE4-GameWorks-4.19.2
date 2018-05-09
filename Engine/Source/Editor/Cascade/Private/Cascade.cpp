@@ -64,6 +64,12 @@
 #include "Framework/Commands/GenericCommands.h"
 #include "UnrealEngine.h"
 
+//#nv begin #flex
+#if WITH_FLEX
+#include "GameWorks/IFlexEditorPluginBridge.h"
+#endif
+//#nv end
+
 static const FName Cascade_PreviewViewportTab("Cascade_PreviewViewport");
 static const FName Cascade_EmmitterCanvasTab("Cascade_EmitterCanvas");
 static const FName Cascade_PropertiesTab("Cascade_Properties");
@@ -1029,7 +1035,13 @@ void FCascade::OnNewModule(int32 Idx)
 	}
 }
 
-void FCascade::OnNewEmitter()
+void FCascade::OnNewEmitter(
+	//#nv begin #flex
+#if WITH_FLEX
+	UClass* NewEmitClass
+#endif
+	//#nv end
+)
 {
 	FText Transaction = NSLOCTEXT("UnrealEd", "NewEmitter", "Create New Emitter");
 
@@ -1045,7 +1057,16 @@ void FCascade::OnNewEmitter()
 	ParticleSystem->PreEditChange(NULL);
 	ParticleSystemComponent->PreEditChange(NULL);
 
+	//#nv begin #flex
+#if WITH_FLEX
+	if (NewEmitClass == nullptr)
+	{
+		NewEmitClass = UParticleSpriteEmitter::StaticClass();
+	}
+#else
 	UClass* NewEmitClass = UParticleSpriteEmitter::StaticClass();
+#endif
+	//#nv end
 
 	// Construct it
 	UParticleEmitter* NewEmitter = NewObject<UParticleEmitter>(ParticleSystem, NewEmitClass, NAME_None, RF_Transactional);
@@ -1066,7 +1087,9 @@ void FCascade::OnNewEmitter()
 	NewEmitter->SetToSensibleDefaults();
 
 	// Handle special cases...
-	if (NewEmitClass == UParticleSpriteEmitter::StaticClass())
+	//#nv begin #flex
+	if (NewEmitClass->IsChildOf<UParticleSpriteEmitter>())
+	//#nv end
 	{
 		// For handyness- use currently selected material for new emitter (or default if none selected)
 		UParticleSpriteEmitter* NewSpriteEmitter = (UParticleSpriteEmitter*)NewEmitter;
@@ -2533,6 +2556,17 @@ void FCascade::BindCommands()
 	ToolkitCommands->MapAction(
 		Commands.RemoveDuplicateModules,
 		FExecuteAction::CreateSP(this, &FCascade::OnRemoveDuplicateModules));
+
+	//#nv begin #flex
+#if WITH_FLEX
+	if (GFlexEditorPluginBridge)
+	{
+		ToolkitCommands->MapAction(
+			Commands.ConvertToFlexEmitter,
+			FExecuteAction::CreateSP(this, &FCascade::OnConvertToFlexEmitter));
+	}
+#endif
+	//#nv end
 }
 
 void FCascade::InitParticleModuleClasses()
@@ -2762,7 +2796,13 @@ bool FCascade::PromptForCancellingSoloingMode( const FText& InOperationDesc)
 	return bCancelSoloing;
 }
 
-bool FCascade::DuplicateEmitter(UParticleEmitter* SourceEmitter, UParticleSystem* DestSystem, bool bShare)
+bool FCascade::DuplicateEmitter(UParticleEmitter* SourceEmitter, UParticleSystem* DestSystem, bool bShare
+	//#nv begin #flex
+#if WITH_FLEX
+	, UClass* NewEmitClass, FName NewName
+#endif
+	//#nv end
+)
 {
 	if (bIsSoloing == true)
 	{
@@ -2801,16 +2841,34 @@ bool FCascade::DuplicateEmitter(UParticleEmitter* SourceEmitter, UParticleSystem
 	}
 
 	// Find desired class of new module.
+	//#nv begin #flex
+#if WITH_FLEX
+	if (NewEmitClass == nullptr)
+	{
+		NewEmitClass = SourceEmitter->GetClass();
+	}
+#else
 	UClass* NewEmitClass = SourceEmitter->GetClass();
-	if (NewEmitClass == UParticleSpriteEmitter::StaticClass())
+#endif
+	if (NewEmitClass->IsChildOf<UParticleSpriteEmitter>())
+	//#nv end
 	{
 		// Construct it
 		UParticleEmitter* NewEmitter = NewObject<UParticleEmitter>(DestSystem, NewEmitClass, NAME_None, RF_Transactional);
 
 		check(NewEmitter);
 
-		FString	NewName = SourceEmitter->GetEmitterName().ToString();
-		NewEmitter->SetEmitterName(FName(*NewName));
+		//#nv begin #flex
+#if WITH_FLEX
+		if (NewName == NAME_None)
+		{
+			NewName = SourceEmitter->GetEmitterName();
+		}
+#else
+		FName NewName = SourceEmitter->GetEmitterName();
+#endif
+		//#nv end
+		NewEmitter->SetEmitterName(NewName);
 		NewEmitter->EmitterEditorColor = FColor::MakeRandomColor();
 		NewEmitter->EmitterEditorColor.A = 255;
 
@@ -5064,6 +5122,42 @@ void FCascade::OnDuplicateEmitter(bool bIsShared)
 		EmitterCanvas->RefreshViewport();
 	}
 }
+
+//#nv begin #flex
+#if WITH_FLEX
+void FCascade::OnConvertToFlexEmitter()
+{
+	auto FlexEmitterClass = GFlexEditorPluginBridge->GetFlexParticleSpriteEmitterClass();
+	// Make sure there is a selected emitter
+	if (!SelectedEmitter || SelectedEmitter->GetClass() == FlexEmitterClass)
+	{
+		return;
+	}
+
+	FText Transaction = NSLOCTEXT("UnrealEd", "ConvertToFlexEmitter", "Convert to Flex Emitter");
+
+	BeginTransaction(Transaction);
+
+	ParticleSystem->PreEditChange(NULL);
+	ParticleSystemComponent->PreEditChange(NULL);
+
+
+	FName NewName = FName(*(FString(TEXT("Flex ")) + SelectedEmitter->GetEmitterName().ToString()));
+	DuplicateEmitter(SelectedEmitter, ParticleSystem, false, GFlexEditorPluginBridge->GetFlexParticleSpriteEmitterClass(), NewName);
+
+	ParticleSystemComponent->PostEditChange();
+	ParticleSystem->PostEditChange();
+
+	EndTransaction(Transaction);
+
+	// Refresh viewport
+	if (EmitterCanvas.IsValid())
+	{
+		EmitterCanvas->RefreshViewport();
+	}
+}
+#endif
+//#nv end
 
 void FCascade::OnDeleteEmitter()
 {
