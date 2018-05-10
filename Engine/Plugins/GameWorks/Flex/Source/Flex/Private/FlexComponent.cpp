@@ -659,7 +659,7 @@ void UFlexComponent::EnableSim()
 
 					// gather overlapping primitives, except owning actor
 					TArray<FOverlapResult> Overlaps;
-					FCollisionQueryParams QueryParams(false);
+					FCollisionQueryParams QueryParams(NAME_None, false);
 					QueryParams.AddIgnoredActor(GetOwner());
 					GetWorld()->OverlapMultiByObjectType(Overlaps, ParticlePos, FQuat::Identity, FCollisionObjectQueryParams(FCollisionObjectQueryParams::InitType::AllObjects), Shape, QueryParams);
 

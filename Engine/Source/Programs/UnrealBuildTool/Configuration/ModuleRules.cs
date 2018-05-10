@@ -603,11 +603,11 @@ namespace UnrealBuildTool
             //#nv begin #flex
             if (Target.bCompileNvFlexD3D == true || Target.bCompileNvFlexCUDA == true)
             {
-                Definitions.Add("WITH_FLEX=1");
+                PublicDefinitions.Add("WITH_FLEX=1");
             }
             else
             {
-                Definitions.Add("WITH_FLEX=0");
+				PublicDefinitions.Add("WITH_FLEX=0");
             }
             //#nv end
 		}

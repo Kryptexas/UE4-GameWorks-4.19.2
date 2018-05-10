@@ -2,14 +2,14 @@
 
 #include "FlexRopeComponent.h"
 #include "FlexContainerInstance.h"
+#include "FlexManager.h"
 
-#include "DynamicMeshBuilder.h"
+#include "SceneManagement.h"
+#include "LocalVertexFactory.h"
 #include "PrimitiveSceneProxy.h"
 #include "Materials/Material.h"
 #include "Engine/Engine.h"
 #include "Engine/CollisionProfile.h"
-
-#include "FlexManager.h"
 
 struct FlexRopeVertexData
 {
