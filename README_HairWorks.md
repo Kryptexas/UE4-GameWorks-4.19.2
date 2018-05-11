@@ -18,8 +18,8 @@ Known Issues
 
 Changes
 =============
-## March 25, 2018
-* Upgraded to UE4.19.0
+## May 11, 2018
+* Upgraded to UE4.19.2
 
 ## Dec 21, 2017
 * Upgraded to UE4.18.2
