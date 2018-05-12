@@ -155,32 +155,28 @@ class FHairWorksBasePassPs: public FHairWorksBasicPs
 	{
 		CubemapShaderParameters.Bind(Initializer.ParameterMap);
 		CubemapAmbient.Bind(Initializer.ParameterMap, TEXT("bCubemapAmbient"));
-		PrecomputedLightingBuffer.Bind(Initializer.ParameterMap, TEXT("PrecomputedLightingBuffer"));
 	}
 
 	virtual bool Serialize(FArchive& Ar)
 	{
 		bool bShaderHasOutdatedParameters = FHairWorksBasicPs::Serialize(Ar);
 
-		Ar << CubemapShaderParameters << CubemapAmbient << PrecomputedLightingBuffer;
+		Ar << CubemapShaderParameters << CubemapAmbient;
 
 		return bShaderHasOutdatedParameters;
 	}
 
-	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, const NvHair_ConstantBuffer& HairConstBuffer, const TArray<FTexture2DRHIRef>& HairTextures, ID3D11ShaderResourceView* HairSrvs[NvHair::ShaderResourceType::COUNT_OF], FUniformBufferRHIRef InPrecomputedLightingBuffer)
+	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, const NvHair_ConstantBuffer& HairConstBuffer, const TArray<FTexture2DRHIRef>& HairTextures, ID3D11ShaderResourceView* HairSrvs[NvHair::ShaderResourceType::COUNT_OF])
 	{
 		FHairWorksBasicPs::SetParameters(RHICmdList, View, HairConstBuffer, HairTextures, HairSrvs);
 
 		const bool bCubemapAmbient = View.FinalPostProcessSettings.ContributingCubemaps.Num() > 0;
 		SetShaderValue(RHICmdList, GetPixelShader(), CubemapAmbient, bCubemapAmbient);
 		CubemapShaderParameters.SetParameters(RHICmdList, GetPixelShader(), bCubemapAmbient ? View.FinalPostProcessSettings.ContributingCubemaps[0] : FFinalPostProcessSettings::FCubemapEntry());
-
-		SetUniformBufferParameter(RHICmdList, GetPixelShader(), PrecomputedLightingBuffer, InPrecomputedLightingBuffer);
 	}
 
 	FCubemapShaderParameters CubemapShaderParameters;
 	FShaderParameter CubemapAmbient;
-	FShaderUniformBufferParameter PrecomputedLightingBuffer;
 };
 
 IMPLEMENT_GLOBAL_SHADER(FHairWorksBasePassPs, "/Engine/Private/HairWorks/HairWorks.usf", "BasePassPs", SF_Pixel);
@@ -894,20 +890,13 @@ namespace HairWorksRenderer
 				RHICmdList.SetStencilRef(HairSceneProxy.HairIdInStencil);
 
 				// Setup shader constants
-				FUniformBufferRHIParamRef PrecomputedLightingBuffer = GEmptyPrecomputedLightingUniformBuffer.GetUniformBufferRHI();
-
-				if(View.Family->EngineShowFlags.GlobalIllumination)
-				{
-					PrecomputedLightingBuffer = PrimitiveInfo->IndirectLightingCacheUniformBuffer;
-				}
-
 				NvHair::ShaderConstantBuffer ConstantBuffer;
 				HairWorks::GetSDK()->prepareShaderConstantBuffer(HairSceneProxy.GetHairInstanceId(), ConstantBuffer);
 
 				ID3D11ShaderResourceView* HairSrvs[NvHair::ShaderResourceType::COUNT_OF] = {};
 				HairWorks::GetSDK()->getShaderResources(HairSceneProxy.GetHairInstanceId(), NV_NULL, NvHair::ShaderResourceType::COUNT_OF, NvCo::Dx11Type::wrapPtr(HairSrvs));
 
-				PixelShader->SetParameters(RHICmdList, View, reinterpret_cast<NvHair_ConstantBuffer&>(ConstantBuffer), HairSceneProxy.GetTextures(), HairSrvs, PrecomputedLightingBuffer);
+				PixelShader->SetParameters(RHICmdList, View, reinterpret_cast<NvHair_ConstantBuffer&>(ConstantBuffer), HairSceneProxy.GetTextures(), HairSrvs);
 
 				// Draw
 				HairSceneProxy.Draw(RHICmdList, FHairWorksSceneProxy::EDrawType::Normal);

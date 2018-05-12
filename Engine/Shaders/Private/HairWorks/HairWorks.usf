@@ -7,6 +7,7 @@
 #include "../CubemapCommon.ush"
 struct FVertexFactoryInterpolantsVSToPS{};
 #include "../ShadowDepthCommon.ush"
+#include "../VolumetricLightmapShared.ush"
 
 #define NV_HAIR_DECLARE_VELOCITY_ATTR
 
@@ -189,6 +190,9 @@ FBasePassOut BasePassPs(NvHair_PixelShaderInput Input)
 	}
 
 	// Sky light
+	float3 VolumetricLightmapBrickTextureUVs;
+	VolumetricLightmapBrickTextureUVs = ComputeVolumetricLightmapBrickTextureUVs(ShaderAttributes.P);
+
 	float3 RecomputedLight = 0;
 	{
 		float SkyVisibility = 1;
@@ -197,8 +201,9 @@ FBasePassOut BasePassPs(NvHair_PixelShaderInput Input)
 
 		if(View.SkyLightParameters.x > 0)
 		{
-			float3 NormalizedBentNormal = PrecomputedLightingBuffer.PointSkyBentNormal.xyz;
-			SkyVisibility = PrecomputedLightingBuffer.PointSkyBentNormal.w;
+			float3 SkyBentNormal = GetVolumetricLightmapSkyBentNormal(VolumetricLightmapBrickTextureUVs);
+			SkyVisibility = length(SkyBentNormal);
+			float3 NormalizedBentNormal = SkyBentNormal / max(SkyVisibility, .0001f);
 
 			float BentNormalWeightFactor = 1 - (1 - SkyVisibility) * (1 - SkyVisibility);
 			float3 SkyLightingNormal = lerp(NormalizedBentNormal, ShaderAttributes.N, BentNormalWeightFactor);
@@ -212,26 +217,11 @@ FBasePassOut BasePassPs(NvHair_PixelShaderInput Input)
 
 	// Indirect light
 	{
-		FThreeBandSHVectorRGB PointIndirectLighting;
-		PointIndirectLighting.R.V0 = PrecomputedLightingBuffer.IndirectLightingSHCoefficients0[0];
-		PointIndirectLighting.R.V1 = PrecomputedLightingBuffer.IndirectLightingSHCoefficients1[0];
-		PointIndirectLighting.R.V2 = PrecomputedLightingBuffer.IndirectLightingSHCoefficients2[0];
+		FThreeBandSHVectorRGB IrradianceSH = GetVolumetricLightmapSH3(VolumetricLightmapBrickTextureUVs);
 
-		PointIndirectLighting.G.V0 = PrecomputedLightingBuffer.IndirectLightingSHCoefficients0[1];
-		PointIndirectLighting.G.V1 = PrecomputedLightingBuffer.IndirectLightingSHCoefficients1[1];
-		PointIndirectLighting.G.V2 = PrecomputedLightingBuffer.IndirectLightingSHCoefficients2[1];
-
-		PointIndirectLighting.B.V0 = PrecomputedLightingBuffer.IndirectLightingSHCoefficients0[2];
-		PointIndirectLighting.B.V1 = PrecomputedLightingBuffer.IndirectLightingSHCoefficients1[2];
-		PointIndirectLighting.B.V2 = PrecomputedLightingBuffer.IndirectLightingSHCoefficients2[2];
-
-		FThreeBandSHVector DiffuseTransferSH = CalcDiffuseTransferSH3(ShaderAttributes.N.xyz, 1);
-		// Compute diffuse lighting which takes the normal into account
-		float3 IndirectLight = max(half3(0, 0, 0), DotSH3(PointIndirectLighting, DiffuseTransferSH));
-
-		IndirectLight *= View.IndirectLightingColorScale;
-
-		RecomputedLight += IndirectLight;
+		// Diffuse convolution
+		FThreeBandSHVector DiffuseTransferSH = CalcDiffuseTransferSH3(ShaderAttributes.N, 1);
+		RecomputedLight += max(float3(0,0,0), DotSH3(IrradianceSH, DiffuseTransferSH)) / PI;
 	}
 
 	// Ambient light
