@@ -2014,7 +2014,7 @@ void UBlastMeshComponent::OnHit(UPrimitiveComponent* HitComponent, AActor* Other
 			{
 				const float DamageImpulse = ImpactVelocity * (UsedImpactProperties.AdvancedSettings.bVelocityBased ? 1.0f : ReducedMass);
 				const float Impulse01 = FMath::Clamp<float>(FMath::GetRangePct({ 0, UsedBlastMaterial.Health * UsedImpactProperties.Hardness }, DamageImpulse), 0.f, UsedImpactProperties.AdvancedSettings.MaxDamageThreshold);
-				if (DamageImpulse > UsedImpactProperties.AdvancedSettings.MinDamageThreshold)
+				if (Impulse01 > UsedImpactProperties.AdvancedSettings.MinDamageThreshold)
 				{
 					const float Damage = UsedBlastMaterial.Health * Impulse01;
 
