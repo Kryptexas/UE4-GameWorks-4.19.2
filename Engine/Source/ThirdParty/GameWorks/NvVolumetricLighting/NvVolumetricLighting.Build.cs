@@ -11,13 +11,13 @@ public class NvVolumetricLighting : ModuleRules
 	
 		if (Target.Platform == UnrealTargetPlatform.Win64)
 		{
-            Definitions.Add("WITH_NVVOLUMETRICLIGHTING=1");
-            Definitions.Add("NV_PLATFORM_D3D11=1");
+            PublicDefinitions.Add("WITH_NVVOLUMETRICLIGHTING=1");
+            PublicDefinitions.Add("NV_PLATFORM_D3D11=1");
 
             if (Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT)
             {
-                Definitions.Add("NV_DEBUG=1");
-                Definitions.Add("NV_CHECKED=1");
+                PublicDefinitions.Add("NV_DEBUG=1");
+                PublicDefinitions.Add("NV_CHECKED=1");
             }
         }
 		
@@ -43,7 +43,7 @@ public class NvVolumetricLighting : ModuleRules
                 string NvVolumetricLightingBinariesDir = String.Format("$(EngineDir)/Binaries/ThirdParty/GameWorks/NvVolumetricLighting/");
                 foreach (string RuntimeDependency in RuntimeDependenciesX64)
                 {
-                    RuntimeDependencies.Add(new RuntimeDependency(NvVolumetricLightingBinariesDir + RuntimeDependency));
+                    RuntimeDependencies.Add(NvVolumetricLightingBinariesDir + RuntimeDependency);
                 }
             }
             else
@@ -59,7 +59,7 @@ public class NvVolumetricLighting : ModuleRules
                 string NvVolumetricLightingBinariesDir = String.Format("$(EngineDir)/Binaries/ThirdParty/GameWorks/NvVolumetricLighting/");
                 foreach (string RuntimeDependency in RuntimeDependenciesX64)
                 {
-                    RuntimeDependencies.Add(new RuntimeDependency(NvVolumetricLightingBinariesDir + RuntimeDependency));
+                    RuntimeDependencies.Add(NvVolumetricLightingBinariesDir + RuntimeDependency);
                 }
             }
 		}
