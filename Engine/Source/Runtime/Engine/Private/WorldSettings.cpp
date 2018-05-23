@@ -426,6 +426,18 @@ bool AWorldSettings::CanEditChange(const UProperty* InProperty) const
 				return LightmassSettings.EnvironmentIntensity > 0;
 			}
 		}
+
+		// NVCHANGE_BEGIN: Nvidia Volumetric Lighting
+		if (InProperty->GetOuter()
+			&& InProperty->GetOuter()->GetName() == TEXT("NVVolumetricLightingProperties"))
+		{
+			if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(FNVVolumetricLightingProperties, TemporalFactor)
+				|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(FNVVolumetricLightingProperties, FilterThreshold))
+			{
+				return (VolumetricLightingProperties.FilterMode == EFilterMode::TEMPORAL);
+			}
+		}
+		// NVCHANGE_END: Nvidia Volumetric Lighting
 	}
 
 	return Super::CanEditChange(InProperty);
@@ -506,6 +518,11 @@ void AWorldSettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyChang
 	if (PropertyThatChanged != nullptr && GetWorld() != nullptr && GetWorld()->Scene)
 	{
 		GetWorld()->Scene->UpdateSceneSettings(this);
+		// NVCHANGE_BEGIN: Nvidia Volumetric Lighting
+#if WITH_NVVOLUMETRICLIGHTING
+		GetWorld()->Scene->UpdateVolumetricLightingSettings(this);
+#endif
+		// NVCHANGE_END: Nvidia Volumetric Lighting
 	}
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);

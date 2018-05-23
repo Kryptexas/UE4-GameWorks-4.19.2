@@ -408,6 +408,12 @@ static FShader* SetDOFRecombineShaderTempl(const FRenderingCompositePassContext&
 	return SetDOFRecombineShaderTempl<FarBlur, NearBlur, 0u>(Context);
 }
 
+// NVCHANGE_BEGIN: Nvidia Volumetric Lighting
+#if WITH_NVVOLUMETRICLIGHTING
+DECLARE_GPU_STAT(ApplyLightingDOF);
+#endif
+// NVCHANGE_END: Nvidia Volumetric Lighting
+
 void FRCPassPostProcessDOFRecombine::Process(FRenderingCompositePassContext& Context)
 {
 	SCOPED_DRAW_EVENT(Context.RHICmdList, DOFRecombine);
@@ -487,8 +493,21 @@ void FRCPassPostProcessDOFRecombine::Process(FRenderingCompositePassContext& Con
 		View.StereoPass,
 		Context.HasHmdMesh(),
 		EDRF_UseTriangleOptimization);
-
-
+	// NVCHANGE_BEGIN: Nvidia Volumetric Lighting
+#if WITH_NVVOLUMETRICLIGHTING
+	if (GNVVolumetricLightingRHI && GNVVolumetricLightingRHI->IsRendering() && bSeparateTranslucency)
+	{
+		NvVl::PostprocessDesc* PostprocessDesc = GNVVolumetricLightingRHI->GetSeparateTranslucencyPostprocessDesc();
+		if (PostprocessDesc)
+		{
+			SCOPED_DRAW_EVENT(Context.RHICmdList, ApplyLightingDOF);
+			SCOPED_GPU_STAT(Context.RHICmdList, ApplyLightingDOF);
+			PostprocessDesc->eStereoPass = (NvVl::StereoscopicPass)View.StereoPass;
+			Context.RHICmdList.ApplyLighting(DestRenderTarget.TargetableTexture, *PostprocessDesc);
+		}
+	}
+#endif
+	// NVCHANGE_END: Nvidia Volumetric Lighting
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
 }
 

@@ -137,6 +137,13 @@ UPointLightComponent::UPointLightComponent(const FObjectInitializer& ObjectIniti
 	SoftSourceRadius = 0.0f;
 	SourceLength = 0.0f;
 	bUseInverseSquaredFalloff = true;
+
+	// NVCHANGE_BEGIN: Nvidia Volumetric Lighting
+	AttenuationMode = EAttenuationMode::INV_POLYNOMIAL;
+	AttenuationFactors = FVector(0.0f, 0.03f, 0.001f);
+	AttenuationFactor = 1.0f;
+	VolumetricLightingIntensity = 5000.0f;
+	// NVCHANGE_END: Nvidia Volumetric Lighting
 }
 
 FLightSceneProxy* UPointLightComponent::CreateSceneProxy() const
@@ -315,6 +322,23 @@ bool UPointLightComponent::CanEditChange(const UProperty* InProperty) const
 		{
 			return !bUseInverseSquaredFalloff;
 		}
+
+		// NVCHANGE_BEGIN: Nvidia Volumetric Lighting
+		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UPointLightComponent, AttenuationMode))
+		{
+			return bEnableVolumetricLighting;
+		}
+
+		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UPointLightComponent, AttenuationFactors))
+		{
+			return bEnableVolumetricLighting && (AttenuationMode == EAttenuationMode::POLYNOMIAL);
+		}
+
+		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UPointLightComponent, AttenuationFactor))
+		{
+			return bEnableVolumetricLighting && (AttenuationMode == EAttenuationMode::INV_POLYNOMIAL);
+		}
+		// NVCHANGE_END: Nvidia Volumetric Lighting
 	}
 
 	return Super::CanEditChange(InProperty);

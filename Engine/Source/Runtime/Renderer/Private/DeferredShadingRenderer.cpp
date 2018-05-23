@@ -1314,7 +1314,11 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 
 		RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, SceneContext.GetSceneDepthSurface());
 	}
-
+	// NVCHANGE_BEGIN: Nvidia Volumetric Lighting
+#if WITH_NVVOLUMETRICLIGHTING
+	NVVolumetricLightingBeginAccumulation(RHICmdList);
+#endif
+	// NVCHANGE_END: Nvidia Volumetric Lighting
 	// Render lighting.
 	if (bRenderDeferredLighting)
 	{
@@ -1388,6 +1392,11 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		}
 		ServiceLocalQueue();
 	}
+	// NVCHANGE_BEGIN: Nvidia Volumetric Lighting
+#if WITH_NVVOLUMETRICLIGHTING
+	NVVolumetricLightingEndAccumulation(RHICmdList);
+#endif
+	// NVCHANGE_END: Nvidia Volumetric Lighting
 
 	// @third party code - BEGIN HairWorks
 	// Blend hair lighting
@@ -1590,7 +1599,11 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		RenderStationaryLightOverlap(RHICmdList);
 		ServiceLocalQueue();
 	}
-
+	// NVCHANGE_BEGIN: Nvidia Volumetric Lighting
+#if WITH_NVVOLUMETRICLIGHTING
+	NVVolumetricLightingApplyLighting(RHICmdList);
+#endif
+	// NVCHANGE_END: Nvidia Volumetric Lighting
 	// Resolve the scene color for post processing.
 	ResolveSceneColor(RHICmdList);
 

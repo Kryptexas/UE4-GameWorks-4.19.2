@@ -24,6 +24,11 @@
 #endif
 // NVCHANGE_END: Add HBAO+
 
+// NVCHANGE_BEGIN: Nvidia Volumetric Lighting
+#if WITH_NVVOLUMETRICLIGHTING
+#include "NvVolumetricLighting.h"
+#endif
+// NVCHANGE_END: Nvidia Volumetric Lighting
 
 class FResourceArrayInterface;
 class FResourceBulkDataInterface;

@@ -563,6 +563,16 @@ public:
 	virtual FTextureCubeRHIRef RHICreateTextureCubeFromResource(EPixelFormat Format, uint32 TexCreateFlags, const FClearValueBinding& ClearValueBinding, ID3D11Texture2D* Resource);
 	virtual void RHIAliasTextureResources(FTextureRHIParamRef DestTexture, FTextureRHIParamRef SrcTexture);
 
+	// NVCHANGE_BEGIN: Nvidia Volumetric Lighting
+#if WITH_NVVOLUMETRICLIGHTING
+	virtual void ClearStateCache() final override;
+	virtual bool GetPlatformDesc(NvVl::PlatformDesc& PlatformDesc) final override;
+	virtual void GetPlatformRenderCtx(NvVl::PlatformRenderCtx& PlatformRenderCtx) final override;
+	virtual void GetPlatformShaderResource(FTextureRHIParamRef TextureRHI, NvVl::PlatformShaderResource& PlatformShaderResource) final override;
+	virtual void GetPlatformRenderTarget(FTextureRHIParamRef TextureRHI, NvVl::PlatformRenderTarget& PlatformRenderTarget) final override;
+#endif
+	// NVCHANGE_END: Nvidia Volumetric Lighting
+
 #if WITH_TXAA
     virtual void RHIResolveTXAA(FTextureRHIParamRef Target, FTextureRHIParamRef Source, FTextureRHIParamRef Feedback, FTextureRHIParamRef Velocity, FTextureRHIParamRef Depth, const FVector2D& Jitter);
 #endif

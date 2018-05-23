@@ -774,3 +774,38 @@ void FRHICommandNvFlowWork::Execute(FRHICommandListBase& CmdList)
 	INTERNAL_DECORATOR(NvFlowWork)(WorkFunc, ParamData, NumBytes);
 }
 // NvFlow end
+
+// NVCHANGE_BEGIN: Nvidia Volumetric Lighting
+#if WITH_NVVOLUMETRICLIGHTING
+void FRHICommandBeginAccumulation::Execute(FRHICommandListBase& CmdList)
+{
+	if (GNVVolumetricLightingRHI)
+	{
+		GNVVolumetricLightingRHI->BeginAccumulation(SceneDepthTextureRHI, ViewerDescs, MediumDesc, DebugFlags);
+	}
+}
+
+void FRHICommandRenderVolume::Execute(FRHICommandListBase& CmdList)
+{
+	if (GNVVolumetricLightingRHI)
+	{
+		GNVVolumetricLightingRHI->RenderVolume(ShadowMapTextures, ShadowMapDesc, LightDesc, VolumeDesc);
+	}
+}
+void FRHICommandEndAccumulation::Execute(FRHICommandListBase& CmdList)
+{
+	if (GNVVolumetricLightingRHI)
+	{
+		GNVVolumetricLightingRHI->EndAccumulation();
+	}
+}
+
+void FRHICommandApplyLighting::Execute(FRHICommandListBase& CmdList)
+{
+	if (GNVVolumetricLightingRHI)
+	{
+		GNVVolumetricLightingRHI->ApplyLighting(SceneColorSurfaceRHI, PostprocessDesc);
+	}
+}
+#endif
+// NVCHANGE_END: Nvidia Volumetric Lighting

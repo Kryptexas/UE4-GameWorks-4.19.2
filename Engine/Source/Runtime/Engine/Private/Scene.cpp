@@ -496,6 +496,26 @@ FPostProcessSettings::FPostProcessSettings()
 	ScreenSpaceReflectionMaxRoughness = 0.6f;
 	bMobileHQGaussian = false;
 
+	// NVCHANGE_BEGIN: Nvidia Volumetric Lighting
+	RayleighTransmittance = 1.0f;
+	MieBlendFactor = 0.0f;
+	MieColor = FLinearColor::Black;
+	MieTransmittance = 1.0f;
+	AbsorptionColor = FLinearColor::Black;
+	AbsorptionTransmittance = 1.0f;
+	HGColor = FLinearColor::Black;
+	HGTransmittance = 1.0f;
+	HGEccentricity1 = 0.0f;
+	HGEccentricity2 = 0.0f;
+	HGEccentricityRatio = 0.0f;
+	IsotropicColor = FLinearColor::Black;
+	IsotropicTransmittance = 1.0f;
+	FogMode = EFogMode::FOG_NONE;
+	FogIntensity = 0.0f;
+	FogColor = FLinearColor::Black;
+	FogTransmittance = 1.0f;
+	// NVCHANGE_END: Nvidia Volumetric Lighting
+
 	// NVCHANGE_BEGIN: Add HBAO+
 #if WITH_GFSDK_SSAO
 	{

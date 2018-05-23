@@ -104,11 +104,34 @@ struct FNodeStatsCompare
 	}
 };
 
+// NVCHANGE_BEGIN: Nvidia Volumetric Lighting
+#if WITH_NVVOLUMETRICLIGHTING
+static bool IsVolumetricLightingNode(const FString& NodeName)
+{
+	if (NodeName == FString(TEXT("VolumetricLightingBeginAccumulation"))
+	|| NodeName == FString(TEXT("VolumetricLightingRenderVolume"))
+	|| NodeName == FString(TEXT("VolumetricLightingEndAccumulation"))
+	|| NodeName == FString(TEXT("VolumetricLightingApplyLighting")))
+	{
+		return true;
+	}
+
+	return false;
+}
+#endif
+// NVCHANGE_END: Nvidia Volumetric Lighting
 
 /** Recursively generates a histogram of nodes and stores their timing in TimingResult. */
 static void GatherStatsEventNode(FGPUProfilerEventNode* Node, int32 Depth, TMap<FString, FGPUProfilerEventNodeStats>& EventHistogram)
 {
+	// NVCHANGE_BEGIN: Nvidia Volumetric Lighting
+#if WITH_NVVOLUMETRICLIGHTING
+	// Volumetirc Lighting used external API to render, its NumDraws always 0
+	if (IsVolumetricLightingNode(Node->Name) || Node->NumDraws > 0 || Node->Children.Num() > 0)
+#else
 	if (Node->NumDraws > 0 || Node->Children.Num() > 0)
+#endif
+	// NVCHANGE_END: Nvidia Volumetric Lighting
 	{
 		Node->TimingResult = Node->GetTiming() * 1000.0f;
 		Node->NumTotalDraws = Node->NumDraws;

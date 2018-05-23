@@ -348,3 +348,91 @@ void FD3D11StateCacheBase::ClearState()
 
 #endif	// D3D11_ALLOW_STATE_CACHE
 }
+// NVCHANGE_BEGIN: Nvidia Volumetric Lighting
+#if WITH_NVVOLUMETRICLIGHTING
+void FD3D11StateCacheBase::ClearCache()
+{
+#if D3D11_ALLOW_STATE_CACHE
+	const uint16 ClearSRVs = 11;
+	// Shader Resource View State Cache
+	for (uint32 ShaderFrequency = 0; ShaderFrequency < SF_NumFrequencies; ShaderFrequency++)
+	{
+		for (uint32 Index = 0; Index < ClearSRVs; Index++)
+		{
+			if(CurrentShaderResourceViews[ShaderFrequency][Index])
+			{
+				CurrentShaderResourceViews[ShaderFrequency][Index]->Release();
+				CurrentShaderResourceViews[ShaderFrequency][Index] = NULL;
+			}
+		}
+	}
+
+	ID3D11ShaderResourceView * SRVs[ClearSRVs] = { nullptr };
+	Direct3DDeviceIMContext->VSSetShaderResources(0, ClearSRVs, SRVs);
+	Direct3DDeviceIMContext->HSSetShaderResources(0, ClearSRVs, SRVs);
+	Direct3DDeviceIMContext->DSSetShaderResources(0, ClearSRVs, SRVs);
+	Direct3DDeviceIMContext->GSSetShaderResources(0, ClearSRVs, SRVs);
+	Direct3DDeviceIMContext->PSSetShaderResources(0, ClearSRVs, SRVs);
+	Direct3DDeviceIMContext->CSSetShaderResources(0, ClearSRVs, SRVs);
+
+	// Rasterizer State Cache
+	CurrentRasterizerState = nullptr;
+
+	// Depth Stencil State Cache
+	CurrentReferenceStencil = 0;
+	CurrentDepthStencilState = nullptr;
+
+	// Shader Cache
+	CurrentVertexShader = nullptr;
+	CurrentHullShader = nullptr;
+	CurrentDomainShader = nullptr;
+	CurrentGeometryShader = nullptr;
+	CurrentPixelShader = nullptr;
+	CurrentComputeShader = nullptr;
+
+	// Blend State Cache
+	CurrentBlendFactor[0] = 1.0f;
+	CurrentBlendFactor[1] = 1.0f;
+	CurrentBlendFactor[2] = 1.0f;
+	CurrentBlendFactor[3] = 1.0f;
+
+	FMemory::Memset( &CurrentViewport[0], 0, sizeof(D3D11_VIEWPORT) * D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE );
+	CurrentNumberOfViewports = 0;
+
+	CurrentBlendSampleMask = 0xffffffff;
+	CurrentBlendState = nullptr;
+
+	CurrentInputLayout = nullptr;
+
+	FMemory::Memzero(CurrentVertexBuffers, sizeof(CurrentVertexBuffers));
+	FMemory::Memzero(CurrentSamplerStates, sizeof(CurrentSamplerStates));
+
+	CurrentIndexBuffer = nullptr;
+	CurrentIndexFormat = DXGI_FORMAT_UNKNOWN;
+
+	CurrentIndexOffset = 0;
+	CurrentPrimitiveTopology = D3D11_PRIMITIVE_TOPOLOGY_UNDEFINED;
+
+	const uint16 ClearConstantBuffers = 4;
+	for (uint32 Frequency = 0; Frequency < SF_NumFrequencies; Frequency++)
+	{
+		for (uint32 Index = 0; Index < ClearConstantBuffers; Index++)
+		{
+			CurrentConstantBuffers[Frequency][Index].Buffer = nullptr;
+			CurrentConstantBuffers[Frequency][Index].FirstConstant = 0;
+			CurrentConstantBuffers[Frequency][Index].NumConstants = D3D11_REQ_CONSTANT_BUFFER_ELEMENT_COUNT;
+		}
+	}
+
+	ID3D11Buffer * ConstantBuffers[ClearConstantBuffers] = { nullptr };
+    Direct3DDeviceIMContext->VSSetConstantBuffers(0, ClearConstantBuffers, ConstantBuffers);
+    Direct3DDeviceIMContext->HSSetConstantBuffers(0, ClearConstantBuffers, ConstantBuffers);
+    Direct3DDeviceIMContext->DSSetConstantBuffers(0, ClearConstantBuffers, ConstantBuffers);
+	Direct3DDeviceIMContext->GSSetConstantBuffers(0, ClearConstantBuffers, ConstantBuffers);
+    Direct3DDeviceIMContext->PSSetConstantBuffers(0, ClearConstantBuffers, ConstantBuffers);
+    Direct3DDeviceIMContext->CSSetConstantBuffers(0, ClearConstantBuffers, ConstantBuffers);
+
+#endif	// D3D11_ALLOW_STATE_CACHE
+}
+#endif
+// NVCHANGE_END: Nvidia Volumetric Lighting

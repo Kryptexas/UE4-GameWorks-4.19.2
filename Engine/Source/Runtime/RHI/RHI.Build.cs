@@ -10,6 +10,13 @@ public class RHI : ModuleRules
 		PrivateDependencyModuleNames.Add("Core");
 		PrivateDependencyModuleNames.Add("ApplicationCore");
 
+        // NVCHANGE_BEGIN: Nvidia Volumetric Lighting
+        if (Target.Platform == UnrealTargetPlatform.Win64)
+        {
+            PublicDependencyModuleNames.Add("NvVolumetricLighting");
+        }
+        // NVCHANGE_END: Nvidia Volumetric Lighting		
+		
 		if (Target.bCompileAgainstEngine)
 		{
             DynamicallyLoadedModuleNames.Add("NullDrv");

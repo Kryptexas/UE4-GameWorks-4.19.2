@@ -57,6 +57,12 @@ enum class EResourceTransitionPipeline;
 class FComputePipelineState;
 class FGraphicsPipelineState;
 
+// NVCHANGE_BEGIN: Nvidia Volumetric Lighting
+#if WITH_NVVOLUMETRICLIGHTING
+#include "NVVolumetricLightingRHI.h"
+#endif
+// NVCHANGE_END: Nvidia Volumetric Lighting
+
 DECLARE_STATS_GROUP(TEXT("RHICmdList"), STATGROUP_RHICMDLIST, STATCAT_Advanced);
 
 
@@ -1507,6 +1513,65 @@ struct FRHICommandSetLocalGraphicsPipelineState final : public FRHICommand<FRHIC
 
 	RHI_API void Execute(FRHICommandListBase& CmdList);
 };
+
+// NVCHANGE_BEGIN: Nvidia Volumetric Lighting
+#if WITH_NVVOLUMETRICLIGHTING
+struct FRHICommandBeginAccumulation final : public FRHICommand<FRHICommandBeginAccumulation>
+{
+	FTextureRHIParamRef SceneDepthTextureRHI;
+	TArray<NvVl::ViewerDesc> ViewerDescs;
+	NvVl::MediumDesc MediumDesc;
+	NvVl::DebugFlags DebugFlags;
+
+	FORCEINLINE_DEBUGGABLE FRHICommandBeginAccumulation(FTextureRHIParamRef InSceneDepthTextureRHI, const TArray<NvVl::ViewerDesc>& InViewerDescs, const NvVl::MediumDesc& InMediumDesc, NvVl::DebugFlags InDebugFlags)
+		: SceneDepthTextureRHI(InSceneDepthTextureRHI)
+		, ViewerDescs(InViewerDescs)
+		, MediumDesc(InMediumDesc)
+		, DebugFlags(InDebugFlags)
+	{
+	}
+	RHI_API void Execute(FRHICommandListBase& CmdList);
+};
+
+struct FRHICommandRenderVolume final : public FRHICommand<FRHICommandRenderVolume>
+{
+	TArray<FTextureRHIParamRef> ShadowMapTextures;
+	NvVl::ShadowMapDesc ShadowMapDesc;
+	NvVl::LightDesc LightDesc;
+	NvVl::VolumeDesc VolumeDesc;
+
+	FORCEINLINE_DEBUGGABLE FRHICommandRenderVolume(const TArray<FTextureRHIParamRef>& InShadowMapTextures, const NvVl::ShadowMapDesc& InShadowMapDesc, const NvVl::LightDesc& InLightDesc, const NvVl::VolumeDesc& InVolumeDesc)
+		: ShadowMapTextures(InShadowMapTextures)
+		, ShadowMapDesc(InShadowMapDesc)
+		, LightDesc(InLightDesc)
+		, VolumeDesc(InVolumeDesc)
+	{
+	}
+	RHI_API void Execute(FRHICommandListBase& CmdList);
+};
+
+struct FRHICommandEndAccumulation final : public FRHICommand<FRHICommandEndAccumulation>
+{
+	FORCEINLINE_DEBUGGABLE FRHICommandEndAccumulation()
+	{
+	}
+	RHI_API void Execute(FRHICommandListBase& CmdList);
+};
+
+struct FRHICommandApplyLighting final : public FRHICommand<FRHICommandApplyLighting>
+{
+	FTextureRHIParamRef SceneColorSurfaceRHI;
+	NvVl::PostprocessDesc PostprocessDesc;
+
+	FORCEINLINE_DEBUGGABLE FRHICommandApplyLighting(FTextureRHIParamRef InSceneColorSurfaceRHI, const NvVl::PostprocessDesc& InPostprocessDesc)
+		: SceneColorSurfaceRHI(InSceneColorSurfaceRHI)
+		, PostprocessDesc(InPostprocessDesc)
+	{
+	}
+	RHI_API void Execute(FRHICommandListBase& CmdList);
+};
+#endif
+// NVCHANGE_END: Nvidia Volumetric Lighting
 
 struct FComputedUniformBuffer
 {
@@ -3547,6 +3612,62 @@ public:
 		new (AllocCommand<FRHICommandDebugBreak>()) FRHICommandDebugBreak();
 #endif
 	}
+
+	// NVCHANGE_BEGIN: Nvidia Volumetric Lighting
+#if WITH_NVVOLUMETRICLIGHTING
+	FORCEINLINE_DEBUGGABLE void BeginAccumulation(FTextureRHIParamRef SceneDepthTextureRHI, const TArray<NvVl::ViewerDesc>& ViewerDescs, const NvVl::MediumDesc& MediumDesc, NvVl::DebugFlags DebugFlags)
+	{
+		if (Bypass())
+		{
+			if (GNVVolumetricLightingRHI)
+			{
+				GNVVolumetricLightingRHI->BeginAccumulation(SceneDepthTextureRHI, ViewerDescs, MediumDesc, DebugFlags);
+			}
+			return;
+		}
+		new (AllocCommand<FRHICommandBeginAccumulation>()) FRHICommandBeginAccumulation(SceneDepthTextureRHI, ViewerDescs, MediumDesc, DebugFlags);
+	}
+
+	FORCEINLINE_DEBUGGABLE void RenderVolume(const TArray<FTextureRHIParamRef>& ShadowMapTextures, const NvVl::ShadowMapDesc& ShadowMapDesc, const NvVl::LightDesc& LightDesc, const NvVl::VolumeDesc& VolumeDesc)
+	{
+		if (Bypass())
+		{
+			if (GNVVolumetricLightingRHI)
+			{
+				GNVVolumetricLightingRHI->RenderVolume(ShadowMapTextures, ShadowMapDesc, LightDesc, VolumeDesc);
+			}
+			return;
+		}
+		new (AllocCommand<FRHICommandRenderVolume>()) FRHICommandRenderVolume(ShadowMapTextures, ShadowMapDesc, LightDesc, VolumeDesc);
+	}
+
+	FORCEINLINE_DEBUGGABLE void EndAccumulation()
+	{
+		if (Bypass())
+		{
+			if (GNVVolumetricLightingRHI)
+			{
+				GNVVolumetricLightingRHI->EndAccumulation();
+			}
+			return;
+		}
+		new (AllocCommand<FRHICommandEndAccumulation>()) FRHICommandEndAccumulation();
+	}
+
+	FORCEINLINE_DEBUGGABLE void ApplyLighting(FTextureRHIParamRef SceneColorSurfaceRHI, const NvVl::PostprocessDesc& PostprocessDesc)
+	{
+		if (Bypass())
+		{
+			if (GNVVolumetricLightingRHI)
+			{
+				GNVVolumetricLightingRHI->ApplyLighting(SceneColorSurfaceRHI, PostprocessDesc);
+			}
+			return;
+		}
+		new (AllocCommand<FRHICommandApplyLighting>()) FRHICommandApplyLighting(SceneColorSurfaceRHI, PostprocessDesc);
+	}
+#endif
+	// NVCHANGE_END: Nvidia Volumetric Lighting
 
 #if WITH_TXAA
     FORCEINLINE_DEBUGGABLE void ResolveTXAA(FTextureRHIParamRef Target, FTextureRHIParamRef Source, FTextureRHIParamRef Feedback, FTextureRHIParamRef Velocity, FTextureRHIParamRef Depth, const FVector2D& Jitter)

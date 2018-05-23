@@ -427,7 +427,20 @@ void FScene::UpdateSceneSettings(AWorldSettings* WorldSettings)
 		Scene->DynamicIndirectShadowsSelfShadowingIntensity = DynamicIndirectShadowsSelfShadowingIntensity;
 	});
 }
-
+// NVCHANGE_BEGIN: Nvidia Volumetric Lighting
+#if WITH_NVVOLUMETRICLIGHTING
+void FScene::UpdateVolumetricLightingSettings(AWorldSettings* WorldSettings)
+{
+	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
+		UpdateVolumetricLightingSettings,
+		FScene*, Scene, this,
+		FNVVolumetricLightingProperties, VolumetricLightingProperties, WorldSettings->VolumetricLightingProperties,
+	{
+		*Scene->VolumetricLightingProperties = VolumetricLightingProperties;
+	});
+}
+#endif
+// NVCHANGE_END: Nvidia Volumetric Lighting
 /**
  * Sets the FX system associated with the scene.
  */
@@ -801,6 +814,12 @@ FScene::FScene(UWorld* InWorld, bool bInRequiresHitProxies, bool bInIsEditorScen
 	}
 
 	World->UpdateParameterCollectionInstances(false);
+
+// NVCHANGE_BEGIN: Nvidia Volumetric Lighting
+#if WITH_NVVOLUMETRICLIGHTING
+	VolumetricLightingProperties = new FNVVolumetricLightingProperties(InWorld->GetWorldSettings()->VolumetricLightingProperties);
+#endif
+// NVCHANGE_END: Nvidia Volumetric Lighting
 }
 
 FScene::~FScene()
@@ -815,6 +834,13 @@ FScene::~FScene()
 		}
 	}
 #endif
+
+// NVCHANGE_BEGIN: Nvidia Volumetric Lighting
+#if WITH_NVVOLUMETRICLIGHTING
+	delete VolumetricLightingProperties;
+	VolumetricLightingProperties = nullptr;
+#endif
+// NVCHANGE_END: Nvidia Volumetric Lighting
 
 	ReflectionSceneData.CubemapArray.ReleaseResource();
 	IndirectLightingCache.ReleaseResource();
@@ -2052,6 +2078,11 @@ void FScene::UpdateLightColorAndBrightness(ULightComponent* Light)
 		struct FUpdateLightColorParameters
 		{
 			FLinearColor NewColor;
+			// NVCHANGE_BEGIN: Nvidia Volumetric Lighting
+#if WITH_NVVOLUMETRICLIGHTING
+			FLinearColor NewVolumetricLightingColor;
+#endif
+			// NVCHANGE_END: Nvidia Volumetric Lighting
 			float NewIndirectLightingScale;
 			float NewVolumetricScatteringIntensity;
 		};
@@ -2065,7 +2096,13 @@ void FScene::UpdateLightColorAndBrightness(ULightComponent* Light)
 		{
 			 NewParameters.NewColor *= FLinearColor::MakeFromColorTemperature(Light->Temperature);
 		}
-	
+		// NVCHANGE_BEGIN: Nvidia Volumetric Lighting
+#if WITH_NVVOLUMETRICLIGHTING
+		NewParameters.NewVolumetricLightingColor = Light->bUseVolumetricLightingColor ? FLinearColor(Light->VolumetricLightingColor) * Light->VolumetricLightingIntensity : NewParameters.NewColor;
+#endif
+		// NVCHANGE_END: Nvidia Volumetric Lighting
+
+#if WITH_NVVOLUMETRICLIGHTING
 		ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
 			UpdateLightColorAndBrightness,
 			FLightSceneInfo*,LightSceneInfo,Light->SceneProxy->GetLightSceneInfo(),
@@ -2085,7 +2122,9 @@ void FScene::UpdateLightColorAndBrightness(ULightComponent* Light)
 					LightSceneInfo->Proxy->SetColor(Parameters.NewColor);
 					LightSceneInfo->Proxy->IndirectLightingScale = Parameters.NewIndirectLightingScale;
 					LightSceneInfo->Proxy->VolumetricScatteringIntensity = Parameters.NewVolumetricScatteringIntensity;
-
+					// NVCHANGE_BEGIN: Nvidia Volumetric Lighting
+					LightSceneInfo->Proxy->Intensity = Parameters.NewVolumetricLightingColor;
+					// NVCHANGE_END: Nvidia Volumetric Lighting
 					// Also update the LightSceneInfoCompact
 					if( LightSceneInfo->Id != INDEX_NONE )
 					{
@@ -2093,6 +2132,34 @@ void FScene::UpdateLightColorAndBrightness(ULightComponent* Light)
 					}
 				}
 			});
+#else
+		ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
+			UpdateLightColorAndBrightness,
+			FLightSceneInfo*,LightSceneInfo,Light->SceneProxy->GetLightSceneInfo(),
+			FScene*,Scene,this,
+			FUpdateLightColorParameters,Parameters,NewParameters,
+			{
+				if( LightSceneInfo && LightSceneInfo->bVisible )
+				{
+					// Mobile renderer:
+					// a light with no color/intensity can cause the light to be ignored when rendering.
+					// thus, lights that change state in this way must update the draw lists.
+					Scene->bScenesPrimitivesNeedStaticMeshElementUpdate =
+						Scene->bScenesPrimitivesNeedStaticMeshElementUpdate ||
+						( Scene->GetShadingPath() == EShadingPath::Mobile 
+						&& Parameters.NewColor.IsAlmostBlack() != LightSceneInfo->Proxy->GetColor().IsAlmostBlack() );
+
+					LightSceneInfo->Proxy->SetColor(Parameters.NewColor);
+					LightSceneInfo->Proxy->IndirectLightingScale = Parameters.NewIndirectLightingScale;
+					LightSceneInfo->Proxy->VolumetricScatteringIntensity = Parameters.NewVolumetricScatteringIntensity;
+					// Also update the LightSceneInfoCompact
+					if( LightSceneInfo->Id != INDEX_NONE )
+					{
+						Scene->Lights[ LightSceneInfo->Id ].Color = Parameters.NewColor;
+					}
+				}
+			});
+#endif
 	}
 }
 

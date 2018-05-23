@@ -332,6 +332,12 @@ void FRCPassPostProcessBokehDOFRecombine::SetShader(const FRenderingCompositePas
 	VertexShader->SetParameters(Context);
 }
 
+// NVCHANGE_BEGIN: Nvidia Volumetric Lighting
+#if WITH_NVVOLUMETRICLIGHTING
+DECLARE_GPU_STAT(ApplyLightingBokehDOF);
+#endif
+// NVCHANGE_END: Nvidia Volumetric Lighting
+
 void FRCPassPostProcessBokehDOFRecombine::Process(FRenderingCompositePassContext& Context)
 {
 	AsyncEndFence = FComputeFenceRHIRef();
@@ -453,6 +459,22 @@ void FRCPassPostProcessBokehDOFRecombine::Process(FRenderingCompositePassContext
 			View.StereoPass,
 			false, // Disabled for correctness
 			EDRF_UseTriangleOptimization);
+
+	// NVCHANGE_BEGIN: Nvidia Volumetric Lighting
+#if WITH_NVVOLUMETRICLIGHTING
+		if (GNVVolumetricLightingRHI && GNVVolumetricLightingRHI->IsRendering() && (Method > 1))
+		{
+			NvVl::PostprocessDesc* PostprocessDesc = GNVVolumetricLightingRHI->GetSeparateTranslucencyPostprocessDesc();
+			if (PostprocessDesc)
+			{
+				SCOPED_DRAW_EVENT(Context.RHICmdList, ApplyLightingBokehDOF);
+				SCOPED_GPU_STAT(Context.RHICmdList, ApplyLightingBokehDOF);
+				PostprocessDesc->eStereoPass = (NvVl::StereoscopicPass)View.StereoPass;
+				Context.RHICmdList.ApplyLighting(DestRenderTarget.TargetableTexture, *PostprocessDesc);
+			}
+		}
+#endif
+	// NVCHANGE_END: Nvidia Volumetric Lighting
 
 		Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
 	}

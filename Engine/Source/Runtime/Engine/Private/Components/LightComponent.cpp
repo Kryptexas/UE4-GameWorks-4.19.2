@@ -252,6 +252,14 @@ FLightSceneProxy::FLightSceneProxy(const ULightComponent* InLightComponent)
 	, bFlowGridShadowEnabled(InLightComponent->bFlowGridShadowEnabled)
 	, FlowGridShadowChannel(InLightComponent->FlowGridShadowChannel)
 // NvFlow end
+	// NVCHANGE_BEGIN: Nvidia Volumetric Lighting
+#if WITH_NVVOLUMETRICLIGHTING
+	, bEnableNVVL(InLightComponent->bEnableVolumetricLighting)
+	, TessQuality(InLightComponent->TessQuality)
+	, TargetRayResolution(InLightComponent->TargetRayResolution)
+	, DepthBias(InLightComponent->DepthBias)
+#endif
+	// NVCHANGE_END: Nvidia Volumetric Lighting
 {
 	check(SceneInterface);
 
@@ -298,6 +306,13 @@ FLightSceneProxy::FLightSceneProxy(const ULightComponent* InLightComponent)
 	LightFunctionScale = LightComponent->LightFunctionScale;
 	LightFunctionFadeDistance = LightComponent->LightFunctionFadeDistance;
 	LightFunctionDisabledBrightness = LightComponent->DisabledBrightness;
+	// NVCHANGE_BEGIN: Nvidia Volumetric Lighting
+#if WITH_NVVOLUMETRICLIGHTING
+	Intensity = LightComponent->bUseVolumetricLightingColor ? FLinearColor(InLightComponent->VolumetricLightingColor) * InLightComponent->VolumetricLightingIntensity : Color;
+	InLightComponent->GetNvVlAttenuation(AttenuationMode, AttenuationFactors);
+	InLightComponent->GetNvVlFalloff(FalloffMode, FalloffAngleAndPower);
+#endif
+	// NVCHANGE_END: Nvidia Volumetric Lighting
 }
 
 bool FLightSceneProxy::ShouldCreatePerObjectShadowsForDynamicObjects() const
@@ -392,6 +407,17 @@ ULightComponent::ULightComponent(const FObjectInitializer& ObjectInitializer)
 	bFlowGridShadowEnabled = false;
 	FlowGridShadowChannel = 0;
 	// NvFlow end
+
+	// NVCHANGE_BEGIN: Nvidia Volumetric Lighting
+	bEnableVolumetricLighting = false;
+	TessQuality = ETessellationQuality::HIGH;
+	DepthBias = 0.0f;
+	TargetRayResolution = 12.0f;
+
+	bUseVolumetricLightingColor = false;
+	VolumetricLightingIntensity = 10.0f;
+	VolumetricLightingColor = FColor::White;
+	// NVCHANGE_END: Nvidia Volumetric Lighting
 }
 
 bool ULightComponent::AffectsPrimitive(const UPrimitiveComponent* Primitive) const
@@ -550,6 +576,22 @@ bool ULightComponent::CanEditChange(const UProperty* InProperty) const
 		{
 			return bUseTemperature;
 		}
+
+		// NVCHANGE_BEGIN: Nvidia Volumetric Lighting
+		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, VolumetricLightingIntensity)
+			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, VolumetricLightingColor))
+		{
+			return bEnableVolumetricLighting && bUseVolumetricLightingColor;
+		}
+
+		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, bUseVolumetricLightingColor)
+			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, TargetRayResolution)
+			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, DepthBias)
+			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, TessQuality))
+		{
+			return bEnableVolumetricLighting;
+		}
+		// NVCHANGE_END: Nvidia Volumetric Lighting
 	}
 
 	return Super::CanEditChange(InProperty);
@@ -1157,6 +1199,56 @@ void ULightComponent::SetMaterial(int32 ElementIndex, UMaterialInterface* InMate
 		MarkRenderStateDirty();
 	}
 }
+
+// NVCHANGE_BEGIN: Nvidia Volumetric Lighting
+void ULightComponent::SetVolumetricLightingIntensity(float NewIntensity)
+{
+	// Can't set brightness on a static light
+	if (AreDynamicDataChangesAllowed())
+	{
+		if (bUseVolumetricLightingColor)
+		{
+			if (VolumetricLightingIntensity != NewIntensity)
+			{
+				VolumetricLightingIntensity = NewIntensity;
+				UpdateColorAndBrightness();
+			}
+		}
+		else
+		{
+			SetIntensity(NewIntensity);
+		}
+	}
+}
+
+void ULightComponent::SetVolumetricLightingLightColor(FLinearColor NewLightColor, bool bSRGB)
+{
+	// Can't set color on a static light
+	if (AreDynamicDataChangesAllowed())
+	{
+		if (bUseVolumetricLightingColor)
+		{
+			FColor NewColor(NewLightColor.ToFColor(bSRGB));
+			if (VolumetricLightingColor != NewColor)
+			{
+				VolumetricLightingColor = NewColor;
+
+				// Use lightweight color and brightness update 
+				UWorld* World = GetWorld();
+				if( World && World->Scene )
+				{
+					//@todo - remove from scene if brightness or color becomes 0
+					World->Scene->UpdateLightColorAndBrightness( this );
+				}
+			}
+		}
+		else
+		{
+			SetLightColor(NewLightColor, bSRGB);
+		}
+	}
+}
+// NVCHANGE_END: Nvidia Volumetric Lighting
 
 /** 
 * This is called when property is modified by InterpPropertyTracks

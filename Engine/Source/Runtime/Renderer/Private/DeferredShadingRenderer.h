@@ -474,7 +474,16 @@ private:
 	void RenderViewTranslucencyParallel(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, const FDrawingPolicyRenderState& DrawRenderState, ETranslucencyPass::Type TranslucencyPass);
 
 	void CopySceneCaptureComponentToTarget(FRHICommandListImmediate& RHICmdList);
-
+	// NVCHANGE_BEGIN: Nvidia Volumetric Lighting
+#if WITH_NVVOLUMETRICLIGHTING
+	void NVVolumetricLightingBeginAccumulation(FRHICommandListImmediate& RHICmdList);
+	void NVVolumetricLightingRenderVolume(FRHICommandListImmediate& RHICmdList, const FLightSceneInfo* LightSceneInfo, const TArray<FProjectedShadowInfo*, SceneRenderingAllocator>& ShadowInfos);
+	void NVVolumetricLightingRenderVolume(FRHICommandListImmediate& RHICmdList, const FLightSceneInfo* LightSceneInfo, const FProjectedShadowInfo* ShadowInfo);
+	void NVVolumetricLightingRenderVolume(FRHICommandListImmediate& RHICmdList, const FLightSceneInfo* LightSceneInfo);
+	void NVVolumetricLightingEndAccumulation(FRHICommandListImmediate& RHICmdList);
+	void NVVolumetricLightingApplyLighting(FRHICommandListImmediate& RHICmdList);
+#endif
+	// NVCHANGE_END: Nvidia Volumetric Lighting
 	friend class FTranslucentPrimSet;
 };
 
