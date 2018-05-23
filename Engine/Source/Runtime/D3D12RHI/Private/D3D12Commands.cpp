@@ -2179,7 +2179,6 @@ void FD3D12CommandContext::RHIRenderHBAO(
 	static const auto CVarHBAOGBufferNormals = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HBAO.GBufferNormals"));
 	static const auto CVarHBAOVisualizeAO = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HBAO.VisualizeAO"));
 
-	// Empty method because HBAO+ doesn't support DX12 yet.
 	// Just override the base so that the engine doesn't crash.
 	if (!OwningRHI.HBAOContext || OwningRHI.HBAODescriptorHeaps == NULL)
 	{
