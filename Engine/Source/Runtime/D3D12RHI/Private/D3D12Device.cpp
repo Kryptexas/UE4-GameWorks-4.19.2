@@ -158,11 +158,15 @@ void FD3D12Device::CreateCommandContexts()
 		AsyncComputeContextArray.Add(NewCmdContext);
 	}
 
+// NVCHANGE_BEGIN: Add HBAO+
+#if WITH_GFSDK_SSAO
 	//HBAO context creation
 	{
 		FD3D12SubAllocatedOnlineHeap::SubAllocationDesc SubHeapDesc(&GlobalViewHeap, CurrentGlobalHeapOffset, DescriptorSuballocationPerContext);
 		GetOwningRHI()->CreateHBAOContext(this, SubHeapDesc);
 	}
+#endif
+// NVCHANGE_END: Add HBAO+
 
 	CommandContextArray[0]->OpenCommandList();
 	if (GEnableAsyncCompute)
