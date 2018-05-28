@@ -1678,8 +1678,6 @@ struct FPostProcessSettings
 	UPROPERTY(interp, BlueprintReadWrite, Category="Lens|Image Effects", meta=(UIMin = "0.0", UIMax = "1.0", editcondition = "bOverride_GrainIntensity"))
 	float GrainIntensity;
 
-	// NVCHANGE_BEGIN: Add HBAO+
-#ifdef WITH_GFSDK_SSAO
 	/** 0..4 >0 to enable HBAO+ (DX11/Windows only) .. the greater this parameter, the darker is the HBAO */
 	UPROPERTY(interp, BlueprintReadWrite, Category = "HBAO+", meta = (ClampMin = "0.0", UIMax = "4.0", editcondition = "bOverride_HBAOPowerExponent", DisplayName = "Power Exponent"))
 	float HBAOPowerExponent;
@@ -1728,8 +1726,6 @@ struct FPostProcessSettings
 	/** Distance from camera at which the background AO radius should be clamped */
 	UPROPERTY(interp, BlueprintReadWrite, Category = "HBAO+", meta = (ClampMin = "0.0", UIMax = "10000.0", editcondition = "bOverride_HBAOBackgroundAODistance", DisplayName = "Background AO Distance"))
 	float HBAOBackgroundAODistance;
-#endif
-	// NVCHANGE_END: Add HBAO+
 
 	/** 0..1 0=off/no ambient occlusion .. 1=strong ambient occlusion, defines how much it affects the non direct lighting after base pass */
 	UPROPERTY(interp, BlueprintReadWrite, Category="Rendering Features|Ambient Occlusion", meta=(ClampMin = "0.0", ClampMax = "1.0", editcondition = "bOverride_AmbientOcclusionIntensity", DisplayName = "Intensity"))

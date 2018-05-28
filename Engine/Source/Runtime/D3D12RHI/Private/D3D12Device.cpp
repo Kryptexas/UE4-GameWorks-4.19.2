@@ -55,7 +55,7 @@ FD3D12DynamicRHI* FD3D12Device::GetOwningRHI()
 }
 
 // NVCHANGE_BEGIN: Add HBAO+
-#ifdef WITH_GFSDK_SSAO
+#if WITH_GFSDK_SSAO
 void FD3D12DynamicRHI::CreateHBAOContext(FD3D12Device* InParent, FD3D12SubAllocatedOnlineHeap::SubAllocationDesc& SubHeapDesc)
 {
 	//Last sub-divided portion of GlobalHeap is used for HBAO context only
@@ -117,7 +117,7 @@ void FD3D12Device::CreateCommandContexts()
 	AsyncComputeContextArray.Reserve(NumAsyncComputeContexts);
 
 	// NVCHANGE_BEGIN: Add HBAO+
-#ifdef WITH_GFSDK_SSAO
+#if WITH_GFSDK_SSAO
 	//Last portion of global view heap will be used for HBAO context
 	const uint32 DescriptorSuballocationPerContext = (GlobalViewHeap.GetTotalSize() - GFSDK_SSAO_NUM_DESCRIPTORS_CBV_SRV_UAV_HEAP_D3D12)  / TotalContexts;
 #else
@@ -337,7 +337,7 @@ void FD3D12Device::Cleanup()
 
 	D3DX12Residency::DestroyResidencyManager(ResidencyManager);
 	// NVCHANGE_BEGIN: Add HBAO+
-#ifdef WITH_GFSDK_SSAO
+#if WITH_GFSDK_SSAO
 	if (GetOwningRHI()->HBAOContext)
 	{
 		GetOwningRHI()->HBAOContext->Release();
