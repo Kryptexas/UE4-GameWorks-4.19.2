@@ -1426,6 +1426,8 @@ float4 SceneTextureLookup(float2 UV, int SceneTextureIndex, bool bFiltered)
 		case 29: return ScreenSpaceData.VxgiAreaLightDiffuse;
 		// PPI_VxgiAreaLightSpecular
 		case 30: return ScreenSpaceData.VxgiAreaLightSpecular;
+		// PPI_VxgiConfidence
+		case 31: return ScreenSpaceData.VxgiConfidence;
 		// NVCHANGE_END: Add VXGI
 		default:
 			return float4(0, 0, 0, 0);

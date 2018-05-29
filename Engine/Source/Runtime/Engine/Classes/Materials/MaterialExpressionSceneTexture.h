@@ -77,6 +77,8 @@ enum ESceneTextureId
 	PPI_VxgiAreaLightDiffuse UMETA(DisplayName = "VXGI Area Light Diffuse"),
 	/** VXGI Area Light Specular Output */
 	PPI_VxgiAreaLightSpecular UMETA(DisplayName = "VXGI Area Light Specular"),
+    /** VXGI Confidence */
+    PPI_VxgiConfidence UMETA(DisplayName = "VXGI Confidence"),
 	// NVCHANGE_END: Add VXGI
 };
 
