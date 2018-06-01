@@ -2,22 +2,22 @@
 <DependencyManifest xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" BaseUrl="http://carbon-deps.s3.amazonaws.com">
   <Files>
     <File Name="Engine/Binaries/ThirdParty/GameWorks/VXGI/d3dcompiler_47.dll" Hash="4fca3aa401cee502d1d7be5104188552f57e6295" />
-    <File Name="Engine/Binaries/ThirdParty/GameWorks/VXGI/GFSDK_VXGI_x64.dll" Hash="99ff91dce5b073fe153ec12de148a3de2212bedd" />
-    <File Name="Engine/Binaries/ThirdParty/GameWorks/VXGI/GFSDK_VXGI_x86.dll" Hash="ebca12ea81df2c116d5334ab1ab21b699b222766" />
-    <File Name="Engine/Source/ThirdParty/GameWorks/VXGI/lib/GFSDK_VXGI_x64.lib" Hash="318c64d0dbbaefdb122d22500d622f8782791f29" />
-    <File Name="Engine/Source/ThirdParty/GameWorks/VXGI/lib/GFSDK_VXGI_x86.lib" Hash="3ed90d51ef9d8290c25fd3b678296f7c9dc873b9" />
+    <File Name="Engine/Binaries/ThirdParty/GameWorks/VXGI/GFSDK_VXGI_x64.dll" Hash="acfb3dda083beede299885580c2df279d9d21521" />
+    <File Name="Engine/Binaries/ThirdParty/GameWorks/VXGI/GFSDK_VXGI_x86.dll" Hash="be22f7110c7d696cfa07155233a9e05535bf7c13" />
+    <File Name="Engine/Source/ThirdParty/GameWorks/VXGI/lib/GFSDK_VXGI_x64.lib" Hash="b8e52fd60aa4eed891744cba5dff401c4645c336" />
+    <File Name="Engine/Source/ThirdParty/GameWorks/VXGI/lib/GFSDK_VXGI_x86.lib" Hash="8cd3c002112b0d23ddd1efcaa78016e28322a5f1" />
   </Files>
   <Blobs>
-    <Blob Hash="318c64d0dbbaefdb122d22500d622f8782791f29" Size="3914" PackHash="c716b3de7310bbe0a0b4447e5bc3bb3a3052ffe8" PackOffset="3954" />
-    <Blob Hash="3ed90d51ef9d8290c25fd3b678296f7c9dc873b9" Size="3946" PackHash="c716b3de7310bbe0a0b4447e5bc3bb3a3052ffe8" PackOffset="8" />
     <Blob Hash="4fca3aa401cee502d1d7be5104188552f57e6295" Size="4310320" PackHash="1c5eca47d14ad6e48a7fb4fbbe249c9e58acd9d8" PackOffset="8" />
-    <Blob Hash="99ff91dce5b073fe153ec12de148a3de2212bedd" Size="1936896" PackHash="cdcaf4d5fe16ec4fdbe44ad4f1e71215c341d5be" PackOffset="8" />
-    <Blob Hash="ebca12ea81df2c116d5334ab1ab21b699b222766" Size="1725440" PackHash="7cdbdca7fcb1f9004fdaf225aa0200e78c600dc1" PackOffset="8" />
+    <Blob Hash="8cd3c002112b0d23ddd1efcaa78016e28322a5f1" Size="3946" PackHash="50233e9dcc1bf2b0442f08904979a71c2febf7ec" PackOffset="8" />
+    <Blob Hash="acfb3dda083beede299885580c2df279d9d21521" Size="1915392" PackHash="a8e7adc2b312cb83c0f653c4ced13b0099fbd765" PackOffset="8" />
+    <Blob Hash="b8e52fd60aa4eed891744cba5dff401c4645c336" Size="3914" PackHash="50233e9dcc1bf2b0442f08904979a71c2febf7ec" PackOffset="3954" />
+    <Blob Hash="be22f7110c7d696cfa07155233a9e05535bf7c13" Size="1703936" PackHash="461b20c189ffd3a768775b24fe41060e229ec968" PackOffset="8" />
   </Blobs>
   <Packs>
     <Pack Hash="1c5eca47d14ad6e48a7fb4fbbe249c9e58acd9d8" Size="4310328" CompressedSize="1853113" RemotePath="VXGI" />
-    <Pack Hash="7cdbdca7fcb1f9004fdaf225aa0200e78c600dc1" Size="1725448" CompressedSize="1328256" RemotePath="VXGI" />
-    <Pack Hash="c716b3de7310bbe0a0b4447e5bc3bb3a3052ffe8" Size="7868" CompressedSize="1305" RemotePath="VXGI" />
-    <Pack Hash="cdcaf4d5fe16ec4fdbe44ad4f1e71215c341d5be" Size="1936904" CompressedSize="1399885" RemotePath="VXGI" />
+    <Pack Hash="461b20c189ffd3a768775b24fe41060e229ec968" Size="1703944" CompressedSize="1308921" RemotePath="VXGI" />
+    <Pack Hash="50233e9dcc1bf2b0442f08904979a71c2febf7ec" Size="7868" CompressedSize="1310" RemotePath="VXGI" />
+    <Pack Hash="a8e7adc2b312cb83c0f653c4ced13b0099fbd765" Size="1915400" CompressedSize="1380325" RemotePath="VXGI" />
   </Packs>
 </DependencyManifest>

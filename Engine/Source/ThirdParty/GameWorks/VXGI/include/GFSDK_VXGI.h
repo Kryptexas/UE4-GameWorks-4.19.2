@@ -35,19 +35,19 @@
 
 #define VXGI_FAILED(status) ((status) != ::VXGI::Status::OK)
 #define VXGI_SUCCEEDED(status) ((status) == ::VXGI::Status::OK)
-#define VXGI_VERSION_STRING "2.0.0.23960390"
+#define VXGI_VERSION_STRING "2.0.1.24257052"
 
 GI_BEGIN_PACKING
 namespace VXGI
 {
     struct Version
 	{
-		Version() : Major(2), Minor(0), Branch(0), Revision(23960390)
+		Version() : Major(2), Minor(0), Patch(1), Revision(24257052)
         { }
 
         uint32_t Major;
         uint32_t Minor;
-        uint32_t Branch;
+        uint32_t Patch;
         uint32_t Revision;
     };
 

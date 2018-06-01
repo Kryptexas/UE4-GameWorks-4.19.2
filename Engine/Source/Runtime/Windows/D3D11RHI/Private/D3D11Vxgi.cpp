@@ -50,21 +50,16 @@ void FD3D11DynamicRHI::CreateVxgiInterface()
 	check(VXGI_SUCCEEDED(Status));
 
 	VXGI::Version VxgiVersion;
-	UE_LOG(LogD3D11RHI, Log, TEXT("VXGI: Version %u.%u.%u.%u"), VxgiVersion.Major, VxgiVersion.Minor, VxgiVersion.Branch, VxgiVersion.Revision);
+	UE_LOG(LogD3D11RHI, Log, TEXT("VXGI: Version %u.%u.%u.%u"), VxgiVersion.Major, VxgiVersion.Minor, VxgiVersion.Patch, VxgiVersion.Revision);
 
 	bVxgiVoxelizationParametersSet = false;
 
-	// Workaround for a VXGI initialization issue on hardware that does not support FastGS.
-	// setVoxelizationParameters needs to be called before creating any voxelization shader objects.
-	VXGI::VoxelizationParameters DefaultParams;
-	DefaultParams.persistentVoxelData = false;
-	DefaultParams.ambientOcclusionMode = true;
-	RHIVXGISetVoxelizationParameters(DefaultParams);
-
 	// See if we're running on a GPU which only supports AO mode, set VxgiTier accordingly
 	VxgiRendererD3D11->setTreatErrorsAsFatal(false);
-	DefaultParams.ambientOcclusionMode = false;
-	if (VXGI_FAILED(VxgiInterface->validateVoxelizationParameters(DefaultParams)))
+    VXGI::VoxelizationParameters DefaultParams;
+    DefaultParams.persistentVoxelData = false;
+    DefaultParams.ambientOcclusionMode = false;
+    if (VXGI_FAILED(VxgiInterface->validateVoxelizationParameters(DefaultParams)))
 	{
 		VxgiTier = EVxgiTier::OcclusionOnly;
 		UE_LOG(LogD3D11RHI, Warning, TEXT("VXGI support is limited to occlusion-only mode on this GPU."));
