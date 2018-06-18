@@ -93,7 +93,7 @@
 <li class="toctree-l3"><a class="reference internal" href="FLEXUe4_Assets.html#flex-cloth-asset">Flex Cloth Asset</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="FLEXUe4_Assets.html#rigids">Rigids</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="FLEXUe4_Assets.html#solids">Solids</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="FLEXUe4_Assets.html#flex-solid-asset">Flex Solid Asset</a></li>
 </ul>
 </li>
@@ -120,9 +120,9 @@
 <li class="toctree-l1 current"><a class="current reference internal" href="">Fluid Rendering</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#creating-a-flex-fluid-surface">Creating a Flex Fluid Surface</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#fluid-surface-properties">Fluid Surface Properties</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#container">Container</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#emitter-settings">Emitter Settings</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#surface-material">Surface Material</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#container">Container</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="FLEXUe4_Debug.html">Debug Commands</a><ul>
@@ -131,7 +131,10 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="releasenotes.html">Release Notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#what-s-new">What&#8217;s New</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#what-s-new">What&#8217;s New</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="releasenotes.html#ue4-19-2">UE4.19.2</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#known-limitations">Known Limitations</a></li>
 </ul>
 </li>
@@ -166,20 +169,20 @@
             
   <div class="section" id="fluid-rendering">
 <span id="flexue4-fluidsurfacerendering"></span><h1>Fluid Rendering<a class="headerlink" href="#fluid-rendering" title="Permalink to this headline">¶</a></h1>
-<p>Flex fluid particles can be rendered with a screen space technique. The surface rendering is configured using Flex Fluid Surface templates. The fluid surface template can then be assigned to emitters to render the corresponding particles with the surface technique. The look of the surface depends on:</p>
+<p>Flex fluid particles can be rendered with a screen space technique. The surface rendering is configured using a Flex Fluid Surface asset. The fluid surface asset can then be assigned to Flex Container to render the corresponding particles with the surface technique. The look of the surface depends on:</p>
 <ol class="arabic simple">
 <li><a class="reference internal" href="#label-create-fluid-surface"><em>Creating a Flex Fluid Surface</em></a></li>
 <li><a class="reference internal" href="#label-fluid-surface-properties"><em>Fluid Surface Properties</em></a></li>
+<li><a class="reference internal" href="#label-container"><em>Container</em></a></li>
 <li><a class="reference internal" href="#label-emitter"><em>Emitter Settings</em></a></li>
 <li><a class="reference internal" href="#label-material"><em>Surface Material</em></a></li>
-<li><a class="reference internal" href="#label-container"><em>Container</em></a></li>
 </ol>
 <div class="float-center container">
 <a class="reference internal image-reference" href="_images/fluidsurface.jpg"><img alt="_images/fluidsurface.jpg" src="_images/fluidsurface.jpg" style="width: 400px;" /></a>
 </div>
 <div class="section" id="creating-a-flex-fluid-surface">
 <span id="label-create-fluid-surface"></span><h2>Creating a Flex Fluid Surface<a class="headerlink" href="#creating-a-flex-fluid-surface" title="Permalink to this headline">¶</a></h2>
-<p>To create a fluid surface template, right-click in the Content Browser, and choose Create Advanced Asset-&gt;Physics-&gt;FlexFluidSurface.</p>
+<p>To create a fluid surface asset, right-click in the Content Browser, and choose Create Advanced Asset-&gt;Physics-&gt;FlexFluidSurface.</p>
 <div class="float-center container">
 <a class="reference internal image-reference" href="_images/NewFluidSurface.jpg"><img alt="_images/NewFluidSurface.jpg" src="_images/NewFluidSurface.jpg" style="width: 400px;" /></a>
 </div>
@@ -188,51 +191,21 @@
 <span id="label-fluid-surface-properties"></span><h2>Fluid Surface Properties<a class="headerlink" href="#fluid-surface-properties" title="Permalink to this headline">¶</a></h2>
 <p>Give your container an appropriate name, e.g.: FlexFluidSurface, and double click to open it&#8217;s property sheet.</p>
 <div class="float-center container">
-<a class="reference internal image-reference" href="_images/fluidsurfacetemplate.jpg"><img alt="_images/fluidsurfacetemplate.jpg" src="_images/fluidsurfacetemplate.jpg" style="width: 400px;" /></a>
+<a class="reference internal image-reference" href="_images/fluidsurfaceasset.jpg"><img alt="_images/fluidsurfaceasset.jpg" src="_images/fluidsurfaceasset.jpg" style="width: 400px;" /></a>
 </div>
 <ul class="simple">
 <li><strong>Smoothing Radius</strong>  Radius for smoothing the surface. Higher values result in a smoother surface.</li>
-<li><strong>Max Radial Samples</strong>        This parameter controls how many neighboring pixels in each direction are taken into account for the screen space smoothing operation. It limits how large the smoothing filter defined through the</li>
-<li><strong>Smoothing Radiu</strong> can become in screen space. Large values can have an impact on performance.</li>
+<li><strong>Max Radial Samples</strong>        This parameter controls how many neighboring pixels in each direction are taken into account for the screen space smoothing operation. It limits how large the smoothing filter defined through the <strong>Smoothing Radius</strong> can become in screen space. Large values can have an impact on performance.</li>
 <li><strong>Depth Edge Falloff</strong>        The depth edge falloff controls smoothing across inner silhouettes. If the depth separation between particles exceeds the size of the particles, smoothing should be turned off to avoid blending between foreground and background. The depth edge falloff controls how much smoothing is tuned down based on the depth separation. A value of 0.0 disables all smoothing.</li>
-<li><strong>Thickness Particle Scale</strong>  Translucent surfaces look more convincing if the background becomes less visible where the liquid is thicker. The screen space surface technique provides a thickness value to the material used to render the surface to achieve such an effect. The thickness value is computed using an additive blend between the particles rendered as spheres. The size of the spheres is controlled by this parameter.</li>
 <li><strong>Depth Particle Scale</strong>      The size of the emitted particles influences the distance of the rendered surface to the particles. Larger particle sizes result in a surface that makes the liquid appear to have more volume. The Depth Particle Scale controls the particle sizes influencing the shape of the surface.</li>
-<li><strong>Receive Shadows</strong>   Controls whether the surface receives shadows from static level geometry. In the current implementation, dynamic shadows are always cast onto the surface.</li>
+<li><strong>Half Resolution</strong>   Compute the fluid surface in half resolution to improve rendering performance.</li>
+<li><strong>Thickness Particle Scale</strong>  Translucent surfaces look more convincing if the background becomes less visible where the liquid is thicker. The screen space surface technique provides a thickness value to the material used to render the surface to achieve such an effect. The thickness value is computed using an additive blend between the particles rendered as spheres. The size of the spheres is controlled by this parameter.</li>
 <li><strong>Material</strong>  The material that is used to shade the fluid surface.</li>
+<li><strong>Cast Particle Shadows</strong>     Use fluid particles to cast shadows on other objects and the fluid surface (self shadowing).</li>
+<li><strong>Shadow Particle Scale</strong>     Relative scale applied to particles for shadow casting.</li>
+<li><strong>Receive Precached Shadows</strong> Controls whether the surface receives shadows from static level geometry. In the current implementation, dynamic shadows are always cast onto the surface.</li>
+<li><strong>Disable Emitter Rendering</strong> Supress native emitter particle rendering when surface is rendered.</li>
 </ul>
-</div>
-<div class="section" id="emitter-settings">
-<span id="label-emitter"></span><h2>Emitter Settings<a class="headerlink" href="#emitter-settings" title="Permalink to this headline">¶</a></h2>
-<p>An emitter can be configured for surface rendering inside the particle system editor. See Particles for a description of how to configure an emitters for Flex. To make a Particle Emitter use surface rendering, open up Cascade, select the Particle Emitter and scroll to the bottom of the Details tab.</p>
-<div class="float-center container">
-<a class="reference internal image-reference" href="_images/fluidsurfaceEmitter.jpg"><img alt="_images/fluidsurfaceEmitter.jpg" src="_images/fluidsurfaceEmitter.jpg" style="width: 400px;" /></a>
-</div>
-<p>The following emitter and particle system settings have an impact on the look of the fluid surface:</p>
-<p><strong>Particle System Template</strong></p>
-<ul class="simple">
-<li><strong>Materia</strong>   The Blend Mode of the referenced Material used for particle rendering should be set to Masked.</li>
-<li><strong>Particle Scale</strong>    Particle sizes should be tuned to get a good overlap of particles during the simulation.</li>
-</ul>
-<p><strong>Particle System Actor Details</strong></p>
-<ul class="simple">
-<li><strong>Cast Shadow</strong>       Enables shadows on static and dynamic level geometry and onto the surface itself.</li>
-<li><strong>Visible</strong>   Should be set.</li>
-<li><strong>Render in Main Pass</strong>       Should NOT be set. Otherwise particles are rendered inside the surface.</li>
-</ul>
-<div class="float-center container">
-<img alt="_images/FluidSurfaceEmitterSettings.jpg" src="_images/FluidSurfaceEmitterSettings.jpg" />
-</div>
-</div>
-<div class="section" id="surface-material">
-<span id="label-material"></span><h2>Surface Material<a class="headerlink" href="#surface-material" title="Permalink to this headline">¶</a></h2>
-<p>The material referenced in the Flex Fluid Surface template is used to shade the surface. The surface rendering only supports a restricted material feature set. The Flex Project contains example materials that can be used as a reference.</p>
-<ul class="simple">
-<li>Material Blend Mode: should either be set to Translucent or Masked</li>
-<li>A special material expression FlexFluidSurface Thickness can be used to read the thickness of the liquid volume at a given screen location</li>
-</ul>
-<div class="float-center container">
-<a class="reference internal image-reference" href="_images/FluidSurfaceMaterial.jpg"><img alt="_images/FluidSurfaceMaterial.jpg" src="_images/FluidSurfaceMaterial.jpg" style="width: 600px;" /></a>
-</div>
 </div>
 <div class="section" id="container">
 <span id="label-container"></span><h2>Container<a class="headerlink" href="#container" title="Permalink to this headline">¶</a></h2>
@@ -241,13 +214,35 @@
 <a class="reference internal image-reference" href="_images/FluidSurfaceContainer.jpg"><img alt="_images/FluidSurfaceContainer.jpg" src="_images/FluidSurfaceContainer.jpg" style="width: 400px;" /></a>
 </div>
 <ul class="simple">
-<li><strong>Fluid</strong>     Fluid surface rendering is mostly suitable for liquids. However, it&#8217;s not mandatory to enable the Fluid flag for surface rendering.</li>
+<li><strong>Fluid</strong>     Fluid surface rendering is only available for fluid particles. This option needs to be enabled.</li>
 <li><strong>Anisotropy Scale</strong>  If this parameter is set to larger than 0.0 the Flex simulation generates per particle information that can be used to improve the fluid surface rendering. The anisotropy information is used to render oriented ellipsoids instead of spheres which makes the surface look much smoother. Setting this higher allow the ellipsoids to stretch more. A value around 1.0 works usually well. The overall particle scale can be adjusted using the emitter particle size or with the Depth Particle Scale in the Flex Fluid Surface template.</li>
 <li><strong>Anisotropy Min</strong>    Defines how thin a particle can become. It makes sense to limit the thickness for example to avoid shadowing artefact which can appear for very thin objects. A value around 0.1 works usually well.</li>
 <li><strong>Anisotropy Max</strong>    Defines how thick a particle can become. It can look weird if ellipsoids stretch too much as the geometric shape can be become very obvious. A value around 1.0 works usually well.</li>
 <li><strong>Position Smoothing</strong>        The look of the surface can be improved further by enabling smoothing of the particle positions. Values larger than 0.0 enable the particle smoothing.</li>
+<li><strong>Fluid Surface</strong>     The Flex Fluid Surface asset used to render the fluid particles for this Flex Container.</li>
 </ul>
-<p>Additionally it might be useful to adjust the <em>Rest Distance of the Flex Container</em> to achieve more visual surface details. The <strong>Collision Distance</strong> can be used to reduce the visual gap between the particle surface and the level geometry.</p>
+<p>Additionally it might be useful to adjust the <strong>Rest Distance</strong> of the Flex Container to achieve more visual surface details. The <strong>Collision Distance</strong> can be used to reduce the visual gap between the particle surface and the level geometry.</p>
+</div>
+<div class="section" id="emitter-settings">
+<span id="label-emitter"></span><h2>Emitter Settings<a class="headerlink" href="#emitter-settings" title="Permalink to this headline">¶</a></h2>
+<p>The surface rendering is largely independent of the particle system and emitter settings. There are two particle properties that are specified by the emitter:</p>
+<ul class="simple">
+<li><strong>Particle Scale</strong> The X component of the size is used for the surface appearance.</li>
+<li><strong>Particle Color</strong> Available in the material editor through the <em>FlexFluidSurface Color</em> material expression.</li>
+</ul>
+<p>To make a Flex Particle Emitter work with surface rendering make sure to select the <strong>Fluid</strong> option in Flex <strong>Phase</strong> properties.</p>
+</div>
+<div class="section" id="surface-material">
+<span id="label-material"></span><h2>Surface Material<a class="headerlink" href="#surface-material" title="Permalink to this headline">¶</a></h2>
+<p>The material referenced in the Flex Fluid Surface asset is used to shade the surface. The surface rendering only supports a restricted material feature set. The Flex Project contains example materials that can be used as a reference.</p>
+<ul class="simple">
+<li>Material Blend Mode: should either be set to Translucent or Masked.</li>
+<li><strong>FlexFluidSurface Thickness</strong> material expression can be used to read the thickness of the liquid volume at a given screen location.</li>
+<li><strong>FlexFluidSurface Color</strong> material expression can be used to read the particle colors specified by the emitter.</li>
+</ul>
+<div class="float-center container">
+<a class="reference internal image-reference" href="_images/FluidSurfaceMaterial.jpg"><img alt="_images/FluidSurfaceMaterial.jpg" src="_images/FluidSurfaceMaterial.jpg" style="width: 600px;" /></a>
+</div>
 </div>
 </div>
 

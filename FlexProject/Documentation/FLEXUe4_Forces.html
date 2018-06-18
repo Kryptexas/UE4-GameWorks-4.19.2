@@ -93,7 +93,7 @@
 <li class="toctree-l3"><a class="reference internal" href="FLEXUe4_Assets.html#flex-cloth-asset">Flex Cloth Asset</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="FLEXUe4_Assets.html#rigids">Rigids</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="FLEXUe4_Assets.html#solids">Solids</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="FLEXUe4_Assets.html#flex-solid-asset">Flex Solid Asset</a></li>
 </ul>
 </li>
@@ -120,9 +120,9 @@
 <li class="toctree-l1"><a class="reference internal" href="FLEXUe4_FluidSurfaceRendering.html">Fluid Rendering</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="FLEXUe4_FluidSurfaceRendering.html#creating-a-flex-fluid-surface">Creating a Flex Fluid Surface</a></li>
 <li class="toctree-l2"><a class="reference internal" href="FLEXUe4_FluidSurfaceRendering.html#fluid-surface-properties">Fluid Surface Properties</a></li>
+<li class="toctree-l2"><a class="reference internal" href="FLEXUe4_FluidSurfaceRendering.html#container">Container</a></li>
 <li class="toctree-l2"><a class="reference internal" href="FLEXUe4_FluidSurfaceRendering.html#emitter-settings">Emitter Settings</a></li>
 <li class="toctree-l2"><a class="reference internal" href="FLEXUe4_FluidSurfaceRendering.html#surface-material">Surface Material</a></li>
-<li class="toctree-l2"><a class="reference internal" href="FLEXUe4_FluidSurfaceRendering.html#container">Container</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="FLEXUe4_Debug.html">Debug Commands</a><ul>
@@ -131,7 +131,10 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="releasenotes.html">Release Notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#what-s-new">What&#8217;s New</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#what-s-new">What&#8217;s New</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="releasenotes.html#ue4-19-2">UE4.19.2</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#known-limitations">Known Limitations</a></li>
 </ul>
 </li>
@@ -168,7 +171,7 @@
 <span id="flexue4-forces"></span><h1>Forces<a class="headerlink" href="#forces" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="radial-force-component">
 <h2>Radial Force Component<a class="headerlink" href="#radial-force-component" title="Permalink to this headline">¶</a></h2>
-<p>The radial force Component and the corresponding Actor can be used to drive Flex objects. Please refer to the documentation of the Radial Force for details of the component&#8217;s functionality. In order to achieve interaction with Flex the Object Types to affect control within the Radial Force Component needs to be configured to contain the Object Type specified by the Flex Container. By default this is the &#8220;Flex&#8221; Object Type.</p>
+<p>The radial force Component and the corresponding Actor can be used to drive Flex objects. Please refer to the documentation of the Radial Force for details of the component&#8217;s functionality. In order to achieve interaction with Flex, the Object Types to affect control within the Radial Force Component needs to be configured to contain the Object Type specified by the Flex Container. By default this is the &#8220;Flex&#8221; Object Type.</p>
 <a class="reference internal image-reference" href="_images/radialforce.jpg"><img alt="_images/radialforce.jpg" src="_images/radialforce.jpg" style="width: 600px;" /></a>
 <p>The <strong>Flex Attach</strong> option can be enabled to attach all Flex objects that are overlapping with the Radial Force Field at creation time. The particles are released when the Force Field is deleted. This is similar to the <strong>Attach To Rigids</strong> functionality of <strong>Flex Assets</strong>.</p>
 </div>

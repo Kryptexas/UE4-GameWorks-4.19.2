@@ -92,7 +92,7 @@
 <li class="toctree-l3"><a class="reference internal" href="FLEXUe4_Assets.html#flex-cloth-asset">Flex Cloth Asset</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="FLEXUe4_Assets.html#rigids">Rigids</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="FLEXUe4_Assets.html#solids">Solids</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="FLEXUe4_Assets.html#flex-solid-asset">Flex Solid Asset</a></li>
 </ul>
 </li>
@@ -119,9 +119,9 @@
 <li class="toctree-l1"><a class="reference internal" href="FLEXUe4_FluidSurfaceRendering.html">Fluid Rendering</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="FLEXUe4_FluidSurfaceRendering.html#creating-a-flex-fluid-surface">Creating a Flex Fluid Surface</a></li>
 <li class="toctree-l2"><a class="reference internal" href="FLEXUe4_FluidSurfaceRendering.html#fluid-surface-properties">Fluid Surface Properties</a></li>
+<li class="toctree-l2"><a class="reference internal" href="FLEXUe4_FluidSurfaceRendering.html#container">Container</a></li>
 <li class="toctree-l2"><a class="reference internal" href="FLEXUe4_FluidSurfaceRendering.html#emitter-settings">Emitter Settings</a></li>
 <li class="toctree-l2"><a class="reference internal" href="FLEXUe4_FluidSurfaceRendering.html#surface-material">Surface Material</a></li>
-<li class="toctree-l2"><a class="reference internal" href="FLEXUe4_FluidSurfaceRendering.html#container">Container</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="FLEXUe4_Debug.html">Debug Commands</a><ul>
@@ -130,7 +130,10 @@
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="current reference internal" href="">Release Notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#what-s-new">What&#8217;s New</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#what-s-new">What&#8217;s New</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#ue4-19-2">UE4.19.2</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="#known-limitations">Known Limitations</a></li>
 </ul>
 </li>
@@ -164,14 +167,20 @@
 <h1>Release Notes<a class="headerlink" href="#release-notes" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="what-s-new">
 <h2>What&#8217;s New<a class="headerlink" href="#what-s-new" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="ue4-19-2">
+<h3>UE4.19.2<a class="headerlink" href="#ue4-19-2" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
-<li>Flex 1.1 and Unreal Engine 4.12 documentation added</li>
+<li>Upgrade to Flex SDK 1.2.</li>
+<li>Flex integration now functions like a plugin. The engine still contains Flex specific changes, but fewer.</li>
+<li>Added support for Soft Joints.</li>
+<li>Fluid surface rendering restructuring, FlexFluidSurface asset is now set per container instead of per emitter.</li>
 </ul>
+</div>
 </div>
 <div class="section" id="known-limitations">
 <h2>Known Limitations<a class="headerlink" href="#known-limitations" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
-<li>The Flex UE4 integration does not currently expose all of the features in the Flex SDK, such as smoke simulation, or plastic deformation of rigid bodies. These features will be added in a future release.</li>
+<li>The Flex UE4 integration does not currently expose all of the features in the Flex SDK, such as smoke simulation, or plastic deformation of rigid bodies. These features might be added in a future release.</li>
 <li>Flex is not deterministic. Simulations with the same initial conditions may behave differently between separate runs, GPUs, and versions.</li>
 </ul>
 </div>

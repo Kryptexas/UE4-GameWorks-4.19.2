@@ -93,7 +93,7 @@
 <li class="toctree-l3"><a class="reference internal" href="FLEXUe4_Assets.html#flex-cloth-asset">Flex Cloth Asset</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="FLEXUe4_Assets.html#rigids">Rigids</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="FLEXUe4_Assets.html#solids">Solids</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="FLEXUe4_Assets.html#flex-solid-asset">Flex Solid Asset</a></li>
 </ul>
 </li>
@@ -120,9 +120,9 @@
 <li class="toctree-l1"><a class="reference internal" href="FLEXUe4_FluidSurfaceRendering.html">Fluid Rendering</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="FLEXUe4_FluidSurfaceRendering.html#creating-a-flex-fluid-surface">Creating a Flex Fluid Surface</a></li>
 <li class="toctree-l2"><a class="reference internal" href="FLEXUe4_FluidSurfaceRendering.html#fluid-surface-properties">Fluid Surface Properties</a></li>
+<li class="toctree-l2"><a class="reference internal" href="FLEXUe4_FluidSurfaceRendering.html#container">Container</a></li>
 <li class="toctree-l2"><a class="reference internal" href="FLEXUe4_FluidSurfaceRendering.html#emitter-settings">Emitter Settings</a></li>
 <li class="toctree-l2"><a class="reference internal" href="FLEXUe4_FluidSurfaceRendering.html#surface-material">Surface Material</a></li>
-<li class="toctree-l2"><a class="reference internal" href="FLEXUe4_FluidSurfaceRendering.html#container">Container</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="FLEXUe4_Debug.html">Debug Commands</a><ul>
@@ -131,7 +131,10 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="releasenotes.html">Release Notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#what-s-new">What&#8217;s New</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#what-s-new">What&#8217;s New</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="releasenotes.html#ue4-19-2">UE4.19.2</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#known-limitations">Known Limitations</a></li>
 </ul>
 </li>
@@ -166,18 +169,18 @@
             
   <div class="section" id="introduction">
 <span id="flexue4-intro"></span><h1>Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h1>
-<p>Flex is a particle dynamics library designed for real-time visual effects. The core idea of Flex is that everything is modeled a system of particles connected by constraints. One benefit of this unified representation is that it allows efficient modeling of many different materials. In addition, it allows interaction between elements of different types, for example, two-way coupling between rigid bodies and fluids.</p>
-<p>Flex&#8217;s strength lies in enabling interesting secondary effects that enhance the visual experience. It is not designed to build gameplay affecting physics because it lacks functionality such as trigger events, contact callbacks, ray-casting, serialization, etc. Although it is possible to build these capabilities on top of the core solver, they don&#8217;t come in the box. For this reason it is recommended to use Flex in conjunction with a traditional rigid-body physics engine, such as PhysX.</p>
+<p>Flex is a particle dynamics library designed for real-time visual effects. The core idea of Flex is that everything is modeled as a system of particles connected by constraints. One benefit of this unified representation is that it allows efficient modeling of many different materials. In addition, it allows interaction between elements of different types, for example, two-way coupling between rigid bodies and fluids.</p>
+<p>Flex&#8217;s strength lies in enabling interesting secondary effects that enhance the visual experience. It is not designed to build gameplay affecting physics because it lacks functionality such as trigger events, contact callbacks, ray-casting, serialization, etc. Although it is possible to build these capabilities on top of the core solver, they don&#8217;t come out of the box. For this reason, it is recommended to use Flex in conjunction with a traditional rigid-body physics engine such as PhysX.</p>
 <p>The Unreal 4 integration of Flex is available to all Unreal licensed developers through the NVIDIA Github channel, please visit: <a class="reference external" href="https://github.com/NvPhysX/UnrealEngine/tree/Flex">https://github.com/NvPhysX/UnrealEngine/tree/Flex</a> for the latest distributions.</p>
-<p>This documentation is designed for technical artists and developers using the UE4 Flex integration. For more background on Flex see the SDK manual included in the developer library package available on <a class="reference external" href="https://developer.nvidia.com/flex">NVIDIA DevZone</a></p>
+<p>This documentation is designed for technical artists and developers using the UE4 Flex integration. For more background on Flex, see the SDK manual included in the developer library package available on <a class="reference external" href="https://developer.nvidia.com/flex">NVIDIA DevZone</a>.</p>
 </div>
 <div class="section" id="prerequisites">
 <h1>Prerequisites<a class="headerlink" href="#prerequisites" title="Permalink to this headline">¶</a></h1>
 <p>The information in this document applies to the following software versions:</p>
 <ul class="simple">
-<li>NVIDIA Flex 1.1.0</li>
-<li>EpicGames Unreal 4.12</li>
-<li>Flex requires an NVIDIA GPU of at least Compute Capability 3.0 or higher (Kepler) and an NVIDIA driver of at least version 304.54 on Linux, and 306.94 on Windows.</li>
+<li>NVIDIA Flex 1.2.0</li>
+<li>EpicGames Unreal 4.19.2</li>
+<li>GPU either supporting CUDA Compute Capability 3.0 (Kepler/higher) or D3D11/D3D12.</li>
 </ul>
 </div>
 

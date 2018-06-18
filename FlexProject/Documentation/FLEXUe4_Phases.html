@@ -93,7 +93,7 @@
 <li class="toctree-l3"><a class="reference internal" href="FLEXUe4_Assets.html#flex-cloth-asset">Flex Cloth Asset</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="FLEXUe4_Assets.html#rigids">Rigids</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="FLEXUe4_Assets.html#solids">Solids</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="FLEXUe4_Assets.html#flex-solid-asset">Flex Solid Asset</a></li>
 </ul>
 </li>
@@ -120,9 +120,9 @@
 <li class="toctree-l1"><a class="reference internal" href="FLEXUe4_FluidSurfaceRendering.html">Fluid Rendering</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="FLEXUe4_FluidSurfaceRendering.html#creating-a-flex-fluid-surface">Creating a Flex Fluid Surface</a></li>
 <li class="toctree-l2"><a class="reference internal" href="FLEXUe4_FluidSurfaceRendering.html#fluid-surface-properties">Fluid Surface Properties</a></li>
+<li class="toctree-l2"><a class="reference internal" href="FLEXUe4_FluidSurfaceRendering.html#container">Container</a></li>
 <li class="toctree-l2"><a class="reference internal" href="FLEXUe4_FluidSurfaceRendering.html#emitter-settings">Emitter Settings</a></li>
 <li class="toctree-l2"><a class="reference internal" href="FLEXUe4_FluidSurfaceRendering.html#surface-material">Surface Material</a></li>
-<li class="toctree-l2"><a class="reference internal" href="FLEXUe4_FluidSurfaceRendering.html#container">Container</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="FLEXUe4_Debug.html">Debug Commands</a><ul>
@@ -131,7 +131,10 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="releasenotes.html">Release Notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#what-s-new">What&#8217;s New</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#what-s-new">What&#8217;s New</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="releasenotes.html#ue4-19-2">UE4.19.2</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#known-limitations">Known Limitations</a></li>
 </ul>
 </li>
@@ -168,20 +171,20 @@
 <span id="flexue4-phases"></span><h1>Particles<a class="headerlink" href="#particles" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="radius">
 <h2>Radius<a class="headerlink" href="#radius" title="Permalink to this headline">¶</a></h2>
-<p>All dynamic objects in Flex are made up of particles. For efficiency all particles have the same radius, which is specified for each container. The radius is one one of the most important parameters for the simulation because it specifies the maximum interaction distance of particles.</p>
-<p>Before authoring assets it is best to decide on a suitable radius, typical values are 5cm-10cm, although smaller and larger particles may be useful in some situations. The radius should be chosen to reflect the desired resolution of the simulated materials: the smaller the radius, the higher the resolution (and generally the more expensive the simulation). A radius that is to small can also result in tunneling (particles passing through each other), so a smaller radius generally requires a smaller time-step (or more sub-steps).</p>
-<p>The radius has a different meaning for solid and fluid particles. For non-fluid particles, the radius represents the distance that particles will try to maintain from each other. For fluid particles the radius specifies the &#8220;smoothing radius&#8221; of SPH kernels.</p>
+<p>All dynamic objects in Flex are made up of particles. For efficiency, all particles have the same radius, which is specified for each container. The radius is one of the most important parameters for the simulation because it specifies the maximum interaction distance between particles.</p>
+<p>Before authoring assets, it is best to decide on a suitable radius. Typical values are 5cm-10cm, although smaller and larger particles may be useful in some situations. The radius should be chosen to reflect the desired resolution of the simulated materials: the smaller the radius, the higher the resolution (and generally the more expensive the simulation). A radius that is too small can also result in tunneling (particles passing through each other), so a smaller radius generally requires a smaller time-step (or more sub-steps).</p>
+<p>The radius has a different meaning for solid and fluid particles. For non-fluid particles, the radius represents the distance that particles will try to maintain from each other. For fluid particles, the radius specifies the &#8220;smoothing radius&#8221; of  SPH (Smoothed Particle Hydrodynamics) computation.</p>
 </div>
 <div class="section" id="phases">
 <h2>Phases<a class="headerlink" href="#phases" title="Permalink to this headline">¶</a></h2>
 <p>Something you will see on many Flex objects in UE4 is a Phase property. All particles in Flex have a phase attribute that controls how they behave and how they collide with other particles:</p>
 <img alt="_images/phase.jpg" src="_images/phase.jpg" />
 <ul class="simple">
-<li><strong>Auto Assign Group</strong> When enabled (default), each particle in the object will automatically be assigned a unique group identifier (just a positive number). The collision rules in Flex are that particles of different groups will always collide with each other. By default particles of the same group will not collide with each other. For example, if you are creating a particle-based rigid body then you typically do not want the internal particles to collide with each other. By assigning the particles the same group they will ignore each other.</li>
-<li><strong>Group</strong>     If Auto Assign Group is disabled then this property can be used to manually set the group id for the particles. This allows you to create different objects with the same group identifier, for example if you wanted to disable collision between multiple objects.</li>
+<li><strong>Auto Assign Group</strong> When enabled (default), each particle in the object will be automatically assigned a unique group identifier (just a positive number). The collision rules in Flex are that particles of different groups will always collide with each other. By default particles of the same group will not collide with each other. For example, if you are creating a particle-based rigid body then you typically do not want the internal particles to collide with each other. By assigning the particles to the same group, they will ignore each other.</li>
+<li><strong>Group</strong>     If Auto Assign Group is disabled then this property can be used to manually set the group id for the particles. This allows you to create different objects with the same group identifier, for example, if you want to disable collision between multiple objects.</li>
 <li><strong>Self Collide</strong>      Particles with the same group id will not collide with each other by default. If this flag is ticked then particles of the same group will collide against each other. For example, if you want to make a piece of clothing collide with itself then this flag should be set.</li>
-<li><strong>Ignore Rest Collisions</strong>    When self-collision is turned on particles with the same group id will collide. This can cause a problem when particles overlap in the rest pose, for example neighboring particles in a cloth mesh where the radius is greater than the edge length. This leads to unwanted internal collisions that often cause the surface to look as if it&#8217;s crumpled as the collisions fight the cosntraints. This flag will test if particles overlap in the rest configuration, and if so will ignore collisions between them at run time.</li>
-<li><strong>Fluid</strong>     Any particle in Flex can be made to act like fluid (even ones that belong to clothing or rigid objects). To make particles behave as fluid this checkbox should be enabled. Note that the Fluid checkbox also needs to be enabled on the container.</li>
+<li><strong>Ignore Rest Collisions</strong>    When self-collision is turned on, particles with the same group id will collide. This can cause a problem when particles overlap in the rest pose. A good example is a cloth mesh where the neighboring particles radius is greater than the edge length. This leads to unwanted internal collisions that often cause the surface to look as if it&#8217;s crumpled as the collisions fight the constraints. This flag will test if particles overlap in the rest configuration and if so, will ignore collisions between them at run time.</li>
+<li><strong>Fluid</strong>     Any particle in Flex can be made to act like fluid (even ones that belong to clothing or rigid objects). To make particles behave as fluid, this checkbox should be enabled. Note that the Fluid checkbox also needs to be enabled on the container.</li>
 </ul>
 </div>
 </div>

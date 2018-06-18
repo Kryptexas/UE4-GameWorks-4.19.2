@@ -93,7 +93,7 @@
 <li class="toctree-l3"><a class="reference internal" href="FLEXUe4_Assets.html#flex-cloth-asset">Flex Cloth Asset</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="FLEXUe4_Assets.html#rigids">Rigids</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="FLEXUe4_Assets.html#solids">Solids</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="FLEXUe4_Assets.html#flex-solid-asset">Flex Solid Asset</a></li>
 </ul>
 </li>
@@ -120,9 +120,9 @@
 <li class="toctree-l1"><a class="reference internal" href="FLEXUe4_FluidSurfaceRendering.html">Fluid Rendering</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="FLEXUe4_FluidSurfaceRendering.html#creating-a-flex-fluid-surface">Creating a Flex Fluid Surface</a></li>
 <li class="toctree-l2"><a class="reference internal" href="FLEXUe4_FluidSurfaceRendering.html#fluid-surface-properties">Fluid Surface Properties</a></li>
+<li class="toctree-l2"><a class="reference internal" href="FLEXUe4_FluidSurfaceRendering.html#container">Container</a></li>
 <li class="toctree-l2"><a class="reference internal" href="FLEXUe4_FluidSurfaceRendering.html#emitter-settings">Emitter Settings</a></li>
 <li class="toctree-l2"><a class="reference internal" href="FLEXUe4_FluidSurfaceRendering.html#surface-material">Surface Material</a></li>
-<li class="toctree-l2"><a class="reference internal" href="FLEXUe4_FluidSurfaceRendering.html#container">Container</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="FLEXUe4_Debug.html">Debug Commands</a><ul>
@@ -131,7 +131,10 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="releasenotes.html">Release Notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#what-s-new">What&#8217;s New</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#what-s-new">What&#8217;s New</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="releasenotes.html#ue4-19-2">UE4.19.2</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#known-limitations">Known Limitations</a></li>
 </ul>
 </li>
@@ -166,11 +169,11 @@
             
   <div class="section" id="actors">
 <span id="flexue4-actors"></span><h1>Actors<a class="headerlink" href="#actors" title="Permalink to this headline">¶</a></h1>
-<p>Static meshes with a <strong>Flex Cloth Asset</strong> or a <strong>Flex Solid Asset</strong> can be instantiated using an actor type called <strong>Flex Actor</strong>. A Flex actor can, for example, be created by converting a static mesh actor in the <strong>Details</strong> view within the <strong>Actor</strong> category:</p>
+<p>Flex Static Meshes with a <strong>Flex Soft Asset</strong>, <strong>Flex Cloth Asset</strong> or a <strong>Flex Solid Asset</strong> can be instantiated using an actor type called <strong>Flex Actor</strong>. A Flex actor can, for example, be created by dragging a <strong>Flex Static Mesh</strong> asset from the content browser into the scene. Another possibility is to convert a static mesh actor in the <strong>Details</strong> view within the <strong>Actor</strong> category:</p>
 <div class="float-center container">
 <a class="reference internal image-reference" href="_images/converttoFlex.jpg"><img alt="_images/converttoFlex.jpg" src="_images/converttoFlex.jpg" style="width: 400px;" /></a>
 </div>
-<p>The Flex actor can only function properly if the static mesh has a valid Flex asset as described above. The <strong>Static Mesh Editor</strong> can be quickly opened to configure the Flex asset by double clicking the preview icon of the static mesh:</p>
+<p><strong>Note: After converting a Static Mesh Actor to a Flex Static Mesh Actor it&#8217;s important to exchange the Static Mesh with a Flex Static Mesh and to make sure the Flex Static Mesh is configured with a valid Flex Asset:</strong></p>
 <div class="float-center container">
 <img alt="_images/ActorEditAsset.jpg" src="_images/ActorEditAsset.jpg" />
 </div>
@@ -186,8 +189,8 @@
 <div class="float-center container">
 <img alt="_images/proxycollisiongeometry.jpg" src="_images/proxycollisiongeometry.jpg" />
 </div>
-<p>Some level of impact on the Flex particles can be desirable for example to have a pawn push and deform an inflated cloth actor. In this case the proxy collision geometry should be smaller than the volume occupied by Flex particles. The geometry, for example the sphere in the screenshot above, can be visualized by clicking the <strong>Collision</strong> visualization button. It can then be selected and scaled for example. In order to see the manipulation gizmo make sure to also enable the wireframe visualization and disable the Flex visualization.</p>
-<p>The proxy collision then needs to be configured in the <strong>Flex Actor Details</strong> view within the Collision category. It is important to disable collision with the <strong>Object Type</strong> specified in the <strong>Flex Container</strong>, which is the &#8220;Flex&#8221; Object Type by default. The <strong>FlexProxy Collision Preset</strong> takes this into accound and can be used as a starting point:</p>
+<p>Some level of impact on the Flex particles can be desirable for example to have a pawn push and deform an inflated cloth actor. In this case, the proxy collision geometry should be smaller than the volume occupied by Flex particles. The geometry, for example the sphere in the screenshot above, can be visualized by clicking the <strong>Collision</strong> visualization button. It can then be selected and scaled for example. In order to see the manipulation gizmo, make sure to also enable the wireframe visualization and disable the Flex visualization.</p>
+<p>The proxy collision then needs to be configured in the <strong>Flex Actor Details</strong> view within the Collision category. It is important to disable collision with the <strong>Object Type</strong> specified in the <strong>Flex Container</strong>, which is the &#8220;Flex&#8221; Object Type by default. The <strong>FlexProxy Collision Preset</strong> takes this into account and can be used as a starting point:</p>
 <div class="float-center container">
 <img alt="_images/ProxyCollisionPreset.jpg" src="_images/ProxyCollisionPreset.jpg" />
 </div>
