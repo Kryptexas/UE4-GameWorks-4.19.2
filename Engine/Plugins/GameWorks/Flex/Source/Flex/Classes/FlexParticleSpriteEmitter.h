@@ -29,7 +29,7 @@ class UFlexParticleSpriteEmitter : public UParticleSpriteEmitter
 	UPROPERTY(EditAnywhere, Category = Flex)
 	float Mass;
 
-	/** Optional Flex fluid surface for rendering */
+	/** Not supported anymore! See FlexContainer for FlexFluidSurface property.*/
 	UPROPERTY(EditAnywhere, Category = Flex)
 	class UFlexFluidSurface* FlexFluidSurfaceTemplate;
 

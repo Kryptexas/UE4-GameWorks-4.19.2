@@ -58,9 +58,9 @@ DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Instance Count"), STAT_Flex_InstanceCount, 
 DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Particle Count"), STAT_Flex_ParticleCount, STATGROUP_Flex);
 DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Spring Count"), STAT_Flex_SpringCount, STATGROUP_Flex);
 DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Shape Count"), STAT_Flex_ShapeCount, STATGROUP_Flex);
-DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Static Shape Count"), STAT_Flex_StaticShapeCount, STATGROUP_Flex);
-DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Static Convex Mesh Count"), STAT_Flex_StaticConvexMeshCount, STATGROUP_Flex);
-DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Static Triangle Mesh Count"), STAT_Flex_StaticTriangleMeshCount, STATGROUP_Flex);
+DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Collision Shape Count"), STAT_Flex_CollisionShapeCount, STATGROUP_Flex);
+DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Collision Convex Mesh Count"), STAT_Flex_CollisionConvexMeshCount, STATGROUP_Flex);
+DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Collision Triangle Mesh Count"), STAT_Flex_CollisionTriangleMeshCount, STATGROUP_Flex);
 DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Force Field Count"), STAT_Flex_ForceFieldCount, STATGROUP_Flex);
 
 // GPU stats, use "stat group enable flexgpu", and "stat flexgpu" to enable via console
@@ -112,7 +112,7 @@ void FFlexContainerInstance::onRelease(const PxBase* observed, void* userData, P
 		NvFlexDestroyTriangleMesh(FFlexManager::get().GetFlexLib(), *Mesh);
 		TriangleMeshes.Remove(observed);
 
-		DEC_DWORD_STAT(STAT_Flex_StaticTriangleMeshCount);
+		DEC_DWORD_STAT(STAT_Flex_CollisionTriangleMeshCount);
 	}
 
 	NvFlexConvexMeshId* Convex = ConvexMeshes.Find(observed);
@@ -123,7 +123,7 @@ void FFlexContainerInstance::onRelease(const PxBase* observed, void* userData, P
 		NvFlexDestroyConvexMesh(FFlexManager::get().GetFlexLib(), *Convex);
 		ConvexMeshes.Remove(observed);
 
-		DEC_DWORD_STAT(STAT_Flex_StaticConvexMeshCount);
+		DEC_DWORD_STAT(STAT_Flex_CollisionConvexMeshCount);
 	}
 
 	int32* ReportIndex = ShapeToCollisionReportIndex.Find(observed);
@@ -218,7 +218,7 @@ const NvFlexTriangleMeshId FFlexContainerInstance::GetTriangleMesh(const PxHeigh
 		// add to cache
 		TriangleMeshes.Add((void*)HeightField, NewMesh);
 
-		INC_DWORD_STAT(STAT_Flex_StaticTriangleMeshCount);
+		INC_DWORD_STAT(STAT_Flex_CollisionTriangleMeshCount);
 
 		return NewMesh;
 	}
@@ -278,7 +278,7 @@ const NvFlexTriangleMeshId FFlexContainerInstance::GetTriangleMesh(const PxTrian
 		// add to cache
 		TriangleMeshes.Add((void*)TriMesh, NewMesh);
 
-		INC_DWORD_STAT(STAT_Flex_StaticTriangleMeshCount);
+		INC_DWORD_STAT(STAT_Flex_CollisionTriangleMeshCount);
 
 		return NewMesh;
 	}
@@ -322,7 +322,7 @@ const NvFlexTriangleMeshId FFlexContainerInstance::GetConvexMesh(const PxConvexM
 
 		ConvexMeshes.Add((void*)ConvexMesh, NewMesh);
 
-		INC_DWORD_STAT(STAT_Flex_StaticConvexMeshCount);
+		INC_DWORD_STAT(STAT_Flex_CollisionConvexMeshCount);
 
 		return NewMesh;
 	}
@@ -349,7 +349,7 @@ void FFlexContainerInstance::UpdateCollisionData()
 		return;
 
 	// modify global geometry counts
-	DEC_DWORD_STAT_BY(STAT_Flex_StaticShapeCount, ShapePositions.size());
+	DEC_DWORD_STAT_BY(STAT_Flex_CollisionShapeCount, ShapePositions.size());
 
 	// map buffers for write
 	ShapeGeometry.map();
@@ -742,7 +742,7 @@ void FFlexContainerInstance::UpdateCollisionData()
 	}
 
 	// increase  global geometry counters
-	INC_DWORD_STAT_BY(STAT_Flex_StaticShapeCount, ShapePositions.size());
+	INC_DWORD_STAT_BY(STAT_Flex_CollisionShapeCount, ShapePositions.size());
 
 }
 
@@ -832,7 +832,7 @@ FFlexContainerInstance::FFlexContainerInstance(UFlexContainer* InTemplate, FPhys
 FFlexContainerInstance::~FFlexContainerInstance()
 {
 	DEC_DWORD_STAT(STAT_Flex_ContainerCount);
-	DEC_DWORD_STAT_BY(STAT_Flex_StaticShapeCount, ShapePositions.size());
+	DEC_DWORD_STAT_BY(STAT_Flex_CollisionShapeCount, ShapePositions.size());
 
 	UE_LOG(LogFlex, Display, TEXT("Destroying a FLEX system for.."));
 	
@@ -841,8 +841,8 @@ FFlexContainerInstance::~FFlexContainerInstance()
 
 	GPhysXSDK->unregisterDeletionListener(*this);
 
-	DEC_DWORD_STAT_BY(STAT_Flex_StaticTriangleMeshCount, TriangleMeshes.Num());
-	DEC_DWORD_STAT_BY(STAT_Flex_StaticConvexMeshCount, ConvexMeshes.Num());
+	DEC_DWORD_STAT_BY(STAT_Flex_CollisionTriangleMeshCount, TriangleMeshes.Num());
+	DEC_DWORD_STAT_BY(STAT_Flex_CollisionConvexMeshCount, ConvexMeshes.Num());
 
 	// destroy any remaining cached triangle meshes
 	for (auto It = TriangleMeshes.CreateIterator(); It; ++It)
