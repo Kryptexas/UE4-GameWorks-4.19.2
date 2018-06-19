@@ -636,222 +636,201 @@ public:
 	}
 
 	void AddSolidSphere(FVector Position, float Radius, FColor Color, int32 NumSides, int32 NumRings)
-{
-	// The first/last arc are on top of each other.
-	int32 NumVerts = (NumSides + 1) * (NumRings + 1);
-	FDynamicMeshVertex* Verts = (FDynamicMeshVertex*)FMemory::Malloc(NumVerts * sizeof(FDynamicMeshVertex));
-
-	// Calculate verts for one arc
-	FDynamicMeshVertex* ArcVerts = (FDynamicMeshVertex*)FMemory::Malloc((NumRings + 1) * sizeof(FDynamicMeshVertex));
-
-	for (int32 i = 0; i < NumRings + 1; i++)
 	{
-		FDynamicMeshVertex* ArcVert = &ArcVerts[i];
+		// The first/last arc are on top of each other.
+		int32 NumVerts = (NumSides + 1) * (NumRings + 1);
+		FDynamicMeshVertex* Verts = (FDynamicMeshVertex*)FMemory::Malloc(NumVerts * sizeof(FDynamicMeshVertex));
 
-		float angle = ((float)i / NumRings) * PI;
+		// Calculate verts for one arc
+		FDynamicMeshVertex* ArcVerts = (FDynamicMeshVertex*)FMemory::Malloc((NumRings + 1) * sizeof(FDynamicMeshVertex));
 
-		// Note- unit sphere, so position always has mag of one. We can just use it for normal!			
-		ArcVert->Position.X = 0.0f;
-		ArcVert->Position.Y = FMath::Sin(angle);
-		ArcVert->Position.Z = FMath::Cos(angle);
-
-		ArcVert->SetTangents(
-			FVector(1, 0, 0),
-			FVector(0.0f, -ArcVert->Position.Z, ArcVert->Position.Y),
-			ArcVert->Position
-			);
-
-		ArcVert->TextureCoordinate[0].X = 0.0f;
-		ArcVert->TextureCoordinate[0].Y = ((float)i / NumRings);
-		ArcVert->Color = Color;
-	}
-
-	// Then rotate this arc NumSides+1 times.
-	for (int32 s = 0; s < NumSides + 1; s++)
-	{
-		FRotator ArcRotator(0, 360.f * (float)s / NumSides, 0);
-		FRotationMatrix ArcRot(ArcRotator);
-		float XTexCoord = ((float)s / NumSides);
-
-		for (int32 v = 0; v < NumRings + 1; v++)
+		for (int32 i = 0; i < NumRings + 1; i++)
 		{
-			int32 VIx = (NumRings + 1)*s + v;
+			FDynamicMeshVertex* ArcVert = &ArcVerts[i];
 
-			Verts[VIx].Position = ArcRot.TransformPosition(ArcVerts[v].Position);
+			float angle = ((float)i / NumRings) * PI;
 
-			Verts[VIx].SetTangents(
-				ArcRot.TransformVector(ArcVerts[v].TangentX),
-				ArcRot.TransformVector(ArcVerts[v].GetTangentY()),
-				ArcRot.TransformVector(ArcVerts[v].TangentZ)
+			// Note- unit sphere, so position always has mag of one. We can just use it for normal!			
+			ArcVert->Position.X = 0.0f;
+			ArcVert->Position.Y = FMath::Sin(angle);
+			ArcVert->Position.Z = FMath::Cos(angle);
+
+			ArcVert->SetTangents(
+				FVector(1, 0, 0),
+				FVector(0.0f, -ArcVert->Position.Z, ArcVert->Position.Y),
+				ArcVert->Position
 				);
 
-			Verts[VIx].TextureCoordinate[0].X = XTexCoord;
-			Verts[VIx].TextureCoordinate[0].Y = ArcVerts[v].TextureCoordinate[0].Y;
-			Verts[VIx].Color = Color;
+			ArcVert->TextureCoordinate[0].X = 0.0f;
+			ArcVert->TextureCoordinate[0].Y = ((float)i / NumRings);
+			ArcVert->Color = Color;
 		}
-	}
 
-	// Add all of the vertices we generated to the mesh builder.
-	int32 VertexOffset = Vertices.Num();
-	Vertices.AddUninitialized(NumVerts);
-	for (int32 VertIdx = 0; VertIdx < NumVerts; VertIdx++)
-	{
-		FDynamicMeshVertex Vertex = Verts[VertIdx];
-		Vertex.Position = Vertex.Position*Radius + Position;
-		Vertices[VertexOffset + VertIdx] = Vertex;
-	}
-
-	// Add all of the triangles we generated to the mesh builder.
-	int32 TriangleOffset = Triangles.Num();
-	Triangles.AddUninitialized(NumSides*NumRings * 2 * 3);
-	int32 Index = 0;
-	for (int32 s = 0; s < NumSides; s++)
-	{
-		int32 a0start = (s + 0) * (NumRings + 1);
-		int32 a1start = (s + 1) * (NumRings + 1);
-
-		for (int32 r = 0; r < NumRings; r++)
+		// Then rotate this arc NumSides+1 times.
+		for (int32 s = 0; s < NumSides + 1; s++)
 		{
-			Triangles[TriangleOffset + Index++] = a0start + r + 0 + VertexOffset;
-			Triangles[TriangleOffset + Index++] = a1start + r + 0 + VertexOffset;
-			Triangles[TriangleOffset + Index++] = a0start + r + 1 + VertexOffset;
+			FRotator ArcRotator(0, 360.f * (float)s / NumSides, 0);
+			FRotationMatrix ArcRot(ArcRotator);
+			float XTexCoord = ((float)s / NumSides);
 
-			Triangles[TriangleOffset + Index++] = a1start + r + 0 + VertexOffset;
-			Triangles[TriangleOffset + Index++] = a1start + r + 1 + VertexOffset;
-			Triangles[TriangleOffset + Index++] = a0start + r + 1 + VertexOffset;
+			for (int32 v = 0; v < NumRings + 1; v++)
+			{
+				int32 VIx = (NumRings + 1)*s + v;
+
+				Verts[VIx].Position = ArcRot.TransformPosition(ArcVerts[v].Position);
+
+				Verts[VIx].SetTangents(
+					ArcRot.TransformVector(ArcVerts[v].TangentX),
+					ArcRot.TransformVector(ArcVerts[v].GetTangentY()),
+					ArcRot.TransformVector(ArcVerts[v].TangentZ)
+					);
+
+				Verts[VIx].TextureCoordinate[0].X = XTexCoord;
+				Verts[VIx].TextureCoordinate[0].Y = ArcVerts[v].TextureCoordinate[0].Y;
+				Verts[VIx].Color = Color;
+			}
 		}
-	}
 
-	// Free our local copy of verts and arc verts
-	FMemory::Free(Verts);
-	FMemory::Free(ArcVerts);
-}
+		// Add all of the vertices we generated to the mesh builder.
+		int32 VertexOffset = Vertices.Num();
+		Vertices.AddUninitialized(NumVerts);
+		for (int32 VertIdx = 0; VertIdx < NumVerts; VertIdx++)
+		{
+			FDynamicMeshVertex Vertex = Verts[VertIdx];
+			Vertex.Position = Vertex.Position*Radius + Position;
+			Vertices[VertexOffset + VertIdx] = Vertex;
+		}
+
+		// Add all of the triangles we generated to the mesh builder.
+		int32 TriangleOffset = Triangles.Num();
+		Triangles.AddUninitialized(NumSides*NumRings * 2 * 3);
+		int32 Index = 0;
+		for (int32 s = 0; s < NumSides; s++)
+		{
+			int32 a0start = (s + 0) * (NumRings + 1);
+			int32 a1start = (s + 1) * (NumRings + 1);
+
+			for (int32 r = 0; r < NumRings; r++)
+			{
+				Triangles[TriangleOffset + Index++] = a0start + r + 0 + VertexOffset;
+				Triangles[TriangleOffset + Index++] = a1start + r + 0 + VertexOffset;
+				Triangles[TriangleOffset + Index++] = a0start + r + 1 + VertexOffset;
+
+				Triangles[TriangleOffset + Index++] = a1start + r + 0 + VertexOffset;
+				Triangles[TriangleOffset + Index++] = a1start + r + 1 + VertexOffset;
+				Triangles[TriangleOffset + Index++] = a0start + r + 1 + VertexOffset;
+			}
+		}
+
+		// Free our local copy of verts and arc verts
+		FMemory::Free(Verts);
+		FMemory::Free(ArcVerts);
+	}
 
 	void AddLine(FVector Start, FVector End, FColor Color)
-{
-	Line L;
-	L.Start = Start;
-	L.End = End;
-	L.Color = Color;
+	{
+		Line L;
+		L.Start = Start;
+		L.End = End;
+		L.Color = Color;
 
-	Lines.Add(L);
-}
+		Lines.Add(L);
+	}
 
 	void AddBasis(FVector Position, float Length)
-{
-	AddLine(Position, Position + FVector(Length, 0.0f, 0.0f), FColor::Red);
-	AddLine(Position, Position + FVector(0.0f, Length, 0.0f), FColor::Green);
-	AddLine(Position, Position + FVector(0.0f, 0.0f, Length), FColor::Blue);
-}
+	{
+		AddLine(Position, Position + FVector(Length, 0.0f, 0.0f), FColor::Red);
+		AddLine(Position, Position + FVector(0.0f, Length, 0.0f), FColor::Green);
+		AddLine(Position, Position + FVector(0.0f, 0.0f, Length), FColor::Blue);
+	}
 
 	FFlexAssetPreviewSceneProxy(const UFlexAssetPreviewComponent* InComponent)
 		: FPrimitiveSceneProxy(InComponent)
-{
-	bWillEverBeLit = true;
-	bNeedsUnbuiltPreviewLighting = true;
-	bVerifyUsedMaterials = false;
-
-	ViewRelevance.bDrawRelevance = true;
-	ViewRelevance.bDynamicRelevance = true;
-	ViewRelevance.bNormalTranslucencyRelevance = true;
-
-	UFlexAsset* FlexAsset = InComponent->FlexAsset;
-	UFlexContainer* Container = FlexAsset ? FlexAsset->ContainerTemplate : NULL;
-
-	if (FlexAsset && Container)
 	{
-		//UFlexContainer::Radius represents rest spacing, which corresponds to two spheres of radii Radius/2 touching.
-		float Radius = Container->Radius*0.5f;
-		float InvMass = (FlexAsset->Mass > 0.0f) ? (1.0f / FlexAsset->Mass) : 0.0f;
+		bWillEverBeLit = true;
+		bNeedsUnbuiltPreviewLighting = true;
+		bVerifyUsedMaterials = false;
 
-		for (int32 ParticleIndex = 0; ParticleIndex < FlexAsset->Particles.Num(); ++ParticleIndex)
+		ViewRelevance.bDrawRelevance = true;
+		ViewRelevance.bDynamicRelevance = true;
+		ViewRelevance.bNormalTranslucencyRelevance = true;
+
+		UFlexAsset* FlexAsset = InComponent->FlexAsset;
+		UFlexContainer* Container = FlexAsset ? FlexAsset->ContainerTemplate : NULL;
+
+		if (FlexAsset && Container)
 		{
-			FVector4& Particle = FlexAsset->Particles[ParticleIndex];
-			FVector Position(Particle.X, Particle.Y, Particle.Z);
-			uint8 MassColVal = uint8(Particle.W * 255.0f / InvMass);
+			//UFlexContainer::Radius represents rest spacing, which corresponds to two spheres of radii Radius/2 touching.
+			float Radius = Container->Radius*0.5f;
+			float InvMass = (FlexAsset->Mass > 0.0f) ? (1.0f / FlexAsset->Mass) : 0.0f;
+
+			for (int32 ParticleIndex = 0; ParticleIndex < FlexAsset->Particles.Num(); ++ParticleIndex)
+			{
+				FVector4& Particle = FlexAsset->Particles[ParticleIndex];
+				FVector Position(Particle.X, Particle.Y, Particle.Z);
+				uint8 MassColVal = uint8(Particle.W * 255.0f / InvMass);
 				FColor Color = FColor(MassColVal, 0, 0, 255);
 
-			AddSolidSphere(Position, Radius, Color, 7, 7);
+				AddSolidSphere(Position, Radius, Color, 7, 7);
+			}
 		}
-	}
 
-	UFlexAssetSoft* FlexSoftAsset = Cast<UFlexAssetSoft>(FlexAsset);
+		UFlexAssetSoft* FlexSoftAsset = Cast<UFlexAssetSoft>(FlexAsset);
 
-	if (FlexSoftAsset)
-	{
-		Lines.Empty();
+		if (FlexSoftAsset)
+		{
+			Lines.Empty();
 			
-		// build cluster rings
-		for (int i=0; i < FlexSoftAsset->ShapeCenters.Num(); ++i)
-		{
-			AddBasis(FlexSoftAsset->ShapeCenters[i], FlexSoftAsset->ClusterRadius);
-		}
+			// build cluster rings
+			for (int i=0; i < FlexSoftAsset->ShapeCenters.Num(); ++i)
+			{
+				AddBasis(FlexSoftAsset->ShapeCenters[i], FlexSoftAsset->ClusterRadius);
+			}
 
-		// build links
-		for (int i=0; i < FlexSoftAsset->SpringCoefficients.Num(); ++i)
-		{
-			int Particle0 = FlexSoftAsset->SpringIndices[i*2+0];
-			int Particle1 = FlexSoftAsset->SpringIndices[i*2+1];
+			// build links
+			for (int i=0; i < FlexSoftAsset->SpringCoefficients.Num(); ++i)
+			{
+				int Particle0 = FlexSoftAsset->SpringIndices[i*2+0];
+				int Particle1 = FlexSoftAsset->SpringIndices[i*2+1];
 
-			AddLine(FlexSoftAsset->Particles[Particle0], FlexSoftAsset->Particles[Particle1], FColor::Cyan);
+				AddLine(FlexSoftAsset->Particles[Particle0], FlexSoftAsset->Particles[Particle1], FColor::Cyan);
+			}
 		}
 	}
-}
 
 	//virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI, const FSceneView* View) override
 	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, class FMeshElementCollector& Collector) const override
-{
-	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 	{
-		if (VisibilityMap & (1 << ViewIndex))
+		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 		{
-			const FSceneView* View = Views[ViewIndex];
-			FPrimitiveDrawInterface* PDI = Collector.GetPDI(ViewIndex);
-
-			FDynamicMeshBuilder MeshBuilder(View->GetFeatureLevel());
-			MeshBuilder.AddVertices(Vertices);
-			MeshBuilder.AddTriangles(Triangles);
-
-				UMaterial* Material = GEngine->ShadedLevelColorationLitMaterial;
-			if (View->Family->EngineShowFlags.VertexColors)
+			if (VisibilityMap & (1 << ViewIndex))
 			{
-				Material = GEngine->VertexColorViewModeMaterial_ColorOnly;
-			}
-			else if (View->Family->EngineShowFlags.Wireframe)
-			{
-				Material = GEngine->WireframeMaterial;
-			}
+				const FSceneView* View = Views[ViewIndex];
+				FPrimitiveDrawInterface* PDI = Collector.GetPDI(ViewIndex);
 
-			MeshBuilder.GetMesh(FMatrix::Identity, Material->GetRenderProxy(false), SDPG_World, false, false, ViewIndex, Collector);
+				FDynamicMeshBuilder MeshBuilder(View->GetFeatureLevel());
+				MeshBuilder.AddVertices(Vertices);
+				MeshBuilder.AddTriangles(Triangles);
 
-			// draw clusters
-			for (int32 i = 0; i < Lines.Num(); i++)
-				PDI->DrawLine(Lines[i].Start, Lines[i].End, Lines[i].Color, SDPG_Foreground, 0.0f);
+					UMaterial* Material = GEngine->ShadedLevelColorationLitMaterial;
+				if (View->Family->EngineShowFlags.VertexColors)
+				{
+					Material = GEngine->VertexColorViewModeMaterial_ColorOnly;
+				}
+				else if (View->Family->EngineShowFlags.Wireframe)
+				{
+					Material = GEngine->WireframeMaterial;
+				}
+
+				MeshBuilder.GetMesh(FMatrix::Identity, Material->GetRenderProxy(false), SDPG_World, false, false, ViewIndex, Collector);
+
+				// draw clusters
+				for (int32 i = 0; i < Lines.Num(); i++)
+					PDI->DrawLine(Lines[i].Start, Lines[i].End, Lines[i].Color, SDPG_Foreground, 0.0f);
+			}
 		}
 	}
-}
 		
-/*{
-	FDynamicMeshBuilder MeshBuilder;
-	MeshBuilder.AddVertices(Vertices);
-	MeshBuilder.AddTriangles(Triangles);
-
-	UMaterial* Material = GEngine->ShadedLevelColorationLitMaterial;
-	if (View->Family->EngineShowFlags.VertexColors)
-	{
-		Material = GEngine->VertexColorViewModeMaterial_ColorOnly;
-	}
-	else if (View->Family->EngineShowFlags.Wireframe)
-	{
-		Material = GEngine->ShadedLevelColorationUnlitMaterial;
-	}
-
-	FLinearColor BaseColor(1.0f, 1.0f, 1.0f);
-	const FColoredMaterialRenderProxy ColoredMaterialInstance(Material->GetRenderProxy(false), BaseColor);
-
-	MeshBuilder.Draw(PDI, FMatrix::Identity, &ColoredMaterialInstance, SDPG_World);
-}*/
-
 	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const
 	{
 		return ViewRelevance;

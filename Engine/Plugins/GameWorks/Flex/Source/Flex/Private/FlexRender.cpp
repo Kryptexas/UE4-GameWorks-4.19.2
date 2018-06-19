@@ -20,6 +20,7 @@ DECLARE_CYCLE_STAT(TEXT("Skin Mesh Time (CPU)"), STAT_Flex_RenderMeshTime, STATG
 struct FFlexVertex
 {
 	FVector Position;
+	FPackedNormal TangentX;
 	FPackedNormal TangentZ;
 };
 
@@ -115,6 +116,47 @@ int32 FFlexAttributeBuffer::CopyVertex(int32 Index, float Alpha)
 	return NewIndex;
 }
 
+void FFlexCPUVertexFactory::BindVertexData(const FFlexVertexBuffer* VertexBuffer, const FFlexAttributeBuffer* AttributeBuffer)
+{
+	Data.PositionComponent = FVertexStreamComponent(
+		VertexBuffer,
+		STRUCT_OFFSET(FFlexVertex, Position),
+		sizeof(FFlexVertex),
+		VET_Float3
+	);
+
+	// re-point attribute streams
+	Data.TextureCoordinates.Reset();
+	Data.TextureCoordinates.Add(FVertexStreamComponent(
+		AttributeBuffer,
+		STRUCT_OFFSET(FFlexVertexAttribute, TextureCoordinate),
+		sizeof(FFlexVertexAttribute),
+		VET_Float2
+	));
+
+	Data.ColorComponent = FVertexStreamComponent(
+		AttributeBuffer,
+		STRUCT_OFFSET(FFlexVertexAttribute, Color),
+		sizeof(FFlexVertexAttribute),
+		VET_Color);
+
+	Data.TangentBasisComponents[0] = FVertexStreamComponent(
+		VertexBuffer,
+		STRUCT_OFFSET(FFlexVertex, TangentX),
+		sizeof(FFlexVertex),
+		VET_PackedNormal
+	);
+
+	Data.TangentBasisComponents[1] = FVertexStreamComponent(
+		VertexBuffer,
+		STRUCT_OFFSET(FFlexVertex, TangentZ),
+		sizeof(FFlexVertex),
+		VET_PackedNormal
+	);
+
+	UpdateRHI();
+}
+
 // Overrides local vertex factory with CPU skinned deformation
 FFlexCPUVertexFactory::FFlexCPUVertexFactory(
 	const FLocalVertexFactory& Base, 
@@ -154,54 +196,7 @@ FFlexCPUVertexFactory::FFlexCPUVertexFactory(
 		const FFlexVertexBuffer*, VertexBuffer, &VertexBuffer,
 		const FFlexAttributeBuffer*, AttributeBuffer, &AttributeBuffer,
 	{
-		Factory->Data.PositionComponent = FVertexStreamComponent(
-			VertexBuffer,	
-			STRUCT_OFFSET(FFlexVertex,Position),
-			sizeof(FFlexVertex),
-			VET_Float3
-			);
-			
-		/*
-		// temp disable other streams
-		Factory->Data.TextureCoordinates.Reset();
-		Factory->Data.LightMapCoordinateComponent =  FVertexStreamComponent();
-		Factory->Data.ColorComponent = FVertexStreamComponent();
-		Factory->Data.TangentBasisComponents[0] = FVertexStreamComponent();
-		*/
-
-		// re-point attribute streams
-		Factory->Data.TextureCoordinates.Reset();
-		Factory->Data.TextureCoordinates.Add(FVertexStreamComponent(
-			AttributeBuffer,
-			STRUCT_OFFSET(FFlexVertexAttribute, TextureCoordinate),
-			sizeof(FFlexVertexAttribute),
-			VET_Float2
-			));
-
-		Factory->Data.ColorComponent = FVertexStreamComponent(
-			AttributeBuffer,
-			STRUCT_OFFSET(FFlexVertexAttribute, Color),
-			sizeof(FFlexVertexAttribute),
-			VET_Color);
-
-		
-		/*
-		Data->TangentBasisComponents[0] = FVertexStreamComponent(
-			VertexBuffer,
-			STRUCT_OFFSET(FFlexVertex,TangentX),
-			sizeof(FFlexVertex),
-			VET_Float3
-			);
-		*/
-
-		Factory->Data.TangentBasisComponents[1] = FVertexStreamComponent(
-			VertexBuffer,
-			STRUCT_OFFSET(FFlexVertex,TangentZ),
-			sizeof(FFlexVertex),
-			VET_PackedNormal
-			);
-
-		Factory->UpdateRHI();
+		Factory->BindVertexData(VertexBuffer, AttributeBuffer);
 	});
 }
 
@@ -237,9 +232,10 @@ void FFlexCPUVertexFactory::SkinCloth(const FVector4* SimulatedPositions, const 
 			Vertex[i].Position = FVector(SimulatedPositions[particleIndex]);
 			
 			// convert normal to packed format
-			FPackedNormal Normal = -FVector(SimulatedNormals[particleIndex]);
+			FPackedNormal Normal = FVector(-SimulatedNormals[particleIndex]);
 			Normal.Vector.W = 255;
 			Vertex[i].TangentZ = Normal;
+			Vertex[i].TangentX = FPackedNormal(FVector(1, 0, 0));
 		}
 	}
 
@@ -312,32 +308,30 @@ void FFlexCPUVertexFactory::SkinSoft(const FPositionVertexBuffer& Positions, con
 
 				FVector LocalPos = Positions.VertexPosition(VertexIndex) - RestPoses[Cluster];
 				FVector LocalNormal = Vertices.VertexTangentZ(VertexIndex);
-				//FVector LocalTangent = Vertices.VertexTangentX(VertexIndex);
+				FVector LocalTangent = Vertices.VertexTangentX(VertexIndex);
 			
 				SoftPos += (Transform.Rotation.RotateVector(LocalPos) + Transform.Translation)*Weight;
 				SoftNormal += (Transform.Rotation.RotateVector(LocalNormal))*Weight;
-				//SoftTangent += Rotation.RotateVector(LocalTangent)*Weight;
+				SoftTangent += (Transform.Rotation.RotateVector(LocalTangent))*Weight;
 			}
 		}
 			
 		// position
 		SkinnedVertices[VertexIndex].Position = SoftPos;
 
-		// normal
+		// tangent space
 		FPackedNormal Normal = SoftNormal;
 		Normal.Vector.W = 255;
 		SkinnedVertices[VertexIndex].TangentZ = Normal;
-
-		// tangent
-		//FPackedNormal Tangent = -SoftTangent;
-		//Tangent.Vector.W = 255;
-		//SkinnedTangents[VertexIndex] = Tangent;
+		SkinnedVertices[VertexIndex].TangentX = FPackedNormal(SoftTangent);
 	}
 
 	FFlexVertex* RESTRICT Vertex = (FFlexVertex*)RHILockVertexBuffer(VertexBuffer.VertexBufferRHI, 0, NumVertices*sizeof(FFlexVertex), RLM_WriteOnly);
 	FMemory::Memcpy(Vertex, &SkinnedVertices[0], sizeof(FFlexVertex)*NumVertices);
 	RHIUnlockVertexBuffer(VertexBuffer.VertexBufferRHI);		
 }
+
+IMPLEMENT_VERTEX_FACTORY_TYPE(FFlexCPUVertexFactory, "/Engine/Private/LocalVertexFactory.ush", true, true, true, true, true);
 
 /* GPU Skinning */
 

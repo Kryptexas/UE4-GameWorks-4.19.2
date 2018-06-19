@@ -103,6 +103,8 @@ public:
 // Overrides local vertex factory with CPU skinned deformation
 class FFlexCPUVertexFactory : public FFlexVertexFactory
 {
+	DECLARE_VERTEX_FACTORY_TYPE(FFlexVertexFactory);
+
 public:
 	
 	FFlexCPUVertexFactory(const FLocalVertexFactory& Base, int NumVerts, int MaxVerts, const int* ParticleMap, const FRawStaticIndexBuffer& Indices, const FStaticMeshVertexBuffer& Vertices, const FColorVertexBuffer& Colors, ERHIFeatureLevel::Type InFeatureLevel);
@@ -115,6 +117,23 @@ public:
 
 	virtual void OverrideMeshElement(FMeshBatchElement& element);
 
+	void BindVertexData(const FFlexVertexBuffer* VertexBuffer, const FFlexAttributeBuffer* AttributeBuffer);
+
+	/** Should we cache the material's shadertype on this platform with this vertex factory? */
+	static bool ShouldCompilePermutation(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType)
+	{
+		return  IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) &&
+			(Material->IsUsedWithFlexMeshes() || Material->IsSpecialEngineMaterial()) &&
+			FLocalVertexFactory::ShouldCompilePermutation(Platform, Material, ShaderType);
+	}
+
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		/*The FFlexCPUVertexFactory doesn't support the default MANUAL_VERTEX_FETCH path.*/
+		FLocalVertexFactory::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+		OutEnvironment.SetDefine(TEXT("MANUAL_VERTEX_FETCH"), TEXT("0"));
+	}
+
 	// Stores CPU skinned positions and normals to override default static mesh stream
 	FFlexVertexBuffer VertexBuffer;
 	FFlexAttributeBuffer AttributeBuffer;
@@ -123,7 +142,6 @@ public:
 	FFlexIndexBuffer IndexBuffer;
 
 	TArray<int> VertexToParticleMap;
-
 };
 
 class FFlexGPUVertexFactory : public FFlexVertexFactory
