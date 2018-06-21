@@ -1259,6 +1259,14 @@ protected:
 	virtual void UpdateDynamicData();
 
 public:
+	//#nv begin #flex
+	/**
+	* Get all of the Flex container templates from all of the emitter instances
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Flex")
+	class UObject* GetFirstFlexContainerTemplate(); //returns UFlexContainer*
+	//#nv end
+
 	FORCEINLINE int32 GetCurrentLODIndex() const
 	{
 		return LODLevel;

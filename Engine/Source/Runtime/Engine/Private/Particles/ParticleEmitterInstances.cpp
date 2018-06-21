@@ -31,6 +31,12 @@
 
 #include "Components/PointLightComponent.h"
 
+//#nv begin #flex
+#if WITH_FLEX
+#include "GameWorks/IFlexPluginBridge.h"
+#endif
+//#nv end
+
 /*-----------------------------------------------------------------------------
 FParticlesStatGroup
 -----------------------------------------------------------------------------*/
@@ -431,6 +437,11 @@ FParticleEmitterInstance::FParticleEmitterInstance() :
     , LoopCount(0)
 	, IsRenderDataDirty(0)
     , EmitterDuration(0.0f)
+	//#nv begin #flex
+#if WITH_FLEX
+	, FlexEmitterInstance(NULL)
+#endif
+	//#nv end
 	, TrianglesToRender(0)
 	, MaxVertexIndex(0)
 	, CurrentMaterial(NULL)
@@ -446,6 +457,15 @@ FParticleEmitterInstance::FParticleEmitterInstance() :
 /** Destructor	*/
 FParticleEmitterInstance::~FParticleEmitterInstance()
 {
+	//#nv begin #flex
+#if WITH_FLEX
+	if (GFlexPluginBridge)
+	{
+		GFlexPluginBridge->DestroyFlexEmitterInstance(this);
+	}
+#endif
+	//#nv end
+
 	for (int32 i = 0; i < HighQualityLights.Num(); ++i)
 	{
 		UPointLightComponent* PointLightComponent = HighQualityLights[i];
@@ -502,6 +522,15 @@ void FParticleEmitterInstance::Init()
 	if(bNeedsInit)
 	{
 		SCOPE_CYCLE_COUNTER(STAT_ParticleEmitterInstance_InitSize);
+
+		//#nv begin #flex
+#if WITH_FLEX
+		if (GFlexPluginBridge)
+		{
+			GFlexPluginBridge->CreateFlexEmitterInstance(this);
+		}
+#endif
+		//#nv end
 
 		// Copy pre-calculated info
 		bRequiresLoopNotification = SpriteTemplate->bRequiresLoopNotification;
@@ -684,7 +713,7 @@ void FParticleEmitterInstance::UpdateTransforms()
 		LODLevel->RequiredModule->EmitterOrigin
 		);
 
-	if (LODLevel->RequiredModule->bUseLocalSpace)
+	if (UseLocalSpace())
 	{
 		EmitterToSimulation = EmitterToComponent;
 		SimulationToWorld = ComponentToWorld;
@@ -830,6 +859,15 @@ void FParticleEmitterInstance::Tick(float DeltaTime, bool bSuppressSpawning)
 		SCOPE_CYCLE_COUNTER(STAT_SpriteUpdateTime);
 		CurrentMaterial = LODLevel->RequiredModule->Material;
 		Tick_ModuleUpdate(DeltaTime, LODLevel);
+
+		//#nv begin #flex
+#if WITH_FLEX
+		if (GFlexPluginBridge)
+		{
+			GFlexPluginBridge->TickFlexEmitterInstance(this, DeltaTime, bSuppressSpawning);
+		}
+#endif
+		//#nv end
 
 		// Spawn new particles.
 		SpawnFraction = Tick_SpawnParticles(DeltaTime, LODLevel, bSuppressSpawning, bFirstTime);
@@ -1277,8 +1315,6 @@ void FParticleEmitterInstance::UpdateBoundingBox(float DeltaTime)
 		// Take component scale into account
 		FVector Scale = Component->GetComponentTransform().GetScale3D();
 
-		UParticleLODLevel* LODLevel = GetCurrentLODLevelChecked();
-
 		FVector	NewLocation;
 		float	NewRotation;
 		if (bUpdateBox)
@@ -1311,7 +1347,7 @@ void FParticleEmitterInstance::UpdateBoundingBox(float DeltaTime)
 		FVector MinVal(HALF_WORLD_MAX);
 		FVector MaxVal(-HALF_WORLD_MAX);
 		
-		const bool bUseLocalSpace = LODLevel->RequiredModule->bUseLocalSpace;
+		const bool bUseLocalSpace = UseLocalSpace();
 
 		const FMatrix ComponentToWorld = bUseLocalSpace 
 			? Component->GetComponentToWorld().ToMatrixWithScale() 
@@ -1412,7 +1448,6 @@ void FParticleEmitterInstance::ForceUpdateBoundingBox()
 		// Take component scale into account
 		FVector Scale = Component->GetComponentTransform().GetScale3D();
 
-		UParticleLODLevel* LODLevel = GetCurrentLODLevelChecked();
 		UParticleLODLevel* HighestLODLevel = SpriteTemplate->LODLevels[0];
 		check(HighestLODLevel);
 
@@ -1421,7 +1456,7 @@ void FParticleEmitterInstance::ForceUpdateBoundingBox()
 		// Store off the orbit offset, if there is one
 		int32 OrbitOffsetValue = GetOrbitPayloadOffset();
 
-		const bool bUseLocalSpace = LODLevel->RequiredModule->bUseLocalSpace;
+		const bool bUseLocalSpace = UseLocalSpace();
 
 		const FMatrix ComponentToWorld = bUseLocalSpace 
 			? Component->GetComponentToWorld().ToMatrixWithScale() 
@@ -1524,6 +1559,15 @@ uint32 FParticleEmitterInstance::RequiredBytes()
 		SubUVDataOffset = PayloadOffset;
 		uiBytes	= sizeof(FFullSubUVPayload);
 	}
+
+	//#nv begin #flex
+#if WITH_FLEX
+	if (GFlexPluginBridge)
+	{
+		uiBytes = GFlexPluginBridge->GetFlexEmitterInstanceRequiredBytes(this, uiBytes);
+	}
+#endif	
+	//#nv end
 
 	return uiBytes;
 }
@@ -2144,6 +2188,18 @@ void FParticleEmitterInstance::SpawnParticles( int32 Count, float StartTime, flo
 			continue;
 		}
 
+		//#nv begin #flex
+#if WITH_FLEX
+		if (GFlexPluginBridge)
+		{
+			if (GFlexPluginBridge->FlexEmitterInstanceSpawnParticle(this, Particle, CurrentParticleIndex) == false)
+			{
+				continue;
+			}
+		}
+#endif
+		//#nv end
+
 		if (EventPayload)
 		{
 			if (EventPayload->bSpawnEventsPresent)
@@ -2179,8 +2235,6 @@ UParticleLODLevel* FParticleEmitterInstance::GetCurrentLODLevelChecked()
 void FParticleEmitterInstance::ForceSpawn(float DeltaTime, int32 InSpawnCount, int32 InBurstCount, 
 	FVector& InLocation, FVector& InVelocity)
 {
-	UParticleLODLevel* LODLevel = GetCurrentLODLevelChecked();
-
 	// For beams, we probably want to ignore the SpawnRate distribution,
 	// and focus strictly on the BurstList...
 	int32 SpawnCount = InSpawnCount;
@@ -2220,7 +2274,7 @@ void FParticleEmitterInstance::ForceSpawn(float DeltaTime, int32 InSpawnCount, i
 			// This logic matches the existing behavior. However, I think the
 			// interface for ForceSpawn should treat these values as being in
 			// world space and transform them to emitter local space if necessary.
-			const bool bUseLocalSpace = LODLevel->RequiredModule->bUseLocalSpace;
+			const bool bUseLocalSpace = UseLocalSpace();
 			FVector SpawnLocation = bUseLocalSpace ? FVector::ZeroVector : InLocation;
 			FVector SpawnVelocity = bUseLocalSpace ? FVector::ZeroVector : InVelocity;
 
@@ -2299,8 +2353,8 @@ bool FParticleEmitterInstance::HasCompleted()
 void FParticleEmitterInstance::PostSpawn(FBaseParticle* Particle, float InterpolationPercentage, float SpawnTime)
 {
 	// Interpolate position if using world space.
-	UParticleLODLevel* LODLevel = GetCurrentLODLevelChecked();
-	if (LODLevel->RequiredModule->bUseLocalSpace == false)
+
+	if (UseLocalSpace() == false)
 	{
 		if (FVector::DistSquared(OldLocation, Location) > 1.f)
 		{
@@ -2352,6 +2406,15 @@ void FParticleEmitterInstance::KillParticles()
 				ParticleIndices[ActiveParticles-1]	= CurrentIndex;
 				ActiveParticles--;
 
+				//#nv begin #flex
+#if WITH_FLEX
+				if (GFlexPluginBridge)
+				{
+					GFlexPluginBridge->FlexEmitterInstanceKillParticle(this, CurrentIndex);
+				}
+#endif
+				//#nv end
+
 				INC_DWORD_STAT(STAT_SpriteParticlesKilled);
 			}
 		}
@@ -2395,6 +2458,15 @@ void FParticleEmitterInstance::KillParticle(int32 Index)
 		}
 		ParticleIndices[ActiveParticles-1] = KillIndex;
 		ActiveParticles--;
+
+		//#nv begin #flex
+#if WITH_FLEX
+		if (GFlexPluginBridge)
+		{
+			GFlexPluginBridge->FlexEmitterInstanceKillParticle(this, KillIndex);
+		}
+#endif
+		//#nv end
 
 		INC_DWORD_STAT(STAT_SpriteParticlesKilled);
 	}
@@ -2461,6 +2533,15 @@ void FParticleEmitterInstance::KillParticlesForced(bool bFireEvents)
 		ParticleIndices[KillIdx] = ParticleIndices[ActiveParticles - 1];
 		ParticleIndices[ActiveParticles - 1] = CurrentIndex;
 		ActiveParticles--;
+
+		//#nv begin #flex
+#if WITH_FLEX
+		if (GFlexPluginBridge)
+		{
+			GFlexPluginBridge->FlexEmitterInstanceKillParticle(this, CurrentIndex);
+		}
+#endif
+		//#nv end
 
 		INC_DWORD_STAT(STAT_SpriteParticlesKilled);
 	}
@@ -2567,6 +2648,15 @@ bool FParticleEmitterInstance::IsDynamicDataRequired(UParticleLODLevel* InCurren
 	{
 		return false;
 	}
+
+	//#nv begin #flex
+#if WITH_FLEX
+	if (GFlexPluginBridge && GFlexPluginBridge->FlexEmitterInstanceShouldRenderParticles(this) == false)
+	{
+		return false;
+	}
+#endif
+	//#nv end
 
 	if ((InCurrentLODLevel == NULL) || (InCurrentLODLevel->bEnabled == false) ||
 		((InCurrentLODLevel->RequiredModule->bUseMaxDrawCount == true) && (InCurrentLODLevel->RequiredModule->MaxDrawCount == 0)))
@@ -2710,7 +2800,7 @@ bool FParticleEmitterInstance::FillReplayData( FDynamicEmitterReplayDataBase& Ou
 		NewReplayData->MaxDrawCount =
 			(LODLevel->RequiredModule->bUseMaxDrawCount == true) ? LODLevel->RequiredModule->MaxDrawCount : -1;
 		NewReplayData->ScreenAlignment	= LODLevel->RequiredModule->ScreenAlignment;
-		NewReplayData->bUseLocalSpace = LODLevel->RequiredModule->bUseLocalSpace;
+		NewReplayData->bUseLocalSpace = UseLocalSpace();
 		NewReplayData->EmitterRenderMode = SpriteTemplate->EmitterRenderMode;
 		NewReplayData->DynamicParameterDataOffset = DynamicParameterDataOffset;
 		NewReplayData->LightDataOffset = LightDataOffset;
@@ -2795,8 +2885,7 @@ void FParticleEmitterInstance::ApplyWorldOffset(FVector InOffset, bool bWorldShi
 	Location+= InOffset;
 	OldLocation+= InOffset;
 
-	UParticleLODLevel* LODLevel = GetCurrentLODLevelChecked();
-	if (!LODLevel->RequiredModule->bUseLocalSpace)
+	if (!UseLocalSpace())
 	{
 		PositionOffsetThisTick = InOffset;
 	}
@@ -2849,7 +2938,13 @@ void FParticleEmitterInstance::Tick_MaterialOverrides(int32 EmitterIndex)
 bool FParticleEmitterInstance::UseLocalSpace()
 {
 	const UParticleLODLevel* LODLevel = GetCurrentLODLevelChecked();
+	//#nv begin #flex
+#if WITH_FLEX
+	return LODLevel->RequiredModule->bUseLocalSpace || (GIsEditor && !GIsPlayInEditorWorld && GFlexPluginBridge && GFlexPluginBridge->FlexEmitterInstanceShouldForceLocalSpace(this));
+#else
 	return LODLevel->RequiredModule->bUseLocalSpace;
+#endif
+	//#nv end
 }
 
 void FParticleEmitterInstance::GetScreenAlignmentAndScale(int32& OutScreenAlign, FVector& OutScale)
@@ -3329,9 +3424,7 @@ void FParticleMeshEmitterInstance::UpdateBoundingBox(float DeltaTime)
 			FMemory::Memzero(&MeshBound, sizeof(FBoxSphereBounds));
 		}
 
-		UParticleLODLevel* LODLevel = GetCurrentLODLevelChecked();
-
-		const bool bUseLocalSpace = LODLevel->RequiredModule->bUseLocalSpace;
+		const bool bUseLocalSpace = UseLocalSpace();
 
 		const FMatrix ComponentToWorld = bUseLocalSpace 
 			? Component->GetComponentToWorld().ToMatrixWithScale() 

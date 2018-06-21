@@ -27,6 +27,13 @@ struct FShaderInterpolants
 {
 	/** The texture coordinate at which to sample. */
 	float2 TexCoord : TEXCOORD0;
+
+	//#nv begin #flex
+#if WITH_FLEX	
+	float2 ParticleTexCoord: TEXCOORD1;					//< Interpolates used to calculate a local particle index
+	nointerpolation int InstanceId: TEXCOORD2;			//< InstanceId for the tile
+#endif
+	//#nv end
 };
 
 /*------------------------------------------------------------------------------
@@ -67,6 +74,15 @@ float2 TileCoord = Input.TexCoord.xy * float2(TILE_SIZE_X,TILE_SIZE_Y) + TileOff
 		1
 		);
 	Interpolants.TexCoord.xy = TileCoord.xy;
+	
+	//#nv begin #flex
+#if WITH_FLEX	
+	// Calculate tex coords that can be used to calculate a particle index within a tile
+	Interpolants.ParticleTexCoord = Input.TexCoord * TILE_SIZE; 
+	// Will be looked up 4 times per tile here (as opposed to every pixel if was in pixel shader)
+	Interpolants.InstanceId = InstanceId;		
+#endif
+	//#nv end
 }
 
 #endif // #if VERTEXSHADER
@@ -75,6 +91,14 @@ float2 TileCoord = Input.TexCoord.xy * float2(TILE_SIZE_X,TILE_SIZE_Y) + TileOff
 	Particle simulation pixel shader.
 ------------------------------------------------------------------------------*/
 #if PARTICLE_SIMULATION_PIXELSHADER
+
+//#nv begin #flex
+#if WITH_FLEX
+Buffer<int> FlexParticleIndexBuffer;
+Buffer<float4> FlexPositionBuffer;
+Buffer<float4> FlexVelocityBuffer;
+#endif
+//#nv end
 
 /** Define to 1 to force no collision in the shader. */
 #define FORCE_NO_COLLISION 0
@@ -564,6 +588,31 @@ void PixelMain(
 	// Position.w holds the relative time of the particle.
 	float3 Position = PositionSample.xyz;
 	float RelativeTime = PositionSample.w;
+
+	//#nv begin #flex
+#if WITH_FLEX
+	// Calculate the tile base index 
+	int TileBaseIndex = Interpolants.InstanceId * TILE_SIZE * TILE_SIZE;
+	
+	// Calculate the particle index within a tile (between 0 and TILE_SIZE * TILE_SIZE)
+	// NOTE! This assumes particles are allocated within a tile in the top left/bottom right order
+	int TileParticleIndex = int(Interpolants.ParticleTexCoord.x) + TILE_SIZE * int(Interpolants.ParticleTexCoord.y + 0.5f);
+
+	// Get Flex particle index
+	int FlexParticleIndex = FlexParticleIndexBuffer[TileBaseIndex + TileParticleIndex];
+	if (FlexParticleIndex >= 0)
+	{
+		Position = FlexPositionBuffer[FlexParticleIndex].xyz;
+		Velocity = FlexVelocityBuffer[FlexParticleIndex].xyz;
+	}
+
+	OutPosition.xyz = Position;
+	OutPosition.w = RelativeTime + DeltaSeconds * TimeScale * NumIterations;
+	OutVelocity.xyz = Velocity;
+	OutVelocity.w = TimeScale;
+	return;
+#endif	
+	//#nv end
 
 	for (int IterationIndex = 0; IterationIndex < NumIterations; ++IterationIndex)
 	{

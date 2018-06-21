@@ -34,6 +34,11 @@
 #include "PhysicsEngine/PhysicalAnimationComponent.h"
 #include "Components/StereoLayerComponent.h"
 #include "ForceFeedbackComponentVisualizer.h"
+//#nv begin #flex
+#if WITH_FLEX
+#include "GameWorks/IFlexEditorPluginBridge.h"
+#endif
+//#nv end
 
 // NvFlow begin
 #include "GameWorks/RendererHooksNvFlow.h"
@@ -58,6 +63,14 @@ void FComponentVisualizersModule::StartupModule()
 	RegisterComponentVisualizer(UDecalComponent::StaticClass()->GetFName(), MakeShareable(new FDecalComponentVisualizer));
 	RegisterComponentVisualizer(UStereoLayerComponent::StaticClass()->GetFName(), MakeShareable(new FStereoLayerComponentVisualizer));
 
+	//#nv begin #flex
+#if WITH_FLEX
+	if (GFlexEditorPluginBridge)
+	{
+		GFlexEditorPluginBridge->RegisterComponentVisualizers(this);
+	}
+#endif
+	//#nv end
 	// NvFlow begin
 	if (GEditorRendererHooksNvFlow)
 	{

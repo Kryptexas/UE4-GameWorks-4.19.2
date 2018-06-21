@@ -43,6 +43,13 @@ enum EMaterialUsage
 	MATUSAGE_NiagaraRibbons,
 	MATUSAGE_NiagaraMeshParticles,
 
+	//#nv begin #flex
+#if WITH_FLEX
+	MATUSAGE_FlexFluidSurfaces,
+	MATUSAGE_FlexMeshes,
+#endif
+	//#nv end
+
 	// NVCHANGE_BEGIN: Add VXGI
 #if WITH_GFSDK_VXGI
 	MATUSAGE_VxgiVoxelization,

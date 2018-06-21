@@ -169,37 +169,53 @@ void FLocalVertexFactory::InitRHI()
 	if(Data.PositionComponent.VertexBuffer != Data.TangentBasisComponents[0].VertexBuffer)
 	{
 		FVertexDeclarationElementList PositionOnlyStreamElements;
-		PositionOnlyStreamElements.Add(AccessPositionStreamComponent(Data.PositionComponent,0));
+		AddVertexPositionElements(Data, PositionOnlyStreamElements);		
 		InitPositionDeclaration(PositionOnlyStreamElements);
 	}
 
 	FVertexDeclarationElementList Elements;
-	if(Data.PositionComponent.VertexBuffer != NULL)
+	AddVertexElements(Data, Elements);
+
+	check(Streams.Num() > 0);
+
+	InitDeclaration(Elements);
+
+	check(IsValidRef(GetDeclaration()));
+}
+
+void FLocalVertexFactory::AddVertexPositionElements(FDataType& InData, FVertexDeclarationElementList& Elements)
+{
+	Elements.Add(AccessPositionStreamComponent(InData.PositionComponent,0));
+}
+
+void FLocalVertexFactory::AddVertexElements(FDataType& InData, FVertexDeclarationElementList& Elements)
+{
+	if(InData.PositionComponent.VertexBuffer != NULL)
 	{
-		Elements.Add(AccessStreamComponent(Data.PositionComponent,0));
+		Elements.Add(AccessStreamComponent(InData.PositionComponent,0));
 	}
 
 	// only tangent,normal are used by the stream. the binormal is derived in the shader
 	uint8 TangentBasisAttributes[2] = { 1, 2 };
 	for(int32 AxisIndex = 0;AxisIndex < 2;AxisIndex++)
 	{
-		if(Data.TangentBasisComponents[AxisIndex].VertexBuffer != NULL)
+		if(InData.TangentBasisComponents[AxisIndex].VertexBuffer != NULL)
 		{
-			Elements.Add(AccessStreamComponent(Data.TangentBasisComponents[AxisIndex],TangentBasisAttributes[AxisIndex]));
+			Elements.Add(AccessStreamComponent(InData.TangentBasisComponents[AxisIndex],TangentBasisAttributes[AxisIndex]));
 		}
 	}
 
-	if (Data.ColorComponentsSRV == nullptr)
+	if (InData.ColorComponentsSRV == nullptr)
 	{
-		Data.ColorComponentsSRV = GNullColorVertexBuffer.VertexBufferSRV;
-		Data.ColorIndexMask = 0;
+		InData.ColorComponentsSRV = GNullColorVertexBuffer.VertexBufferSRV;
+		InData.ColorIndexMask = 0;
 	}
 
 	ColorStreamIndex = -1;
-	if(Data.ColorComponent.VertexBuffer)
+	if(InData.ColorComponent.VertexBuffer)
 	{
-		Elements.Add(AccessStreamComponent(Data.ColorComponent,3));
-		ColorStreamIndex = Elements.Last().StreamIndex;
+		Elements.Add(AccessStreamComponent(InData.ColorComponent,3));
+		ColorStreamIndex = Elements.Last().StreamIndex;	
 	}
 	else
 	{
@@ -210,40 +226,34 @@ void FLocalVertexFactory::InitRHI()
 		ColorStreamIndex = Elements.Last().StreamIndex;
 	}
 
-	if(Data.TextureCoordinates.Num())
+	if(InData.TextureCoordinates.Num())
 	{
 		const int32 BaseTexCoordAttribute = 4;
-		for(int32 CoordinateIndex = 0;CoordinateIndex < Data.TextureCoordinates.Num();CoordinateIndex++)
+		for(int32 CoordinateIndex = 0;CoordinateIndex < InData.TextureCoordinates.Num();CoordinateIndex++)
 		{
 			Elements.Add(AccessStreamComponent(
-				Data.TextureCoordinates[CoordinateIndex],
+				InData.TextureCoordinates[CoordinateIndex],
 				BaseTexCoordAttribute + CoordinateIndex
 				));
 		}
 
-		for (int32 CoordinateIndex = Data.TextureCoordinates.Num(); CoordinateIndex < MAX_STATIC_TEXCOORDS / 2; CoordinateIndex++)
+		for (int32 CoordinateIndex = InData.TextureCoordinates.Num(); CoordinateIndex < MAX_STATIC_TEXCOORDS / 2; CoordinateIndex++)
 		{
 			Elements.Add(AccessStreamComponent(
-				Data.TextureCoordinates[Data.TextureCoordinates.Num() - 1],
+				InData.TextureCoordinates[InData.TextureCoordinates.Num() - 1],
 				BaseTexCoordAttribute + CoordinateIndex
 				));
 		}
 	}
 
-	if(Data.LightMapCoordinateComponent.VertexBuffer)
+	if(InData.LightMapCoordinateComponent.VertexBuffer)
 	{
-		Elements.Add(AccessStreamComponent(Data.LightMapCoordinateComponent,15));
+		Elements.Add(AccessStreamComponent(InData.LightMapCoordinateComponent,15));
 	}
-	else if(Data.TextureCoordinates.Num())
+	else if(InData.TextureCoordinates.Num())
 	{
-		Elements.Add(AccessStreamComponent(Data.TextureCoordinates[0],15));
+		Elements.Add(AccessStreamComponent(InData.TextureCoordinates[0],15));
 	}
-
-	check(Streams.Num() > 0);
-
-	InitDeclaration(Elements);
-
-	check(IsValidRef(GetDeclaration()));
 }
 
 FVertexFactoryShaderParameters* FLocalVertexFactory::ConstructShaderParameters(EShaderFrequency ShaderFrequency)

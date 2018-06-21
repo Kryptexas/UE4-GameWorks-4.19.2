@@ -624,6 +624,22 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Usage)
 	uint32 bUsedWithStaticLighting:1;
 
+	//#nv begin #flex
+	/** 
+	* Indicates that the material and its instances can be use with flex fluid surfaces
+	* This will result in the shaders required to support flex fluid surfaces being compiled which will increase shader compile time and memory usage.
+	*/
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Usage)
+	uint32 bUsedWithFlexFluidSurfaces : 1;
+
+	/**
+	* Indicates that the material and its instances can be use with flex deformable meshes.
+	* This will result in the shaders required to support flex deformation being compiled which will increase shader compile time and memory usage.
+	*/
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Usage)
+	uint32 bUsedWithFlexMeshes : 1;
+	//#nv end
+
 	/** 
 	 * Indicates that the material and its instances can be use with morph targets
 	 * This will result in the shaders required to support morph targets being compiled which will increase shader compile time and memory usage.

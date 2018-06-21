@@ -903,6 +903,21 @@ bool FMaterialResource::IsUsedWithStaticLighting() const
 	return Material->bUsedWithStaticLighting;
 }
 
+//#nv begin #flex
+#if WITH_FLEX
+bool FMaterialResource::IsUsedWithFlexFluidSurfaces() const
+{
+	return Material->bUsedWithFlexFluidSurfaces;
+}
+
+bool FMaterialResource::IsUsedWithFlexMeshes() const
+{
+	return Material->bUsedWithFlexMeshes;
+}
+
+#endif
+//#nv end
+
 bool FMaterialResource::IsUsedWithMorphTargets() const
 {
 	return Material->bUsedWithMorphTargets;

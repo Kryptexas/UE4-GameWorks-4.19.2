@@ -2885,7 +2885,7 @@ void FSceneTextureShaderParameters::Set(
 }
 
 #define IMPLEMENT_SCENE_TEXTURE_PARAM_SET( ShaderRHIParamRef ) \
-	template void FSceneTextureShaderParameters::Set< ShaderRHIParamRef >( \
+	template RENDERER_API void FSceneTextureShaderParameters::Set< ShaderRHIParamRef >( \
 		FRHICommandList& RHICmdList,				\
 		const ShaderRHIParamRef& ShaderRHI,			\
 		const FSceneView& View,						\

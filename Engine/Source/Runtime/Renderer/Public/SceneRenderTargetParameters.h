@@ -32,7 +32,7 @@ class FSceneTextureShaderParameters
 {
 public:
 	/** Binds the parameters using a compiled shader's parameter map. */
-	void Bind(const FShaderParameterMap& ParameterMap);
+	RENDERER_API void Bind(const FShaderParameterMap& ParameterMap);
 
 	/** Sets the scene texture parameters for the given view. */
 	template< typename ShaderRHIParamRef, typename TRHICmdList >
@@ -46,7 +46,7 @@ public:
 	) const;
 
 	/** Serializer. */
-	friend FArchive& operator<<(FArchive& Ar,FSceneTextureShaderParameters& P);
+	RENDERER_API friend FArchive& operator<<(FArchive& Ar,FSceneTextureShaderParameters& P);
 
 private:
 	/** The SceneColorTexture parameter for materials that use SceneColor */
